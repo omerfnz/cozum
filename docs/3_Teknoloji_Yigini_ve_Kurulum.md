@@ -85,85 +85,64 @@
 - Teknik uygulama: `reports.models.Media.file` alanında `upload_to` bir fonksiyona atanmıştır (report_media_upload_to). Bu sayede her yüklemede dinamik klasör yolu oluşturulur.
 - Not: Bu değişiklik migrasyon gerektirmez; yol kuralları çalışma zamanında uygulanır.
 
-### Mobile (React Native + Expo)
+### Mobile (Flutter)
 - Çalıştırma:
-  - Windows PowerShell: `cd mobile` ve `npm run start`
-  - Expo Developer Tools’taki QR’ı Expo Go ile tara (web modu kullanılmaz)
+  - Windows PowerShell: `cd mobile` ve `flutter run`
 - Ortam değişkeni:
-  - `mobile/.env`: `EXPO_PUBLIC_API_BASE_URL=http://localhost:8000/api`
+  - `--dart-define=API_BASE_URL=http://localhost:8000/api` ile taban URL geçilir.
 - Ağ katmanı:
-  - axios instance (Authorization: Bearer <token>) ve 401 durumunda refresh token ile otomatik yenileme
-  - AsyncStorage ile access/refresh token saklama
+  - `dio` ile HTTP istemcisi; Authorization: `Bearer <token>` başlığı için interceptor.
+  - 401 durumunda refresh token akışı ve otomatik yeniden deneme.
+  - Access/refresh token saklama: `flutter_secure_storage` (Android/iOS güvenli depolama)
 - Medya:
-  - expo-image-picker ile tek fotoğraf seçimi; FormData ile multipart POST
-  - Not: Axios boundary’i otomatik belirler; özel bir gereksinim yoksa Content-Type’ı manuel set etmemek önerilir
-- Navigasyon:
-  - `@react-navigation/native` + `@react-navigation/native-stack`
+  - `image_picker` ile tek fotoğraf seçimi; `FormData` ile multipart POST (dio).
+- Navigasyon ve Mimarî:
+  - `auto_route` ile yönlendirme, `get_it` ile DI, `flutter_bloc`/`equatable` ile state yönetimi.
 - Not:
-  - Mobil geliştirme hedefi gerçek cihaz (Expo Go). Web sürümü desteklenmiyor.
+  - MVP’de harita entegrasyonu opsiyoneldir; konum metin alanı yeterlidir. Harita için `google_maps_flutter` eklenerek AndroidManifest’e Google Maps API anahtarı gömülmelidir.
 
 ---
 
-#### Mobile – Google Maps ve Geliştirme Derlemesi (Android)
-- Expo Go ile Android’de Google Maps (react-native-maps) API anahtarı native seviyede gömülemediği için harita boş/gri görünebilir. Bu durumda “Development Build” veya EAS Cloud Build kullanılmalıdır.
+#### Kurulum Adımları (Windows)
+1) Flutter kurulumu doğrula
+```powershell
+flutter doctor
+```
 
-1) Gerekli bağımlılıklar
+2) Projeyi oluştur (kök dizinde)
+```powershell
+flutter create mobile
+```
+
+3) Bağımlılıkları ekle
 ```powershell
 cd mobile
-npm i react-native-maps expo-location expo-image-picker
+flutter pub add dio flutter_bloc equatable get_it auto_route flutter_secure_storage image_picker
+flutter pub add --dev build_runner auto_route_generator very_good_analysis
 ```
 
-2) Google Maps API anahtarını native’e göm (depolamaya ekleme!)
-- app.config.js / app.json içinde Android için aşağıdakini tanımla (anahtarı git’e koyma, EAS secret önerilir):
-```jsonc
-{
-  "expo": {
-    "android": {
-      "config": {
-        "googleMaps": { "apiKey": "<GOOGLE_MAPS_API_KEY>" }
-      }
-    }
-  }
-}
-```
-- Alternatif: AndroidManifest.xml içine `com.google.android.geo.API_KEY` meta-data eklenebilir.
-
-3) Yerel Android geliştirme derlemesi (Windows)
+4) Çalıştırma (API adresi ile)
 ```powershell
-# Java ve Android SDK için geçici ortam değişkenleri
-$env:JAVA_HOME="C:\Program Files\Android\Android Studio\jbr"
-$env:ANDROID_SDK_ROOT="$env:LOCALAPPDATA\Android\Sdk"
-$env:Path="$env:ANDROID_SDK_ROOT\platform-tools;$env:JAVA_HOME\bin;$env:Path"
-
-# Cihaz bağlantısı
-adb version
-adb devices  # USB hata ayıklama açık ve RSA izni verildi olmalı
-
-# Native üretim ve yükleme
-cd android
-.\gradlew installDebug   # veya: .\gradlew assembleDebug && adb install -r .\app\build\outputs\apk\debug\app-debug.apk
-
-# Metro bundler ile çalıştırma
-cd ..
-npx expo start --dev-client
+flutter run --dart-define=API_BASE_URL=http://localhost:8000/api
 ```
 
-4) EAS Cloud Development Build (alternatif)
-```powershell
-eas login
-cd mobile
-eas build:configure
-# Google Maps anahtarını gizli olarak ekle
-EAS_SECRET="<GOOGLE_MAPS_API_KEY>"
-eas secret:create --name GOOGLE_MAPS_API_KEY --value "$EAS_SECRET"
-# Development profiliyle derle
-eas build -p android --profile development
-# İndirip cihaza kurduktan sonra
-npx expo start --dev-client
+5) Android izinleri (gerekli durumlarda)
+- AndroidManifest.xml içine aşağıdaki izinleri ekleyin (hedef API seviyesine göre güncellenebilir):
+```xml
+<uses-permission android:name="android.permission.INTERNET" />
+<uses-permission android:name="android.permission.CAMERA" />
+<uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+<!-- Eski cihazlar için: <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" /> -->
 ```
 
-5) Sorun giderme
-- `npx expo run:android` cihaz bulunamadı: `adb devices` ile kontrol edin, sürücüler ve USB hata ayıklama açık olmalı.
-- `adb` tanınmıyor: `ANDROID_SDK_ROOT` ve `Path` içine `platform-tools` ekleyin.
-- `JAVA_HOME` eksik: Android Studio JBR yolunu `JAVA_HOME` olarak ayarlayın.
-- Harita boş/gri: Expo Go yerine development build kullanın; cihazda Google Play Services güncel olsun.
+6) Harita (opsiyonel)
+- `google_maps_flutter` ekleyin ve AndroidManifest.xml içine aşağıdaki meta veriyi ekleyin:
+```xml
+<meta-data android:name="com.google.android.geo.API_KEY" android:value="@string/google_maps_api_key" />
+```
+- Anahtarı yerel `local.properties` ya da `res/values/strings.xml` içinde yönetip git’e eklemeyin.
+
+7) Sorun giderme
+- `flutter doctor` uyarılarını giderin (Android SDK/JDK, platform-tools, cihaz/emu bağlantısı).
+- İzin reddi veya medya seçimi hatalarında Manifest ve runtime izinlerini kontrol edin.
+- Ağ çağrısı hatalarında `--dart-define=API_BASE_URL` değerini doğrulayın.
