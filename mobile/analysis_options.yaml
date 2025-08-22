@@ -1,0 +1,28 @@
+# Analysis options for this Flutter project
+# Use standard flutter_lints and relax strict rules to speed up development.
+
+include: package:flutter_lints/flutter.yaml
+
+analyzer:
+  errors:
+    # Relax a couple of style-only checks
+    lines_longer_than_80_chars: ignore
+    eol_at_end_of_file: ignore
+  exclude:
+    - build/**
+    - lib/**.g.dart
+    - lib/**.gr.dart
+
+linter:
+  rules:
+    # Relax strict rules
+    public_member_api_docs: false
+    sort_constructors_first: false
+    avoid_catches_without_on_clauses: false
+    omit_local_variable_types: false
+    always_use_package_imports: false
+
+    # Keep a few helpful ones
+    prefer_const_constructors: true
+    directives_ordering: true
+    avoid_print: true

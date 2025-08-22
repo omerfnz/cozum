@@ -158,30 +158,51 @@ M) Güvenlik ve Üretim Notları (MVP Sonrası)
 - [ ] CORS, dosya güvenliği, rate limit, loglama
 - [ ] DRF şema + Swagger (drf-spectacular) dokümantasyonu (opsiyonel)
 
-N) Mobil (React Native + Expo)
+N) Mobil (Flutter)
 1) Kurulum ve Proje Başlatma
-   - [x] Node 18+ ve Expo CLI kurulumu
-   - [x] Mevcut proje: mobile klasörü altında Expo (TypeScript) yapılandırması
-   - [x] Android için native prebuild tamamlandı (npx expo prebuild --platform android)
+   - [x] Flutter SDK ve Android toolchain doğrulandı (flutter doctor)
+   - [x] mobile klasörü Flutter ile oluşturuldu (flutter create mobile)
 2) Bağımlılıklar
-   - [x] axios, @react-navigation/native, @react-navigation/native-stack
-   - [x] @react-native-async-storage/async-storage
-   - [x] expo-image-picker (fotoğraf), expo-location (konum)
-   - [x] react-native-maps (harita) ve izin ayarları
-   - [x] react-native-reanimated, react-native-gesture-handler (navigasyon bağımlılıkları)
-3) Harita ve Konum (Mobil)
-   - [x] MapSelectScreen: MapView’e onError prop’u, yükleniyor overlay’i ve hata overlay’i eklendi
-   - [x] Konum alma: Son bilinen konumu anında kullan, ardından 7 sn timeout ile güncel konumu arka planda getir (MapSelect ve CreateReport’ta)
-   - [x] "Konumumu bul" ve "Mevcut konumu kullan" akışları hızlandırıldı; UI bloklanmıyor
-   - [ ] Development Build ile cihazda Google Map görünürlüğü doğrulanacak (Expo Go yerine)
-4) Çevresel Ayarlar
-   - [x] mobile/.env: EXPO_PUBLIC_API_BASE_URL yapılandırıldı
-   - [x] app.config.js: android.package eklendi (com.anonymous.cozumvarmobile)
-   - [ ] Google Maps API key EAS secret olarak tanımlanacak ve native’e gömülecek
-5) Çalıştırma
-   - [ ] Yerel: JAVA_HOME/ANDROID_SDK/ADB yolları ayarlanıp .\gradlew installDebug ile kurulum
-   - [ ] Cloud: EAS development build ile APK üretip cihaza kurulum
+   - [x] dio, flutter_bloc, equatable, get_it, auto_route, flutter_secure_storage, image_picker
+   - [x] Dev: build_runner, auto_route_generator, very_good_analysis
+3) Mimari ve Navigasyon
+   - [x] Clean Architecture iskeleti ve Material3 tema
+   - [ ] auto_route yapılandırması ve route generator kurulumu
+   - [ ] get_it container ve service/repository kayıtları
+4) Ağ ve Kimlik Doğrulama
+   - [ ] dio instance + interceptor (Bearer access token)
+   - [ ] 401 için refresh token akışı ve otomatik yeniden deneme
+   - [ ] flutter_secure_storage ile token saklama
+5) Özellikler (MVP)
+   - [ ] Auth: Kayıt (Vatandaş) ve giriş ekranları
+   - [ ] Rapor Oluştur: başlık, açıklama, kategori, 1 fotoğraf, konum (metin)
+   - [ ] Raporlarım: Liste + detay
+   - [ ] Operatör: tüm raporlar listesi, atama/durum
+   - [ ] Ekip: atanmış raporlar, durumu COZULDU yapma, yorum ekleme
+   - [ ] Yorumlar: detayda listeleme/ekleme (yetkiye göre)
+6) Medya
+   - [ ] image_picker ile fotoğraf seçimi, dio FormData ile yükleme
+7) Çevresel Ayarlar
+   - [x] API taban adresi: --dart-define=API_BASE_URL=http://localhost:8000/api
+   - [ ] Android izinleri: INTERNET, CAMERA, READ_MEDIA_IMAGES
+8) Çalıştırma
+   - [x] flutter run --dart-define=API_BASE_URL=http://localhost:8000/api
+9) Harita (opsiyonel)
+   - [ ] google_maps_flutter ekleme ve Android API key tanımı
 
 Güncel notlar (Android)
-- Expo Go’da Google Maps anahtarı native’e gömülemediği için harita boş/gri görünebilir; çözüm dev build (yerel/EAS).
-- ADB tanımsız ve JDK eksikliği giderildiğinde yerel kurulum sorunsuz ilerler.
+- Gerekli izinler ve API anahtarları git’e eklenmemelidir; yerel/secret yönetimi kullanılmalıdır.
+
+## Güncel Notlar (Mobil - Flutter Lint ve Endpoint Düzeltmeleri)
+- Lint/Analiz: `flutter analyze` çalıştırıldı ve tüm uyarı/hatalar giderildi; güncel durum: "No issues found!".
+- Hata düzeltmeleri (UI/Flutter):
+  - Import sırası (directives_ordering) düzeltildi: <mcfile name="register_view.dart" path="c:\\Users\\omer\\Desktop\\cozum\\mobile\\lib\\feature\\auth\\view\\register_view.dart"></mcfile>
+  - Şifre doğrulama regex’i düzeltildi (yalnızca rakam içeren şifreyi yakalamak için): `^\d+$`.
+  - Renk saydamlığı: `withOpacity(..)` kullanımları `withValues(alpha: ..)` ile güncellendi (precision kaybını önleyen yeni API).
+    - <mcfile name="register_view.dart" path="c:\\Users\\omer\\Desktop\\cozum\\mobile\\lib\\feature\\auth\\view\\register_view.dart"></mcfile>
+    - <mcfile name="login_view.dart" path="c:\\Users\\omer\\Desktop\\cozum\\mobile\\lib\\feature\\auth\\view\\login_view.dart"></mcfile>
+    - <mcfile name="home_view.dart" path="c:\\Users\\omer\\Desktop\\cozum\\mobile\\lib\\feature\\home\\view\\home_view.dart"></mcfile>
+    - <mcfile name="splash_view.dart" path="c:\\Users\\omer\\Desktop\\cozum\\mobile\\lib\\feature\\splash\\view\\splash_view.dart"></mcfile>
+- Mobil ağ/endpoint notları:
+  - Endpoint birleştirme: Öncü `/` kaldırıldı; Dio `baseUrl` ile doğru birleşim sağlandı: <mcfile name="report_repository.dart" path="c:\\Users\\omer\\Desktop\\cozum\\mobile\\lib\\product\\report\\report_repository.dart"></mcfile>
+  - JWT yenileme akışı: `isAuthEndpoint` kontrolü ve refresh yolunun `auth/refresh/` olarak stabilize edilmesi: <mcfile name="locator.dart" path="c:\\Users\\omer\\Desktop\\cozum\\mobile\\lib\\product\\init\\locator.dart"></mcfile>

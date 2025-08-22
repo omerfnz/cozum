@@ -101,6 +101,16 @@
 - Not:
   - MVP’de harita entegrasyonu opsiyoneldir; konum metin alanı yeterlidir. Harita için `google_maps_flutter` eklenerek AndroidManifest’e Google Maps API anahtarı gömülmelidir.
 
+#### Lint ve Analiz (Flutter)
+- Lint kural seti: `analysis_options.yaml` içerisinde `package:flutter_lints/flutter.yaml` dahil edilmiştir ve geliştirmeyi hızlandırmak için bazı stil kuralları gevşetilmiştir.
+- Kullanılan dev bağımlılıklar: `flutter_lints`, `very_good_analysis` (pubspec altında mevcuttur).
+- Kod güncellemeleri:
+  - `withOpacity(..)` çağrıları `withValues(alpha: ..)` ile güncellendi (deprecate uyarıları giderildi).
+  - Import sırası düzeltildi (directives_ordering).
+  - Kayıt sayfasında yalnızca sayısal şifreleri reddeden regex `%5E\d%2B$` → `^\d+$` olarak düzeltildi.
+- Doğrulama:
+  - `flutter analyze` sonucu: No issues found!
+
 ---
 
 #### Kurulum Adımları (Windows)
