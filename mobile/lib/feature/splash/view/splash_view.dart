@@ -1,10 +1,12 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:logger/logger.dart';
 import 'package:mobile/product/auth/auth_repository.dart';
 import 'package:mobile/product/auth/token_storage.dart';
 import 'package:mobile/product/init/locator.dart';
 import 'package:mobile/product/navigation/app_router.dart';
+import 'package:oktoast/oktoast.dart';
 
 /// Uygulama açılışında kimlik doğrulama durumunu kontrol eden Splash ekranı
 @RoutePage()
@@ -27,34 +29,48 @@ final class _SplashViewState extends State<SplashView> {
   Future<void> _bootstrap() async {
     final repo = di<AuthRepository>();
     final storage = di<TokenStorage>();
+    final logger = di<Logger>();
 
     var isAuthenticated = false;
 
     try {
       final access = await storage.readAccessToken();
       final refresh = await storage.readRefreshToken();
+      logger.i('[Splash] access=${access != null}, refresh=${refresh != null}');
 
       if (access == null && refresh != null) {
         // Access yoksa yenileme dene
+        logger.i('[Splash] Access yok, refresh deneniyor');
         isAuthenticated = await repo.refresh();
+        logger.i('[Splash] Refresh sonucu: $isAuthenticated');
       }
 
       if (!isAuthenticated) {
         // Access varsa me çağrısı dene
         try {
+          logger.i('[Splash] /auth/me çağrılıyor');
           await repo.me();
           isAuthenticated = true;
+          logger.i('[Splash] /auth/me başarılı');
         } on DioException catch (e) {
+          logger.w('[Splash] /auth/me hata: ${e.message} code=${e.response?.statusCode}');
           if (e.response?.statusCode == 401 && refresh != null) {
             // 401 olursa refresh dene
+            logger.i('[Splash] 401 -> refresh deneniyor');
             isAuthenticated = await repo.refresh();
+            logger.i('[Splash] Refresh sonucu: $isAuthenticated');
             if (isAuthenticated) {
               await repo.me();
             }
+          } else if (e.type == DioExceptionType.connectionError ||
+              e.type == DioExceptionType.connectionTimeout ||
+              e.type == DioExceptionType.unknown) {
+            showToast('Sunucuya bağlanılamadı. Lütfen ağ ve API_BASE_URL ayarını kontrol edin.');
           }
         }
       }
-    } on Exception {
+    } on Exception catch (e) {
+      logger.e('[Splash] Başlatma hatası: $e');
       isAuthenticated = false;
     }
 

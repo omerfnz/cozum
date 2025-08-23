@@ -156,3 +156,37 @@ flutter run --dart-define=API_BASE_URL=http://localhost:8000/api
 - `flutter doctor` uyarılarını giderin (Android SDK/JDK, platform-tools, cihaz/emu bağlantısı).
 - İzin reddi veya medya seçimi hatalarında Manifest ve runtime izinlerini kontrol edin.
 - Ağ çağrısı hatalarında `--dart-define=API_BASE_URL` değerini doğrulayın.
+
+---
+
+## Ağ Erişimi ve LAN IP ile Çalışma (Windows)
+- Backend’e LAN üzerinden erişim için sunucuyu tüm arayüzlerde dinleterek başlatın:
+  ```powershell
+  python manage.py runserver 0.0.0.0:8000
+  ```
+- `settings.py` içinde `ALLOWED_HOSTS` değerine geliştirmede erişilecek adresleri ekleyin:
+  ```python
+  ALLOWED_HOSTS = ["localhost", "127.0.0.1", "192.168.1.101"]
+  ```
+- React (frontend) için gerekiyorsa `CORS_ALLOWED_ORIGINS` içine LAN adresinizi ekleyin:
+  ```python
+  CORS_ALLOWED_ORIGINS = [
+      "http://localhost:5173",
+      "http://192.168.1.101:5173",
+  ]
+  ```
+- Windows Defender Firewall’da Python/Django için 8000 portuna gelen bağlantılara izin verildiğinden emin olun (Gelen Kuralları > Yeni Kural > Bağlantıya İzin Ver > 8000 TCP).
+- Mobil tarafı gerçek cihaz/emülatör ile test ederken API taban adresini LAN IP’nize göre geçin:
+  ```powershell
+  flutter run --dart-define=API_BASE_URL=http://192.168.1.101:8000/api
+  ```
+- React için `.env`:
+  ```ini
+  VITE_API_BASE_URL=http://192.168.1.101:8000/api
+  ```
+
+## Mutlak Medya URL’leri (Image.network için)
+- DRF tarafında `MediaSerializer` içerisinde `file` alanı mutlak URL olarak döndürülecek şekilde güncellendi.
+- Teknik detay: `request.build_absolute_uri(file.url)` kullanılır; istek bağlamı yoksa `file.url` döner.
+- Sonuç: Flutter’da `Image.network` ve webde `<img src>` doğrudan çalışır; `first_media_url` (liste) ve `media_files[].file` (detay) alanları tam URL döndürür.
+- Not: Bu değişiklik yalnızca serializer düzeyindedir, migrasyon gerektirmez.

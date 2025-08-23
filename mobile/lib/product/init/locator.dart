@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get_it/get_it.dart';
+import 'package:logger/logger.dart';
 import 'package:mobile/product/auth/auth_repository.dart';
 import 'package:mobile/product/auth/token_storage.dart';
 import 'package:mobile/product/config/app_config.dart';
@@ -17,12 +18,24 @@ Future<void> setupLocator({required String apiBaseUrl}) async {
     ..registerLazySingleton<TokenStorage>(() => TokenStorage(
           storage: const FlutterSecureStorage(),
         ))
+    ..registerLazySingleton<Logger>(() => Logger(
+          printer: PrettyPrinter(
+            methodCount: 0,
+            errorMethodCount: 5,
+            lineLength: 100,
+            colors: false,
+            printEmojis: false,
+            dateTimeFormat: DateTimeFormat.onlyTime,
+          ),
+          level: Level.debug,
+        ))
     ..registerLazySingleton<Dio>(() {
       final dio = Dio(
         BaseOptions(
           baseUrl: apiBaseUrl,
-          connectTimeout: const Duration(seconds: 15),
-          receiveTimeout: const Duration(seconds: 30),
+          connectTimeout: const Duration(seconds: 30),
+          receiveTimeout: const Duration(seconds: 60),
+          sendTimeout: const Duration(seconds: 60),
           headers: const {
             'Content-Type': 'application/json',
           },
@@ -30,6 +43,30 @@ Future<void> setupLocator({required String apiBaseUrl}) async {
       );
 
       final storage = di<TokenStorage>();
+      final logger = di<Logger>();
+      // Başlangıçta seçilen API baseUrl bilgisini logla
+      logger.i('[Init] API baseUrl: $apiBaseUrl');
+
+      // Basit HTTP loglayıcı (Authorization maskeli)
+      dio.interceptors.add(InterceptorsWrapper(
+        onRequest: (options, handler) async {
+          options.extra['__startTime'] = DateTime.now();
+          final hasAuth = (options.headers['Authorization'] ?? '').toString().isNotEmpty;
+          logger.i('[HTTP] -> ${options.method} ${options.baseUrl}${options.path} ${options.queryParameters.isNotEmpty ? options.queryParameters : ''} ${hasAuth ? '(auth: ****)' : ''}');
+          handler.next(options);
+        },
+        onResponse: (response, handler) {
+          final start = response.requestOptions.extra['__startTime'] as DateTime?;
+          final took = start != null ? DateTime.now().difference(start).inMilliseconds : null;
+          logger.i('[HTTP] <- ${response.statusCode} ${response.requestOptions.method} ${response.requestOptions.path} ${took != null ? '(${took}ms)' : ''}');
+          handler.next(response);
+        },
+        onError: (error, handler) {
+          final req = error.requestOptions;
+          logger.e('[HTTP] !! ${req.method} ${req.path} -> ${error.message} ${error.response?.statusCode != null ? '(code ${error.response?.statusCode})' : ''}');
+          handler.next(error);
+        },
+      ));
 
       dio.interceptors.add(InterceptorsWrapper(
         onRequest: (options, handler) async {

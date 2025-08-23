@@ -18,6 +18,9 @@ class CategorySerializer(serializers.ModelSerializer):
 class MediaSerializer(serializers.ModelSerializer):
     """Medya serileştiricisi"""
 
+    # 'file' alanını absolute URL olarak döndür
+    file = serializers.SerializerMethodField()
+
     class Meta:
         model = Media
         fields = [
@@ -29,6 +32,19 @@ class MediaSerializer(serializers.ModelSerializer):
             "uploaded_at",
         ]
         read_only_fields = ["file_path", "file_size", "uploaded_at"]
+
+    def get_file(self, obj):
+        file_field = getattr(obj, "file", None)
+        if not file_field:
+            return None
+        try:
+            url = file_field.url
+            request = self.context.get("request") if hasattr(self, "context") else None
+            if request is not None:
+                return request.build_absolute_uri(url)
+            return url
+        except Exception:
+            return None
 
 
 class CommentSerializer(serializers.ModelSerializer):
@@ -99,6 +115,10 @@ class ReportDetailSerializer(serializers.ModelSerializer):
     media_files = MediaSerializer(many=True, read_only=True)
     comments = CommentSerializer(many=True, read_only=True)
 
+    # DecimalField olabilecek alanları mobil uyumluluğu için float olarak serileştir
+    latitude = serializers.FloatField(allow_null=True, required=False)
+    longitude = serializers.FloatField(allow_null=True, required=False)
+
     class Meta:
         model = Report
         fields = [
@@ -126,6 +146,10 @@ class ReportCreateSerializer(serializers.ModelSerializer):
     media_files = serializers.ListField(
         child=serializers.FileField(allow_empty_file=False), write_only=True, required=False
     )
+
+    # Mobil taraf ile uyum için bu alanları float kabul et
+    latitude = serializers.FloatField(allow_null=True, required=False)
+    longitude = serializers.FloatField(allow_null=True, required=False)
 
     class Meta:
         model = Report
@@ -184,5 +208,4 @@ class ReportUpdateSerializer(serializers.ModelSerializer):
             report = self.instance
             if report and report.assigned_team != getattr(user, "team", None):
                 raise serializers.ValidationError("Bu bildirimi güncelleme yetkiniz yok.")
-
         return data

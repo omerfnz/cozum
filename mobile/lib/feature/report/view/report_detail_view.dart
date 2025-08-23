@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:logger/logger.dart';
 import 'package:mobile/product/init/locator.dart';
 import 'package:mobile/product/report/model/report_models.dart';
 import 'package:mobile/product/report/report_repository.dart';
+import 'package:oktoast/oktoast.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class ReportDetailView extends StatefulWidget {
   const ReportDetailView({super.key, required this.reportId});
@@ -37,12 +40,16 @@ class _ReportDetailViewState extends State<ReportDetailView> {
       _error = null;
     });
     try {
+      di<Logger>().i('[Detail] load id=${widget.reportId}');
       final detail = await _repo.fetchDetail(widget.reportId);
       if (!mounted) return;
       setState(() {
         _detail = detail;
       });
+      di<Logger>().i('[Detail] load success');
     } catch (e) {
+      di<Logger>().e('[Detail] load error: $e');
+      showToast('Detay yüklenemedi');
       setState(() {
         _error = 'Bildirimi yüklerken bir hata oluştu';
       });
@@ -58,6 +65,7 @@ class _ReportDetailViewState extends State<ReportDetailView> {
   Future<void> _sendComment() async {
     final text = _commentCtrl.text.trim();
     if (text.isEmpty) return;
+    di<Logger>().i('[Detail] sendComment len=${text.length}');
     setState(() => _sending = true);
     try {
       final newComment = await _repo.addComment(reportId: widget.reportId, content: text);
@@ -84,14 +92,12 @@ class _ReportDetailViewState extends State<ReportDetailView> {
               );
         _commentCtrl.clear();
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Yorum gönderildi')),
-      );
+      showToast('Yorum gönderildi');
+      di<Logger>().i('[Detail] comment sent');
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Yorum gönderilemedi')),
-      );
+      showToast('Yorum gönderilemedi');
+      di<Logger>().e('[Detail] comment error: $e');
     } finally {
       if (mounted) setState(() => _sending = false);
     }
@@ -118,7 +124,54 @@ class _ReportDetailViewState extends State<ReportDetailView> {
 
   Widget _buildBody() {
     if (_loading) {
-      return const Center(child: CircularProgressIndicator());
+      final skelColor = Theme.of(context).colorScheme.surfaceContainerHighest;
+      return ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          Container(height: 24, width: 220, color: skelColor),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: List.generate(
+              3,
+              (i) => Container(
+                height: 32,
+                width: 90 + i * 20,
+                decoration: BoxDecoration(color: skelColor, borderRadius: BorderRadius.circular(16)),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Container(width: 120, height: 12, color: skelColor),
+              const Spacer(),
+              Container(width: 80, height: 12, color: skelColor),
+            ],
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            height: 200,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemBuilder: (_, __) => Container(
+                width: 260,
+                height: 200,
+                color: skelColor,
+              ),
+              separatorBuilder: (_, __) => const SizedBox(width: 12),
+              itemCount: 3,
+            ),
+          ),
+          const SizedBox(height: 16),
+          ...List.generate(4, (i) => Padding(
+                padding: EdgeInsets.only(bottom: i == 3 ? 0 : 8),
+                child: Container(height: 12, color: skelColor),
+              )),
+          const SizedBox(height: 24),
+        ],
+      );
     }
     if (_error != null) {
       return ListView(
@@ -164,7 +217,11 @@ class _ReportDetailViewState extends State<ReportDetailView> {
             _Chip(icon: Icons.info_outline, label: d.status),
             if (d.category.name.isNotEmpty) _Chip(icon: Icons.category_outlined, label: d.category.name),
             if (d.location != null && d.location!.isNotEmpty)
-              _Chip(icon: Icons.place_outlined, label: d.location!),
+              _Chip(
+                icon: Icons.place_outlined,
+                label: d.location!,
+                onTap: () => _openMap(address: d.location!, lat: d.latitude, lon: d.longitude),
+              ),
           ],
         ),
         const SizedBox(height: 12),
@@ -209,26 +266,37 @@ class _ReportDetailViewState extends State<ReportDetailView> {
 }
 
 class _Chip extends StatelessWidget {
-  const _Chip({required this.icon, required this.label});
+  const _Chip({required this.icon, required this.label, this.onTap});
 
   final IconData icon;
   final String label;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+    return Material(
+      color: Theme.of(context).colorScheme.surfaceContainerHighest,
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        onTap: onTap,
         borderRadius: BorderRadius.circular(16),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 16, color: Theme.of(context).colorScheme.onSurfaceVariant),
-          const SizedBox(width: 6),
-          Text(label),
-        ],
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 16, color: Theme.of(context).colorScheme.onSurfaceVariant),
+              const SizedBox(width: 6),
+              Flexible(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -259,17 +327,27 @@ class _MediaGallery extends StatelessWidget {
               child: const Icon(Icons.image_not_supported_outlined),
             );
           }
-          return ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: AspectRatio(
-              aspectRatio: 4 / 3,
-              child: Image.network(
-                url,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Container(
-                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                  alignment: Alignment.center,
-                  child: const Icon(Icons.broken_image_outlined),
+          return GestureDetector(
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => _ImageViewerPage(imageUrl: url),
+              ),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: AspectRatio(
+                aspectRatio: 4 / 3,
+                child: Hero(
+                  tag: url,
+                  child: Image.network(
+                    url,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => Container(
+                      color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                      alignment: Alignment.center,
+                      child: const Icon(Icons.broken_image_outlined),
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -365,5 +443,52 @@ class _CommentComposer extends StatelessWidget {
         )
       ],
     );
+  }
+}
+
+class _ImageViewerPage extends StatelessWidget {
+  const _ImageViewerPage({required this.imageUrl});
+
+  final String imageUrl;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        foregroundColor: Colors.white,
+      ),
+      body: Center(
+        child: InteractiveViewer(
+          minScale: 0.5,
+          maxScale: 4.0,
+          child: Image.network(
+            imageUrl,
+            fit: BoxFit.contain,
+            errorBuilder: (_, __, ___) => const Icon(Icons.broken_image_outlined, color: Colors.white70, size: 48),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+Future<void> _openMap({String? address, double? lat, double? lon}) async {
+  try {
+    Uri? uri;
+    if (lat != null && lon != null) {
+      uri = Uri.parse('https://www.google.com/maps/search/?api=1&query=$lat,$lon');
+    } else if (address != null && address.isNotEmpty) {
+      final q = Uri.encodeComponent(address);
+      uri = Uri.parse('https://www.google.com/maps/search/?api=1&query=$q');
+    }
+    if (uri == null) return;
+    final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!ok) {
+      showToast('Haritayı açarken bir sorun oluştu');
+    }
+  } catch (e) {
+    showToast('Haritayı açarken bir hata oluştu');
   }
 }

@@ -1,10 +1,11 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
-
+import 'package:logger/logger.dart';
 import 'package:mobile/product/auth/auth_repository.dart';
 import 'package:mobile/product/init/locator.dart';
 import 'package:mobile/product/navigation/app_router.dart';
+import 'package:oktoast/oktoast.dart';
 
 @RoutePage()
 /// Kullanıcı kayıt ekranı
@@ -64,11 +65,13 @@ final class _RegisterViewState extends State<RegisterView> {
   Future<void> _onRegister() async {
     if (!_formKey.currentState!.validate()) return;
     final repo = di<AuthRepository>();
+    final logger = di<Logger>();
     setState(() {
       _loading = true;
       _error = null;
     });
     try {
+      logger.i('Kayıt denemesi: email=\\u003c${_emailController.text.trim()}\\u003e, username=\\u003c${_usernameController.text.trim()}\\u003e');
       await repo.register(
         email: _emailController.text.trim(),
         username: _usernameController.text.trim(),
@@ -76,16 +79,25 @@ final class _RegisterViewState extends State<RegisterView> {
         passwordConfirm: _passwordConfirmController.text,
         firstName: _nameController.text.isEmpty ? null : _nameController.text.trim(),
       );
+      showToast('Kayıt başarılı, giriş yapılıyor...');
       await repo.login(
         email: _emailController.text.trim(),
         password: _passwordController.text,
       );
       if (!mounted) return;
+      showToast('Giriş başarılı');
+      logger.i('Kayıt ve giriş başarılı');
       await context.router.replace(const HomeRoute());
     } on DioException catch (e) {
-      setState(() => _error = _parseDioError(e));
+      final msg = _parseDioError(e);
+      setState(() => _error = msg);
+      showToast('Kayıt başarısız: $msg');
+      di<Logger>().e('Kayıt hatası: $msg');
     } on Exception catch (e) {
-      setState(() => _error = e.toString());
+      final msg = e.toString();
+      setState(() => _error = msg);
+      showToast('Bir hata oluştu: $msg');
+      di<Logger>().e('Kayıt istisnası: $msg');
     } finally {
       if (mounted) {
         setState(() => _loading = false);
@@ -190,7 +202,7 @@ final class _RegisterViewState extends State<RegisterView> {
                             if (value.isEmpty) return 'Şifre zorunlu';
                             if (value.length < 8) return 'En az 8 karakter';
                             // Django NumericPasswordValidator: sadece rakam olamaz
-                            if (RegExp(r'^\d+$').hasMatch(value)) return 'Şifre sadece rakamlardan oluşamaz';
+                            if (RegExp(r'^\d+').hasMatch(value)) return 'Şifre sadece rakamlardan oluşamaz';
                             // En az bir harf ve bir rakam içersin (temel karmaşıklık)
                             final hasLetter = RegExp(r'[A-Za-z]').hasMatch(value);
                             final hasDigit = RegExp(r'\d').hasMatch(value);

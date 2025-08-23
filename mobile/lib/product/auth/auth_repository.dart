@@ -1,5 +1,7 @@
 import 'package:dio/dio.dart';
+import 'package:logger/logger.dart';
 import 'package:mobile/product/auth/token_storage.dart';
+import 'package:mobile/product/init/locator.dart';
 
 /// Kimlik doğrulama işlemlerini yöneten repository
 final class AuthRepository {
@@ -11,6 +13,7 @@ final class AuthRepository {
 
   /// E-posta ve şifre ile giriş yapar, access ve refresh tokenları güvenli şekilde saklar.
   Future<void> login({required String email, required String password}) async {
+    di<Logger>().i('[Auth] POST login <$email>');
     final res = await _dio.post<Map<String, dynamic>>(
       'auth/login/',
       data: {'email': email, 'password': password},
@@ -26,6 +29,7 @@ final class AuthRepository {
     }
     await _storage.writeAccessToken(access);
     await _storage.writeRefreshToken(refresh);
+    di<Logger>().i('[Auth] Login başarılı, tokenlar kaydedildi');
   }
 
   /// Yeni kullanıcı kaydı oluşturur.
@@ -51,11 +55,14 @@ final class AuthRepository {
       'address': address,
     }..removeWhere((key, value) => value == null || (value is String && value.isEmpty));
 
+    di<Logger>().i('[Auth] POST register <$email>');
     await _dio.post<void>('auth/register/', data: payload);
+    di<Logger>().i('[Auth] Register başarılı');
   }
 
   /// Kimlik doğrulanmış kullanıcının profil bilgilerini döner.
   Future<Map<String, dynamic>?> me() async {
+    di<Logger>().i('[Auth] GET me');
     final res = await _dio.get<Map<String, dynamic>>('auth/me/');
     return res.data;
   }
@@ -64,6 +71,7 @@ final class AuthRepository {
   Future<bool> refresh() async {
     final refresh = await _storage.readRefreshToken();
     if (refresh == null) return false;
+    di<Logger>().i('[Auth] POST refresh');
     final res = await _dio.post<Map<String, dynamic>>(
       'auth/refresh/',
       data: {'refresh': refresh},
@@ -72,9 +80,13 @@ final class AuthRepository {
     final access = data['access'] as String?;
     if (access == null) return false;
     await _storage.writeAccessToken(access);
+    di<Logger>().i('[Auth] Refresh başarılı');
     return true;
   }
 
   /// Tüm saklı tokenları temizleyerek çıkış yapar.
-  Future<void> logout() => _storage.clear();
+  Future<void> logout() {
+    di<Logger>().i('[Auth] Logout, tokenlar temizleniyor');
+    return _storage.clear();
+  }
 }

@@ -96,6 +96,7 @@ H) Medya ve Dosya Yönetimi
 - [x] Maks. boyut/uzantı kontrolleri, hata mesajları
 - [x] Geliştirmede dosya servis; üretimde CDN/harici depolama notu
 - [x] Yükleme yolu kuralı: `reports/YYYY/MM/DD/<report_id>/<filename>` (upload_to fonksiyonu ile dinamik klasörleme)
+- [x] Serializer: `MediaSerializer.file` alanı mutlak URL döndürür (Flutter Image.network için)
 
 Harita ve Konum (Frontend)
 - [x] Leaflet ve react-leaflet kuruldu, leaflet.css global import edildi
@@ -184,6 +185,7 @@ N) Mobil (Flutter)
    - [ ] image_picker ile fotoğraf seçimi, dio FormData ile yükleme
 7) Çevresel Ayarlar
    - [x] API taban adresi: --dart-define=API_BASE_URL=http://localhost:8000/api
+   - [x] LAN testi (gerçek cihaz/emülatör): `--dart-define=API_BASE_URL=http://192.168.1.101:8000/api`
    - [ ] Android izinleri: INTERNET, CAMERA, READ_MEDIA_IMAGES
 8) Çalıştırma
    - [x] flutter run --dart-define=API_BASE_URL=http://localhost:8000/api
@@ -206,3 +208,11 @@ Güncel notlar (Android)
 - Mobil ağ/endpoint notları:
   - Endpoint birleştirme: Öncü `/` kaldırıldı; Dio `baseUrl` ile doğru birleşim sağlandı: <mcfile name="report_repository.dart" path="c:\\Users\\omer\\Desktop\\cozum\\mobile\\lib\\product\\report\\report_repository.dart"></mcfile>
   - JWT yenileme akışı: `isAuthEndpoint` kontrolü ve refresh yolunun `auth/refresh/` olarak stabilize edilmesi: <mcfile name="locator.dart" path="c:\\Users\\omer\\Desktop\\cozum\\mobile\\lib\\product\\init\\locator.dart"></mcfile>
+
+## Güncel Notlar (Ağ/LAN IP ve Medya URL’leri)
+- LAN üzerinden erişim doğrulandı: `192.168.1.101` ile bağlantı başarılı.
+- Backend ayarları: `ALLOWED_HOSTS` içine `"192.168.1.101"` eklendi; gerekliyse `CORS_ALLOWED_ORIGINS` içine `"http://192.168.1.101:5173"` eklendi.
+- Windows Firewall’da 8000/TCP için gelen bağlantılara izin verildi.
+- Mobil çalıştırma: `flutter run --dart-define=API_BASE_URL=http://192.168.1.101:8000/api`.
+- Medya: `MediaSerializer.file` alanı artık mutlak URL döndürüyor; detay sayfasında görseller `Image.network` ile yüklenir.
+- Not: Serializer güncellemesi migrasyon gerektirmez.

@@ -1,9 +1,10 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
-
+import 'package:logger/logger.dart';
 import 'package:mobile/product/auth/auth_repository.dart';
 import 'package:mobile/product/init/locator.dart';
 import 'package:mobile/product/navigation/app_router.dart';
+import 'package:oktoast/oktoast.dart';
 
 /// Kullanıcı girişi yapan ekran
 @RoutePage()
@@ -34,19 +35,26 @@ final class _LoginViewState extends State<LoginView> {
   Future<void> _onLogin() async {
     if (!_formKey.currentState!.validate()) return;
     final repo = di<AuthRepository>();
+    final logger = di<Logger>();
     setState(() {
       _loading = true;
       _error = null;
     });
     try {
+      logger.i('Giriş denemesi: \\u003c${_emailController.text.trim()}\\u003e');
       await repo.login(
         email: _emailController.text.trim(),
         password: _passwordController.text,
       );
       if (!mounted) return;
+      showToast('Giriş başarılı');
+      logger.i('Giriş başarılı');
       await context.router.replace(const HomeRoute());
     } on Exception catch (e) {
-      setState(() => _error = e.toString());
+      final msg = e.toString();
+      setState(() => _error = msg);
+      showToast('Giriş hatası: $msg');
+      logger.e('Giriş hatası: $msg');
     } finally {
       if (mounted) {
         setState(() => _loading = false);

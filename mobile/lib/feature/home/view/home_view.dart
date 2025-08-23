@@ -1,6 +1,7 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:logger/logger.dart';
 import 'package:mobile/feature/home/cubit/home_feed_cubit.dart';
 import 'package:mobile/feature/report/view/report_create_view.dart';
 import 'package:mobile/feature/report/view/report_detail_view.dart';
@@ -9,6 +10,7 @@ import 'package:mobile/product/init/locator.dart';
 import 'package:mobile/product/navigation/app_router.dart';
 import 'package:mobile/product/report/model/report_models.dart';
 import 'package:mobile/product/report/report_repository.dart';
+import 'package:oktoast/oktoast.dart';
 
 /// Ana ekran görünümü
 @RoutePage()
@@ -68,6 +70,7 @@ final class _HomeViewState extends State<HomeView> {
               onPressed: () async {
                 final router = context.router;
                 await di<TokenStorage>().clear();
+                showToast('Çıkış yapıldı');
                 if (!context.mounted) return;
                 await router.replaceAll([const LoginRoute()]);
               },
@@ -84,9 +87,8 @@ final class _HomeViewState extends State<HomeView> {
                 child: BlocConsumer<HomeFeedCubit, HomeFeedState>(
                   listener: (context, state) {
                     if (state.error != null && state.items.isNotEmpty) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Yüklenirken hata: ${state.error}')),
-                      );
+                      showToast('Yüklenirken hata: ${state.error}');
+                      di<Logger>().e('[HomeView] Hata: ${state.error}');
                     }
                   },
                   builder: (context, state) {
@@ -104,6 +106,7 @@ final class _HomeViewState extends State<HomeView> {
                       child: NotificationListener<ScrollNotification>(
                         onNotification: (sn) {
                           if (sn.metrics.pixels >= sn.metrics.maxScrollExtent - 200) {
+                            di<Logger>().i('[HomeView] Scroll sonu -> fetchNext');
                             _cubit.fetchNext();
                           }
                           return false;

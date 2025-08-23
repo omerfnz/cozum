@@ -328,6 +328,13 @@ class ReportDetail extends Equatable {
       return DateTime.fromMillisecondsSinceEpoch(0);
     }
 
+    double? parseDouble(dynamic v) {
+      if (v == null) return null;
+      if (v is num) return v.toDouble();
+      if (v is String) return double.tryParse(v);
+      return null;
+    }
+
     return ReportDetail(
       id: (json['id'] as num).toInt(),
       title: json['title'] as String? ?? '',
@@ -340,8 +347,8 @@ class ReportDetail extends Equatable {
           ? null
           : TeamDto.fromJson((json['assigned_team'] as Map).cast<String, dynamic>()),
       location: json['location'] as String?,
-      latitude: (json['latitude'] as num?)?.toDouble(),
-      longitude: (json['longitude'] as num?)?.toDouble(),
+      latitude: parseDouble(json['latitude']),
+      longitude: parseDouble(json['longitude']),
       createdAt: parseDate(json['created_at']),
       updatedAt: parseDate(json['updated_at']),
       mediaFiles: (json['media_files'] as List? ?? const [])

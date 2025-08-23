@@ -45,5 +45,9 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Harita üzerinde bulunduğunuz konuma gitmek için konum erişimi gerekir.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Harita deneyimini geliştirmek için konum erişimine ihtiyaç duyuyoruz.</string>
 </dict>
 </plist>
