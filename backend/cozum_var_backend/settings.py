@@ -56,6 +56,9 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = "cozum_var_backend.urls"
 
+# Disable automatic slash appending to prevent CORS preflight redirect issues
+APPEND_SLASH = False
+
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
