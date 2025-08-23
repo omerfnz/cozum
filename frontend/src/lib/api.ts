@@ -2,7 +2,10 @@ import axios from 'axios'
 
 const baseURL = import.meta.env.VITE_API_BASE_URL || '/api'
 
-export const api = axios.create({ baseURL })
+export const api = axios.create({ 
+  baseURL,
+  withCredentials: true
+})
 
 export async function register(payload: {
   email: string

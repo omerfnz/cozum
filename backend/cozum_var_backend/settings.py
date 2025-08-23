@@ -80,7 +80,7 @@ WSGI_APPLICATION = "cozum_var_backend.wsgi.application"
 # CORS settings
 CORS_ALLOWED_ORIGINS = os.environ.get('CORS_ALLOWED_ORIGINS', 'http://localhost:5173').split(',')
 CORS_ALLOW_CREDENTIALS = True
-CORS_ALLOW_ALL_ORIGINS = os.environ.get('CORS_ALLOW_ALL_ORIGINS', 'False').lower() == 'true'
+CORS_ALLOW_ALL_ORIGINS = True  # Temporarily allow all origins for development
 
 # CORS headers
 CORS_ALLOW_HEADERS = [
