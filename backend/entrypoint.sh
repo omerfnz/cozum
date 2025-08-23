@@ -11,6 +11,8 @@ echo "Database started"
 
 # Create migrations if they don't exist
 echo "Creating migrations..."
+python manage.py makemigrations users
+python manage.py makemigrations reports
 python manage.py makemigrations
 
 # Run migrations
