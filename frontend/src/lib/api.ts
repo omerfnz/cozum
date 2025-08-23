@@ -11,17 +11,17 @@ export async function register(payload: {
   password_confirm: string
   role?: 'VATANDAS' | 'OPERATOR' | 'EKIP' | 'ADMIN'
 }) {
-  const res = await axios.post('/auth/register/', payload)
+  const res = await api.post('/auth/register/', payload)
   return res.data
 }
 
 export async function login(payload: { email: string; password: string }) {
-  const res = await axios.post('/auth/login/', payload)
+  const res = await api.post('/auth/login/', payload)
   return res.data as { access: string; refresh: string }
 }
 
 export async function me() {
-  const res = await axios.get('/auth/me/')
+  const res = await api.get('/auth/me/')
   return res.data
 }
 
