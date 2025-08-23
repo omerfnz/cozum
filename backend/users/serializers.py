@@ -96,3 +96,46 @@ class TeamSerializer(serializers.ModelSerializer):
 
     def get_members_count(self, obj):
         return obj.members.count()
+
+
+# Yeni: Profil güncelleme serileştirici
+class UserUpdateSerializer(serializers.ModelSerializer):
+    """Kullanıcının kendi profilini güncellemesi için alanlar"""
+
+    class Meta:
+        model = User
+        fields = (
+            "username",
+            "first_name",
+            "last_name",
+            "phone",
+            "address",
+        )
+
+
+# Yeni: Şifre değiştirme serileştirici
+class PasswordChangeSerializer(serializers.Serializer):
+    old_password = serializers.CharField(write_only=True, style={"input_type": "password"})
+    new_password = serializers.CharField(write_only=True, validators=[validate_password], style={"input_type": "password"})
+    new_password_confirm = serializers.CharField(write_only=True, style={"input_type": "password"})
+
+    def validate(self, attrs):
+        request = self.context.get("request")
+        user = getattr(request, "user", None)
+        if user is None or not user.is_authenticated:
+            raise serializers.ValidationError("Kimlik doğrulaması gerekli.")
+        if attrs["new_password"] != attrs["new_password_confirm"]:
+            raise serializers.ValidationError("Yeni şifreler eşleşmiyor.")
+        if not user.check_password(attrs["old_password"]):
+            raise serializers.ValidationError({"old_password": "Mevcut şifre hatalı."})
+        return attrs
+
+    def update(self, instance, validated_data):
+        # instance: User
+        new_password = validated_data["new_password"]
+        instance.set_password(new_password)
+        instance.save(update_fields=["password"])
+        return instance
+
+    def create(self, validated_data):
+        raise NotImplementedError

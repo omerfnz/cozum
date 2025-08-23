@@ -92,12 +92,16 @@
   - `--dart-define=API_BASE_URL=http://localhost:8000/api` ile taban URL geçilir.
 - Ağ katmanı:
   - `dio` ile HTTP istemcisi; Authorization: `Bearer <token>` başlığı için interceptor.
-  - 401 durumunda refresh token akışı ve otomatik yeniden deneme.
+  - 401 durumunda refresh token akışı ve otomatik yeniden deneme; refresh başarısızsa otomatik logout ve `LoginRoute`'a yönlendirme.
   - Access/refresh token saklama: `flutter_secure_storage` (Android/iOS güvenli depolama)
 - Medya:
   - `image_picker` ile tek fotoğraf seçimi; `FormData` ile multipart POST (dio).
 - Navigasyon ve Mimarî:
   - `auto_route` ile yönlendirme, `get_it` ile DI, `flutter_bloc`/`equatable` ile state yönetimi.
+  - Router kullanımı: `AppRouter` tekil örnek olarak DI (get_it) üzerinden sağlanır; interceptor yönlendirmeleriyle aynı router örneği paylaşılır.
+- Home Feed Varsayılanları (Mobil):
+  - Rol bazlı varsayılan kapsam seçimi: VATANDAS → "mine", EKIP → "assigned", OPERATOR/ADMIN → "all".
+  - HomeFeedCubit `fetch(scope)` imzası ile `state.scope` güncellenir ve veri rol bazlı çekilir.
 - Not:
   - MVP’de harita entegrasyonu opsiyoneldir; konum metin alanı yeterlidir. Harita için `google_maps_flutter` eklenerek AndroidManifest’e Google Maps API anahtarı gömülmelidir.
 
@@ -108,6 +112,7 @@
   - `withOpacity(..)` çağrıları `withValues(alpha: ..)` ile güncellendi (deprecate uyarıları giderildi).
   - Import sırası düzeltildi (directives_ordering).
   - Kayıt sayfasında yalnızca sayısal şifreleri reddeden regex `%5E\d%2B$` → `^\d+$` olarak düzeltildi.
+  - AutoRoute codegen dosyaları güncellendi (`dart run build_runner build -d`).
 - Doğrulama:
   - `flutter analyze` sonucu: No issues found!
 
@@ -159,34 +164,54 @@ flutter run --dart-define=API_BASE_URL=http://localhost:8000/api
 
 ---
 
-## Ağ Erişimi ve LAN IP ile Çalışma (Windows)
-- Backend’e LAN üzerinden erişim için sunucuyu tüm arayüzlerde dinleterek başlatın:
-  ```powershell
-  python manage.py runserver 0.0.0.0:8000
-  ```
-- `settings.py` içinde `ALLOWED_HOSTS` değerine geliştirmede erişilecek adresleri ekleyin:
-  ```python
-  ALLOWED_HOSTS = ["localhost", "127.0.0.1", "192.168.1.101"]
-  ```
-- React (frontend) için gerekiyorsa `CORS_ALLOWED_ORIGINS` içine LAN adresinizi ekleyin:
-  ```python
-  CORS_ALLOWED_ORIGINS = [
-      "http://localhost:5173",
-      "http://192.168.1.101:5173",
-  ]
-  ```
-- Windows Defender Firewall’da Python/Django için 8000 portuna gelen bağlantılara izin verildiğinden emin olun (Gelen Kuralları > Yeni Kural > Bağlantıya İzin Ver > 8000 TCP).
-- Mobil tarafı gerçek cihaz/emülatör ile test ederken API taban adresini LAN IP’nize göre geçin:
-  ```powershell
-  flutter run --dart-define=API_BASE_URL=http://192.168.1.101:8000/api
-  ```
-- React için `.env`:
-  ```ini
-  VITE_API_BASE_URL=http://192.168.1.101:8000/api
-  ```
+# Teknoloji Yığını ve Kurulum
 
-## Mutlak Medya URL’leri (Image.network için)
+Bu doküman, proje geliştirme ortamının kurulumu ve kullanılan teknolojilerin özetini içerir.
+
+## Backend
+- Django, Django REST Framework
+- PostgreSQL
+- Kimlik doğrulama: JWT (access/refresh)
+- Medya: Django Media (MEDIA_URL, MEDIA_ROOT)
+
+## Frontend (Web)
+- React (Vite)
+- Tailwind CSS
+- Leaflet (OpenStreetMap)
+
+## Mobil (Flutter)
+- Flutter 3.22+
+- Paketler: dio, get_it, auto_route, flutter_bloc, flutter_map, geolocator, image_picker, url_launcher, intl, cached_network_image
+- Ortam değişkenleri: API_BASE_URL (örn: http://192.168.1.33:8000/api/)
+- Medya URL: http://192.168.1.33:8000/ (MEDIA_URL kökü) — mobil istemci, görsel önizlemelerinde tam URL bekler
+
+### İzinler
+- AndroidManifest.xml:
+  - INTERNET
+  - ACCESS_COARSE_LOCATION, ACCESS_FINE_LOCATION
+  - CAMERA, READ_EXTERNAL_STORAGE (Android 13+: READ_MEDIA_IMAGES)
+- iOS Info.plist:
+  - NSLocationWhenInUseUsageDescription
+  - NSCameraUsageDescription
+  - NSPhotoLibraryUsageDescription
+
+### Geliştirme ve Çalıştırma
+- Windows PowerShell üzerinden:
+  - Flutter kurulum kontrolü: flutter doctor
+  - Bağımlılıkları indir: flutter pub get
+  - Uygulamayı çalıştır: flutter run -d chrome veya cihaz ID
+  - Kod üretimi (auto_route): dart run build_runner build --delete-conflicting-outputs
+
+### LAN/IP Notları
+- Mobil cihazın, backend ile aynı yerel ağda olduğundan emin olun.
+- API_BASE_URL ve medya URL’lerinde cihazdan erişilebilen LAN IP kullanılmalıdır (localhost yerine IP adresi).
+- Android Emulator kullanıyorsanız backend’e erişim için özel IP kullanımı: 10.0.2.2 (fiziksel cihazda geçerli değildir).
+
+### Lint ve Analiz
+- analysis_options.yaml içinde linter kuralları aktif
+- dart fix --apply ve dart analyze ile düzenli kontrol önerilir
+
 - DRF tarafında `MediaSerializer` içerisinde `file` alanı mutlak URL olarak döndürülecek şekilde güncellendi.
 - Teknik detay: `request.build_absolute_uri(file.url)` kullanılır; istek bağlamı yoksa `file.url` döner.
 - Sonuç: Flutter’da `Image.network` ve webde `<img src>` doğrudan çalışır; `first_media_url` (liste) ve `media_files[].file` (detay) alanları tam URL döndürür.
-- Not: Bu değişiklik yalnızca serializer düzeyindedir, migrasyon gerektirmez.
+- Not: Bu değişiklik yalnızca serializer düzeyindedir, migrasyon gerektirmez. Backend’de bu davranışın testleri eklenmeli; prod ortamında `ALLOWED_HOSTS` ve `CSRF_TRUSTED_ORIGINS` LAN/IP yapılandırmalarına dikkat edilmelidir.

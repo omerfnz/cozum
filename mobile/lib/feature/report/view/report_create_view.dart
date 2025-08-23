@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:dio/dio.dart';
@@ -111,7 +112,8 @@ class _ReportCreateViewState extends State<ReportCreateView> {
   }
 
   Future<void> _onSubmit() async {
-    if (!_formKey.currentState!.validate()) return;
+    final formState = _formKey.currentState;
+    if (formState == null || !formState.validate()) return;
     if (_selectedCategoryId == null) {
       setState(() => _error = 'Lütfen bir kategori seçin.');
       return;
@@ -371,6 +373,7 @@ class _MapPickerPageState extends State<_MapPickerPage> {
   bool _resolving = false;
 
   late final MapController _mapController;
+  Timer? _debounce;
 
   @override
   void initState() {
@@ -378,9 +381,26 @@ class _MapPickerPageState extends State<_MapPickerPage> {
     _mapController = MapController();
     if (widget.initialLat != null && widget.initialLon != null) {
       _selected = latlng.LatLng(widget.initialLat!, widget.initialLon!);
-      _reverseGeocode(_selected!);
+      final s = _selected;
+      if (s != null) {
+        _reverseGeocode(s);
+      }
+    }
+    // Başlangıç merkezini belirle (varsayılan İstanbul) ve adresi çöz
+    _selected ??= latlng.LatLng(widget.initialLat ?? 41.015137, widget.initialLon ?? 28.979530);
+    if (widget.initialLat == null || widget.initialLon == null) {
+      final s = _selected;
+      if (s != null) {
+        _reverseGeocode(s);
+      }
     }
     _initLocation();
+  }
+
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    super.dispose();
   }
 
   Future<void> _initLocation() async {
@@ -435,7 +455,7 @@ class _MapPickerPageState extends State<_MapPickerPage> {
 
   @override
   Widget build(BuildContext context) {
-    final center = _selected ?? latlng.LatLng(widget.initialLat ?? 41.015137, widget.initialLon ?? 28.979530);
+    final latlng.LatLng center = _selected ?? latlng.LatLng(widget.initialLat ?? 41.015137, widget.initialLon ?? 28.979530);
     return Scaffold(
       appBar: AppBar(
         title: const Text('Konum Seç'),
@@ -444,10 +464,12 @@ class _MapPickerPageState extends State<_MapPickerPage> {
             onPressed: _selected == null
                 ? null
                 : () {
+                    final s = _selected;
+                    if (s == null) return;
                     Navigator.of(context).pop(
                       PickedLocation(
-                        lat: _selected!.latitude,
-                        lon: _selected!.longitude,
+                        lat: s.latitude,
+                        lon: s.longitude,
                         address: _resolvedAddress,
                       ),
                     );
@@ -464,9 +486,17 @@ class _MapPickerPageState extends State<_MapPickerPage> {
             options: MapOptions(
               initialCenter: center,
               initialZoom: 13,
-              onTap: (tapPos, point) {
-                setState(() => _selected = latlng.LatLng(point.latitude, point.longitude));
-                _reverseGeocode(latlng.LatLng(point.latitude, point.longitude));
+              onPositionChanged: (camera, hasGesture) {
+                final c = camera.center;
+                if (c == null) return;
+                setState(() => _selected = latlng.LatLng(c.latitude, c.longitude));
+                _debounce?.cancel();
+                _debounce = Timer(const Duration(milliseconds: 700), () {
+                  if (!mounted) return;
+                  final s = _selected;
+                  if (s == null) return;
+                  _reverseGeocode(s);
+                });
               },
             ),
             children: [
@@ -474,18 +504,14 @@ class _MapPickerPageState extends State<_MapPickerPage> {
                 urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                 userAgentPackageName: 'com.example.mobile',
               ),
-              if (_selected != null)
-                MarkerLayer(
-                  markers: [
-                    Marker(
-                      point: _selected!,
-                      width: 40,
-                      height: 40,
-                      child: const Icon(Icons.location_on, color: Colors.red, size: 36),
-                    ),
-                  ],
-                ),
             ],
+          ),
+          // Ekranın ortasında sabit marker (crosshair)
+          const IgnorePointer(
+            ignoring: true,
+            child: Center(
+              child: Icon(Icons.location_on, color: Colors.red, size: 36),
+            ),
           ),
           if (_selected != null)
             Positioned(
@@ -504,7 +530,7 @@ class _MapPickerPageState extends State<_MapPickerPage> {
                     children: [
                       Text('Seçilen Konum', style: Theme.of(context).textTheme.titleMedium),
                       const SizedBox(height: 6),
-                      Text('Lat: ${_selected!.latitude.toStringAsFixed(6)}  Lon: ${_selected!.longitude.toStringAsFixed(6)}'),
+                      Text('Lat: ${center.latitude.toStringAsFixed(6)}  Lon: ${center.longitude.toStringAsFixed(6)}'),
                       const SizedBox(height: 6),
                       if (_resolving) const LinearProgressIndicator(minHeight: 2),
                       if (_resolvedAddress != null) Text(_resolvedAddress!),

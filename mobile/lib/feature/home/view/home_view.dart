@@ -5,6 +5,7 @@ import 'package:logger/logger.dart';
 import 'package:mobile/feature/home/cubit/home_feed_cubit.dart';
 import 'package:mobile/feature/report/view/report_create_view.dart';
 import 'package:mobile/feature/report/view/report_detail_view.dart';
+import 'package:mobile/product/auth/auth_repository.dart';
 import 'package:mobile/product/auth/token_storage.dart';
 import 'package:mobile/product/init/locator.dart';
 import 'package:mobile/product/navigation/app_router.dart';
@@ -28,7 +29,23 @@ final class _HomeViewState extends State<HomeView> {
   @override
   void initState() {
     super.initState();
-    _cubit = HomeFeedCubit(di<ReportRepository>())..fetch();
+    _cubit = HomeFeedCubit(di<ReportRepository>());
+    _initFetch();
+  }
+
+  Future<void> _initFetch() async {
+    String scope = 'all';
+    try {
+      final me = await di<AuthRepository>().me();
+      final role = (me?['role'] as String?)?.toUpperCase();
+      if (role == 'VATANDAS') scope = 'mine';
+      if (role == 'EKIP') scope = 'assigned';
+      if (role == 'OPERATOR' || role == 'ADMIN') scope = 'all';
+    } catch (_) {
+      scope = 'all';
+    }
+    if (!mounted) return;
+    await _cubit.fetch(scope: scope);
   }
 
   @override

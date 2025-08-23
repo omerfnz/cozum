@@ -6,7 +6,7 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView
 
 from .models import Team
-from .serializers import UserDetailSerializer, UserRegistrationSerializer, TeamSerializer
+from .serializers import UserDetailSerializer, UserRegistrationSerializer, TeamSerializer, UserUpdateSerializer, PasswordChangeSerializer
 
 User = get_user_model()
 
@@ -37,6 +37,28 @@ class MeView(generics.RetrieveAPIView):
 
     def get_object(self):
         return self.request.user
+
+
+class MeUpdateView(generics.UpdateAPIView):
+    serializer_class = UserUpdateSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_object(self):
+        return self.request.user
+
+
+class ChangePasswordView(generics.UpdateAPIView):
+    serializer_class = PasswordChangeSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_object(self):
+        return self.request.user
+
+    def update(self, request, *args, **kwargs):
+        serializer = self.get_serializer(instance=request.user, data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response({"detail": "Şifreniz başarıyla güncellendi."})
 
 
 class UserViewSet(viewsets.ModelViewSet):

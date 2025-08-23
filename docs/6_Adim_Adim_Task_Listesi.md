@@ -195,24 +195,49 @@ N) Mobil (Flutter)
 Güncel notlar (Android)
 - Gerekli izinler ve API anahtarları git’e eklenmemelidir; yerel/secret yönetimi kullanılmalıdır.
 
-## Güncel Notlar (Mobil - Flutter Lint ve Endpoint Düzeltmeleri)
-- Lint/Analiz: `flutter analyze` çalıştırıldı ve tüm uyarı/hatalar giderildi; güncel durum: "No issues found!".
-- Hata düzeltmeleri (UI/Flutter):
-  - Import sırası (directives_ordering) düzeltildi: <mcfile name="register_view.dart" path="c:\\Users\\omer\\Desktop\\cozum\\mobile\\lib\\feature\\auth\\view\\register_view.dart"></mcfile>
-  - Şifre doğrulama regex’i düzeltildi (yalnızca rakam içeren şifreyi yakalamak için): `^\d+$`.
-  - Renk saydamlığı: `withOpacity(..)` kullanımları `withValues(alpha: ..)` ile güncellendi (precision kaybını önleyen yeni API).
-    - <mcfile name="register_view.dart" path="c:\\Users\\omer\\Desktop\\cozum\\mobile\\lib\\feature\\auth\\view\\register_view.dart"></mcfile>
-    - <mcfile name="login_view.dart" path="c:\\Users\\omer\\Desktop\\cozum\\mobile\\lib\\feature\\auth\\view\\login_view.dart"></mcfile>
-    - <mcfile name="home_view.dart" path="c:\\Users\\omer\\Desktop\\cozum\\mobile\\lib\\feature\\home\\view\\home_view.dart"></mcfile>
-    - <mcfile name="splash_view.dart" path="c:\\Users\\omer\\Desktop\\cozum\\mobile\\lib\\feature\\splash\\view\\splash_view.dart"></mcfile>
-- Mobil ağ/endpoint notları:
-  - Endpoint birleştirme: Öncü `/` kaldırıldı; Dio `baseUrl` ile doğru birleşim sağlandı: <mcfile name="report_repository.dart" path="c:\\Users\\omer\\Desktop\\cozum\\mobile\\lib\\product\\report\\report_repository.dart"></mcfile>
-  - JWT yenileme akışı: `isAuthEndpoint` kontrolü ve refresh yolunun `auth/refresh/` olarak stabilize edilmesi: <mcfile name="locator.dart" path="c:\\Users\\omer\\Desktop\\cozum\\mobile\\lib\\product\\init\\locator.dart"></mcfile>
+# Adım Adım Task Listesi (Güncel)
 
-## Güncel Notlar (Ağ/LAN IP ve Medya URL’leri)
-- LAN üzerinden erişim doğrulandı: `192.168.1.101` ile bağlantı başarılı.
-- Backend ayarları: `ALLOWED_HOSTS` içine `"192.168.1.101"` eklendi; gerekliyse `CORS_ALLOWED_ORIGINS` içine `"http://192.168.1.101:5173"` eklendi.
-- Windows Firewall’da 8000/TCP için gelen bağlantılara izin verildi.
-- Mobil çalıştırma: `flutter run --dart-define=API_BASE_URL=http://192.168.1.101:8000/api`.
-- Medya: `MediaSerializer.file` alanı artık mutlak URL döndürüyor; detay sayfasında görseller `Image.network` ile yüklenir.
-- Not: Serializer güncellemesi migrasyon gerektirmez.
+Bu dosya MVP’yi hayata geçirmek için gerekli adımların güncel halidir.
+
+## Durum Özeti
+- Dokümanlar güncellendi: MVP kapsamı, teknoloji yığını, API listesi.
+- Mobil uygulama: Login, Register, Home Feed, Report Create, Report Detail, Yorum ekleme, Harita seçici çalışır durumda.
+- DI ve Dio interceptor’lar (Authorization, refresh flow) aktif.
+- Router tekilliği: `AppRouter` DI üzerinden tekil örnek olarak kullanılıyor; interceptor yönlendirmeleri aynı örneği kullanır.
+- Varsayılan scope (mobil): Rol bazlı olarak otomatik belirlenir (VATANDAS=mine, EKIP=assigned, OPERATOR/ADMIN=all).
+- Yorum kısıtı (mobil): VATANDAS sadece kendi raporunda yorum yazabilir.
+
+## Mobil (Flutter) – Eksikler ve Sıradaki Adımlar
+1) Ortam yapılandırması
+   - API_BASE_URL’i LAN IP ile ver (örn: http://192.168.1.33:8000/api/)
+   - Medya URL kökü: http://192.168.1.33:8000/
+2) İzinler
+   - Android/iOS izin metinleri kontrol (camera, location, internet)
+3) Lint ve analiz
+   - dart analyze ve dart fix --apply çalıştır, kritik uyarıları temizle
+4) Test veri akışı
+   - Report create -> listede görünürlük -> detail -> yorum -> media önizleme uçtan uca senaryo
+5) Edge case’ler
+   - Token yenileme hata yönetimi (refresh fail -> logout)
+   - Ağ hatası durumlarında kullanıcı mesajları
+6) Build runner
+   - AutoRoute codegen: dart run build_runner build --delete-conflicting-outputs
+7) Yayına hazırlık (geliştirici imzaları ayrı tutulur)
+
+## Backend – Kontrol Listesi
+- MEDIA_URL mutlak URL üretimi (serializer’da request.build_absolute_uri)
+- CORS ve ALLOWED_HOSTS LAN IP dahil güncel
+- /api altında auth, reports, categories, comments uçları aktif ve dokümanla uyumlu
+
+## Çalıştırma
+- Windows PowerShell:
+  - flutter pub get
+  - dart run build_runner build --delete-conflicting-outputs
+  - flutter run --dart-define=API_BASE_URL=http://192.168.1.33:8000/api/
+
+## Doğrulama
+- Fiziksel cihaz ile aynı LAN: evet
+- Login/refresh/logout akışı: OK
+- Report create (tek görsel) -> listede ve detailde görünüyor: OK
+- Yorum ekleme yetkisi: sadece Operatör/Ekip
+- Medya URL’leri mutlak ve erişilebilir

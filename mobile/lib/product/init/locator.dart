@@ -5,7 +5,9 @@ import 'package:logger/logger.dart';
 import 'package:mobile/product/auth/auth_repository.dart';
 import 'package:mobile/product/auth/token_storage.dart';
 import 'package:mobile/product/config/app_config.dart';
+import 'package:mobile/product/navigation/app_router.dart';
 import 'package:mobile/product/report/report_repository.dart';
+import 'package:oktoast/oktoast.dart';
 
 /// Uygulama genel bağımlılık konteyneri
 final GetIt di = GetIt.instance;
@@ -29,6 +31,7 @@ Future<void> setupLocator({required String apiBaseUrl}) async {
           ),
           level: Level.debug,
         ))
+    ..registerLazySingleton<AppRouter>(() => AppRouter())
     ..registerLazySingleton<Dio>(() {
       final dio = Dio(
         BaseOptions(
@@ -99,10 +102,31 @@ Future<void> setupLocator({required String apiBaseUrl}) async {
                   req.extra['retried'] = true;
                   final clone = await dio.fetch<dynamic>(req);
                   return handler.resolve(clone);
+                } else {
+                  // access gelmediyse oturumu kapat
+                  await storage.clear();
+                  showToast('Oturum süreniz doldu. Lütfen tekrar giriş yapın.');
+                  try {
+                    final router = di<AppRouter>();
+                    router.replaceAll([const LoginRoute()]);
+                  } catch (_) {}
                 }
               } on Object catch (_) {
                 await storage.clear();
+                showToast('Oturum süreniz doldu. Lütfen tekrar giriş yapın.');
+                try {
+                  final router = di<AppRouter>();
+                  router.replaceAll([const LoginRoute()]);
+                } catch (_) {}
               }
+            } else {
+              // refresh yoksa doğrudan oturumu kapat
+              await storage.clear();
+              showToast('Oturum süreniz doldu. Lütfen tekrar giriş yapın.');
+              try {
+                final router = di<AppRouter>();
+                router.replaceAll([const LoginRoute()]);
+              } catch (_) {}
             }
           }
           handler.next(error);

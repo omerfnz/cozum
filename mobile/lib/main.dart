@@ -5,8 +5,6 @@ import 'package:mobile/product/init/locator.dart';
 import 'package:mobile/product/navigation/app_router.dart';
 import 'package:oktoast/oktoast.dart';
 
-final _appRouter = AppRouter();
-
 /// Uygulama giriş noktası
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -44,7 +42,7 @@ final class MyApp extends StatelessWidget {
           useMaterial3: true,
           colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF1976D2)),
         ),
-        routerConfig: _appRouter.config(),
+        routerConfig: di<AppRouter>().config(),
       ),
     );
   }

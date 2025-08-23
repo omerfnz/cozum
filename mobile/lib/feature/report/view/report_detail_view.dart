@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:logger/logger.dart';
+import 'package:mobile/product/auth/auth_repository.dart';
 import 'package:mobile/product/init/locator.dart';
 import 'package:mobile/product/report/model/report_models.dart';
 import 'package:mobile/product/report/report_repository.dart';
@@ -25,6 +26,7 @@ class _ReportDetailViewState extends State<ReportDetailView> {
 
   final _commentCtrl = TextEditingController();
   bool _sending = false;
+  UserDto? _me;
 
   ReportRepository get _repo => di<ReportRepository>();
 
@@ -41,10 +43,23 @@ class _ReportDetailViewState extends State<ReportDetailView> {
     });
     try {
       di<Logger>().i('[Detail] load id=${widget.reportId}');
-      final detail = await _repo.fetchDetail(widget.reportId);
+      // Rapor detayı ve mevcut kullanıcı bilgisi paralel alınır
+      final results = await Future.wait([
+        _repo.fetchDetail(widget.reportId),
+        di<AuthRepository>().me().catchError((_) => null),
+      ]);
       if (!mounted) return;
+      final detail = results[0] as ReportDetail;
+      final meMap = results[1] as Map<String, dynamic>?;
       setState(() {
         _detail = detail;
+        if (meMap != null) {
+          try {
+            _me = UserDto.fromJson(meMap);
+          } catch (_) {
+            _me = null;
+          }
+        }
       });
       di<Logger>().i('[Detail] load success');
     } catch (e) {
@@ -201,6 +216,15 @@ class _ReportDetailViewState extends State<ReportDetailView> {
       );
     }
 
+    // Yorum composer görünürlüğü:
+    // - VATANDAS ise: sadece kendi oluşturduğu raporda göster
+    // - Diğer tüm roller: göster
+    bool canComment = true;
+    final me = _me;
+    if (me != null && (me.role ?? '').toUpperCase() == 'VATANDAS') {
+      canComment = d.reporter.id == me.id;
+    }
+
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
@@ -254,11 +278,17 @@ class _ReportDetailViewState extends State<ReportDetailView> {
         else
           ...d.comments.map((c) => _CommentTile(c, _dateFmt)),
         const SizedBox(height: 12),
-        _CommentComposer(
-          controller: _commentCtrl,
-          sending: _sending,
-          onSend: _sendComment,
-        ),
+        if (canComment)
+          _CommentComposer(
+            controller: _commentCtrl,
+            sending: _sending,
+            onSend: _sendComment,
+          )
+        else
+          Text(
+            'Yalnızca kendi oluşturduğunuz bildirimlere yorum yazabilirsiniz.',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.error),
+          ),
         const SizedBox(height: 24),
       ],
     );
