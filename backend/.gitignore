@@ -12,7 +12,6 @@ env/
 ENV/
 
 # Django
-/media/
 /static/
 /staticfiles/
 *.log
