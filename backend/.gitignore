@@ -15,6 +15,7 @@ ENV/
 /static/
 /staticfiles/
 *.log
+# Note: media/ klasörü Git'e dahil edildi çünkü Dokploy volume persist etmiyor
 
 # Production
 /logs/
