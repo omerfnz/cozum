@@ -2,10 +2,16 @@
 
 # Wait for database to be ready
 echo "Waiting for database..."
+echo "Trying to connect to $DB_HOST:$DB_PORT"
 while ! nc -z $DB_HOST $DB_PORT; do
-  sleep 0.1
+  echo "Database not ready, waiting..."
+  sleep 1
 done
 echo "Database started"
+
+# Create migrations if they don't exist
+echo "Creating migrations..."
+python manage.py makemigrations
 
 # Run migrations
 echo "Running migrations..."
