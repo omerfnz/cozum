@@ -326,7 +326,6 @@ class TestReportSerializerValidation:
 
     def test_report_update_serializer_validation(self):
         from reports.serializers import ReportUpdateSerializer
-        from rest_framework.request import Request
         from django.test import RequestFactory
 
         admin = User.objects.create_superuser(email="rsu@example.com", password="pass", username="rsu")

@@ -10,28 +10,21 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 
+import os
 from datetime import timedelta
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
-
+# Production settings
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-+hvznaue8j7s$d#(n!fij1pg13a&v5j)h-uju^45xtm_27-mh+"
+SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-+hvznaue8j7s$d#(n!fij1pg13a&v5j)h-uju^45xtm_27-mh+')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'
 
-ALLOWED_HOSTS = [
-    "127.0.0.1",
-    "localhost",
-    "192.168.1.101",
-    "*",  # development için tüm hostlara izin ver
-]
+ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
 
 
 # Application definition
@@ -82,9 +75,7 @@ TEMPLATES = [
 WSGI_APPLICATION = "cozum_var_backend.wsgi.application"
 
 # CORS
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173",
-]
+CORS_ALLOWED_ORIGINS = os.environ.get('CORS_ALLOWED_ORIGINS', 'http://localhost:5173').split(',')
 
 # Internationalization
 LANGUAGE_CODE = "tr"
@@ -118,8 +109,12 @@ AUTH_USER_MODEL = "users.User"
 
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": os.environ.get('DB_NAME', 'cozum_var_db'),
+        "USER": os.environ.get('DB_USER', 'postgres'),
+        "PASSWORD": os.environ.get('DB_PASSWORD', 'password'),
+        "HOST": os.environ.get('DB_HOST', 'localhost'),
+        "PORT": os.environ.get('DB_PORT', '5432'),
     }
 }
 

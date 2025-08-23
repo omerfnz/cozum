@@ -104,3 +104,15 @@ class Team(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.get_team_type_display()})"
+    
+    @property
+    def member_count(self):
+        """Takımdaki üye sayısını döndürür"""
+        return self.team_members.count()
+    
+    @property
+    def created_by_name(self):
+        """Takımı oluşturan kişinin adını döndürür"""
+        if self.created_by:
+            return self.created_by.get_full_name() or self.created_by.username
+        return "Bilinmeyen Kullanıcı"

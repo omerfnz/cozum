@@ -12,10 +12,14 @@ env/
 ENV/
 
 # Django
-/db.sqlite3
 /media/
 /static/
 /staticfiles/
+*.log
+
+# Production
+/logs/
+/backups/
 
 # Tests
 .pytest_cache/
