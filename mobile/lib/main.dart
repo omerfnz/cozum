@@ -11,7 +11,7 @@ Future<void> main() async {
   // API_BASE_URL build-time ile gelebilir; Android'de localhost/127.0.0.1 kullanımı emulator için 10.0.2.2'ye çevrilir
   const rawBaseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'http://192.168.1.101:8000/api/',
+    defaultValue: 'https://api.ntek.com.tr/api/',
   );
   final baseUrl = (Platform.isAndroid && (rawBaseUrl.contains('localhost') || rawBaseUrl.contains('127.0.0.1')))
       ? rawBaseUrl
