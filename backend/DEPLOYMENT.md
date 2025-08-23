@@ -54,7 +54,7 @@ ALLOWED_HOSTS=yourdomain.com,www.yourdomain.com
 CORS_ALLOWED_ORIGINS=https://yourdomain.com,https://www.yourdomain.com
 ```
 
-#### 4. Database Migration
+#### 4. Database Migration ve Admin Kullanıcısı
 
 İlk deployment'tan sonra:
 
@@ -65,12 +65,19 @@ docker exec -it cozum-var-backend-backend-1 bash
 # Migration'ları çalıştırın
 python manage.py migrate
 
-# Superuser oluşturun
-python manage.py createsuperuser
+# Admin kullanıcısı oluşturun (otomatik)
+python manage.py create_admin
 
 # Static dosyaları toplayın (zaten Dockerfile'da yapılıyor)
 python manage.py collectstatic --noinput
 ```
+
+**Admin Giriş Bilgileri:**
+- **Email:** Environment variable `ADMIN_EMAIL` (varsayılan: admin@example.com)
+- **Şifre:** Environment variable `ADMIN_PASSWORD` (varsayılan: admin123)
+- **Kullanıcı Adı:** Environment variable `ADMIN_USERNAME` (varsayılan: admin)
+
+**Not:** Admin kullanıcısı otomatik olarak oluşturulur. Manuel oluşturmak isterseniz `python manage.py create_admin` komutunu kullanabilirsiniz.
 
 #### 5. SSL Konfigürasyonu (Opsiyonel)
 

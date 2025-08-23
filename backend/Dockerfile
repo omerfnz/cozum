@@ -18,6 +18,7 @@ RUN apt-get update \
         build-essential \
         libpq-dev \
         curl \
+        netcat-openbsd \
     && rm -rf /var/lib/apt/lists/*
 
 # Set work directory
@@ -30,15 +31,17 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy project files
 COPY . .
 
+# Copy and set permissions for entrypoint script
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
 # Create necessary directories and set permissions
-RUN mkdir -p /app/staticfiles /app/media \
-    && chown -R django:django /app
+RUN mkdir -p /app/static /app/media /app/logs \
+    && chown -R django:django /app \
+    && chown django:django /entrypoint.sh
 
 # Switch to non-root user
 USER django
-
-# Collect static files
-RUN python manage.py collectstatic --noinput
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
@@ -47,16 +50,5 @@ HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
 # Expose port
 EXPOSE 8000
 
-# Run gunicorn with optimized settings
-CMD ["gunicorn", "cozum_var_backend.wsgi:application", \
-     "--bind", "0.0.0.0:8000", \
-     "--workers", "4", \
-     "--worker-class", "gevent", \
-     "--worker-connections", "1000", \
-     "--max-requests", "1000", \
-     "--max-requests-jitter", "100", \
-     "--timeout", "30", \
-     "--keep-alive", "5", \
-     "--access-logfile", "-", \
-     "--error-logfile", "-", \
-     "--log-level", "info"]
+# Use entrypoint script
+ENTRYPOINT ["/entrypoint.sh"]
