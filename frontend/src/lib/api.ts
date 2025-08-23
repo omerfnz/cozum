@@ -3,8 +3,7 @@ import axios from 'axios'
 const baseURL = import.meta.env.VITE_API_BASE_URL || '/api'
 
 export const api = axios.create({ 
-  baseURL,
-  withCredentials: true
+  baseURL
 })
 
 export async function register(payload: {
@@ -14,17 +13,17 @@ export async function register(payload: {
   password_confirm: string
   role?: 'VATANDAS' | 'OPERATOR' | 'EKIP' | 'ADMIN'
 }) {
-  const res = await api.post('/auth/register', payload)
+  const res = await api.post('/auth/register/', payload)
   return res.data
 }
 
 export async function login(payload: { email: string; password: string }) {
-  const res = await api.post('/auth/login', payload)
+  const res = await api.post('/auth/login/', payload)
   return res.data as { access: string; refresh: string }
 }
 
 export async function me() {
-  const res = await api.get('/auth/me')
+  const res = await api.get('/auth/me/')
   return res.data
 }
 
@@ -54,12 +53,12 @@ export interface Category {
 }
 
 export async function getCategories(): Promise<Category[]> {
-  const res = await api.get('/categories')
+  const res = await api.get('/categories/')
   return res.data
 }
 
 export async function createCategory(payload: { name: string; description: string; is_active?: boolean }): Promise<Category> {
-  const res = await api.post('/categories', payload)
+  const res = await api.post('/categories/', payload)
   return res.data
 }
 
@@ -74,7 +73,6 @@ export async function updateCategory(
 export async function deleteCategory(id: number): Promise<void> {
   await api.delete(`/categories/${id}/`)
 }
-
 // Users API
 export interface User {
   id: number
@@ -124,7 +122,7 @@ export interface Report {
 }
 
 export async function getReports(scope?: 'all' | 'mine' | 'assigned'): Promise<Report[]> {
-  const res = await api.get('/reports', { params: scope ? { scope } : undefined })
+  const res = await api.get('/reports/', { params: scope ? { scope } : undefined })
   return res.data
 }
 
@@ -162,7 +160,7 @@ export async function createReport(payload: CreateReportPayload): Promise<Report
     formData.append('media_files', payload.media_files[0])
   }
 
-  const res = await api.post('/reports', formData, {
+  const res = await api.post('/reports/', formData, {
     headers: {
       'Content-Type': 'multipart/form-data',
     },
@@ -171,7 +169,7 @@ export async function createReport(payload: CreateReportPayload): Promise<Report
 }
 
 export async function getUsers(): Promise<User[]> {
-  const res = await api.get('/users')
+  const res = await api.get('/users/')
   return res.data
 }
 
@@ -199,13 +197,38 @@ export async function setUserTeam(id: number, team: number | null): Promise<User
   return res.data
 }
 
+export interface MediaItem { id: number; file: string; file_path?: string; media_type?: string; uploaded_at?: string }
+export interface CommentItem { id: number; user: User; content: string; created_at: string }
+export interface ReportDetail extends Report {
+  description: string
+  latitude?: number
+  longitude?: number
+  media_files: MediaItem[]
+  comments: CommentItem[]
+}
+
+export async function getReport(id: number): Promise<ReportDetail> {
+  const res = await api.get(`/reports/${id}/`)
+  return res.data
+}
+
+export async function getComments(reportId: number): Promise<CommentItem[]> {
+  const res = await api.get(`/reports/${reportId}/comments/`)
+  return res.data
+}
+
+export async function addComment(reportId: number, content: string): Promise<CommentItem> {
+  const res = await api.post(`/reports/${reportId}/comments/`, { content })
+  return res.data
+}
+
 export async function getTeams(): Promise<Team[]> {
-  const res = await api.get('/teams')
+  const res = await api.get('/teams/')
   return res.data
 }
 
 export async function createTeam(payload: { name: string; description?: string; team_type: 'EKIP' | 'OPERATOR' | 'ADMIN'; members?: number[]; is_active?: boolean }): Promise<Team> {
-  const res = await api.post('/teams', payload)
+  const res = await api.post('/teams/', payload)
   return res.data
 }
 
@@ -217,37 +240,10 @@ export async function updateTeam(id: number, payload: Partial<Pick<Team, 'name' 
 export async function deleteTeam(id: number): Promise<void> {
   await api.delete(`/teams/${id}/`)
 }
-
-// Görevler için: Rapor güncelleme (durum ve ekip ataması)
 export async function updateReport(
   id: number,
   payload: Partial<{ status: Report['status']; assigned_team: number | null }>
 ): Promise<Report> {
   const res = await api.patch(`/reports/${id}/`, payload)
   return res.data
-}
-
-export interface MediaItem { id: number; file: string; file_path?: string; media_type?: string; uploaded_at?: string }
-export interface CommentItem { id: number; user: User; content: string; created_at: string }
-export interface ReportDetail extends Report {
-description: string
-latitude?: number
-longitude?: number
-media_files: MediaItem[]
-comments: CommentItem[]
-}
-
-export async function getReport(id: number): Promise<ReportDetail> {
-const res = await api.get(`/reports/${id}/`)
-return res.data
-}
-
-export async function getComments(reportId: number): Promise<CommentItem[]> {
-const res = await api.get(`/reports/${reportId}/comments/`)
-return res.data
-}
-
-export async function addComment(reportId: number, content: string): Promise<CommentItem> {
-const res = await api.post(`/reports/${reportId}/comments/`, { content })
-return res.data
 }

@@ -12,6 +12,8 @@ User = get_user_model()
 
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
+    username_field = 'email'  # Email ile giriş yapılacağını belirt
+    
     @classmethod
     def get_token(cls, user):
         token = super().get_token(user)
