@@ -120,7 +120,7 @@ class Media(models.Model):
     )
     file = models.ImageField(
         upload_to=report_media_upload_to,
-        validators=[FileExtensionValidator(["jpg", "jpeg", "png"])],
+        validators=[FileExtensionValidator(["jpg", "jpeg", "png", "webp", "heic", "heif"])],
         verbose_name="Dosya",
     )
     file_path = models.CharField(max_length=500, blank=True, verbose_name="Dosya Yolu")

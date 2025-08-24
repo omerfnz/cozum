@@ -41,7 +41,8 @@ INSTALLED_APPS = [
     "rest_framework_simplejwt",
     "storages",
     "users",
-    "reports",
+    # AppConfig üzerinden hazır metodunda heif opener kaydı için
+    "reports.apps.ReportsConfig",
 ]
 
 MIDDLEWARE = [
