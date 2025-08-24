@@ -160,11 +160,9 @@ export async function createReport(payload: CreateReportPayload): Promise<Report
     formData.append('media_files', payload.media_files[0])
   }
 
-  const res = await api.post('/reports/', formData, {
-    headers: {
-      'Content-Type': 'multipart/form-data',
-    },
-  })
+  // Content-Type başlığını tarayıcının sınır (boundary) eklemesi için MANUEL AYARLAMAYIN
+  // Axios + tarayıcı FormData gönderirken gerekli Content-Type ve boundary değerini kendisi belirler
+  const res = await api.post('/reports/', formData)
   return res.data
 }
 

@@ -168,10 +168,22 @@ class ReportCreateSerializer(serializers.ModelSerializer):
         read_only_fields = ["id"]
 
     def validate(self, attrs):
-        """Tek dosya gönderiminde media_files alanını listeye dönüştür"""
+        """Tek/çoklu dosyada farklı alan isimlerini destekle ve listeye dönüştür"""
         request = self.context.get("request")
         if request and hasattr(request, "FILES"):
-            files = request.FILES.getlist("media_files")
+            files = []
+            # En yaygın anahtar: media_files
+            files.extend(request.FILES.getlist("media_files"))
+            # Bazı istemciler dizi formunda gönderir: media_files[]
+            if not files:
+                files.extend(request.FILES.getlist("media_files[]"))
+            # Generic isimler: files / file
+            if not files:
+                files.extend(request.FILES.getlist("files"))
+            if not files:
+                single = request.FILES.get("file")
+                if single:
+                    files.append(single)
             if files:
                 attrs["media_files"] = files
         return attrs
