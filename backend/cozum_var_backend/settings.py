@@ -137,7 +137,7 @@ if USE_R2:
                 "endpoint_url": f"https://{R2_ACCOUNT_ID}.r2.cloudflarestorage.com",
                 "access_key": R2_ACCESS_KEY_ID,
                 "secret_key": R2_SECRET_ACCESS_KEY,
-                "region_name": "auto",
+                "region_name": "WEUR",  # EU region for R2 bucket
                 "addressing_style": "virtual",
                 "querystring_auth": False,
                 "custom_domain": R2_CUSTOM_DOMAIN,
@@ -148,6 +148,9 @@ if USE_R2:
                 "object_parameters": {
                     "CacheControl": "max-age=86400",  # 1 day cache
                 },
+                # Additional EU-specific settings
+                "use_ssl": True,
+                "verify": True,
             },
         },
         # Keep static files local via collectstatic + Nginx

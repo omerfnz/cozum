@@ -34,6 +34,9 @@ def health_check(request):
             # Test R2 write permissions
             try:
                 from django.core.files.base import ContentFile
+                import boto3
+                from botocore.exceptions import ClientError, NoCredentialsError
+                
                 test_file = ContentFile(b"test content", name="health_check_test.txt")
                 test_path = default_storage.save('health_test/test.txt', test_file)
                 health_info["storage"]["write_test"] = "SUCCESS"
@@ -46,6 +49,13 @@ def health_check(request):
                 except:
                     health_info["storage"]["cleanup"] = "FAILED"
                     
+            except ClientError as client_error:
+                health_info["storage"]["write_test"] = "FAILED"
+                health_info["storage"]["write_error"] = f"ClientError: {str(client_error)}"
+                health_info["storage"]["error_code"] = getattr(client_error, 'response', {}).get('Error', {}).get('Code', 'Unknown')
+            except NoCredentialsError:
+                health_info["storage"]["write_test"] = "FAILED"
+                health_info["storage"]["write_error"] = "No credentials provided"
             except Exception as write_error:
                 health_info["storage"]["write_test"] = "FAILED"
                 health_info["storage"]["write_error"] = str(write_error)
