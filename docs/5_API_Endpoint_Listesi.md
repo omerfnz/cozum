@@ -14,6 +14,12 @@ Bu doküman, mobil uygulama ile uyumlu çalışan temel endpoint’leri ve örne
   - Body (JSON): {"refresh":"<jwt>"}
 - POST /api/auth/logout/ (Bearer)
 
+## Health Check
+- GET /api/health/
+  - Response: Sistem durumu ve R2 storage konfigürasyon bilgileri
+  - Örnek response: {"status":"healthy","storage":{"type":"R2","write_test":"SUCCESS","cleanup":"SUCCESS"}}
+  - Kullanım: R2 storage bağlantısını test etmek ve konfigürasyon sorunlarını tespit etmek için
+
 ## Reports
 - GET /api/reports/?scope=all|assigned|mine
   - Query: scope parametresi opsiyoneldir, default: all

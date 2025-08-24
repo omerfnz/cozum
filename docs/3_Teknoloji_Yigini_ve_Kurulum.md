@@ -6,6 +6,8 @@
 * **Kimlik Doğrulama:** djangorestframework-simplejwt (JWT)
 * **Veritabanı:** Geliştirme için SQLite, Production için PostgreSQL
 * **Medya Yönetimi:** Pillow (Resim işleme kütüphanesi)
+* **Bulut Depolama:** Cloudflare R2 (S3-compatible) - django-storages ile
+* **Medya URL Yönetimi:** Custom domain veya direct R2 endpoint desteği
 
 ### Frontend
 * **Kütüphane:** React + Vite
@@ -84,6 +86,46 @@
 - Kural: `media/reports/YYYY/MM/DD/<report_id>/<filename>`
 - Teknik uygulama: `reports.models.Media.file` alanında `upload_to` bir fonksiyona atanmıştır (report_media_upload_to). Bu sayede her yüklemede dinamik klasör yolu oluşturulur.
 - Not: Bu değişiklik migrasyon gerektirmez; yol kuralları çalışma zamanında uygulanır.
+
+### Cloudflare R2 Storage Konfigürasyonu
+
+#### Ortam Değişkenleri (.env)
+```ini
+# R2 Storage Configuration
+USE_R2=True
+R2_ACCOUNT_ID=your_account_id
+R2_ACCESS_KEY_ID=your_access_key
+R2_SECRET_ACCESS_KEY=your_secret_key
+R2_BUCKET_NAME=your_bucket_name
+# Custom domain (opsiyonel - boş bırakılabilir)
+R2_CUSTOM_DOMAIN=media.yourdomain.com
+```
+
+#### SSL Sorun Giderme
+- **Problem:** Custom domain'ler SSL sertifika sorunlarına neden olabilir
+- **Çözüm:** 
+  1. `R2_CUSTOM_DOMAIN`'i boş string olarak ayarlayın
+  2. Django sunucusunu yeniden başlatın
+  3. Direct R2 endpoint kullanılacaktır: `bucket-name.account-id.r2.cloudflarestorage.com`
+  4. SSL sertifikaları düzgün yapılandırıldıktan sonra custom domain'i tekrar aktif edin
+
+#### R2 API Token Gereksinimleri
+- **Permissions:** Object Read & Write
+- **TTL:** Forever (test için)
+- **IP Filtering:** Boş (test için)
+- **Bucket Scope:** Apply to all buckets (tek bucket varsa)
+
+#### Health Check Endpoint
+- **URL:** `GET /api/health/`
+- **Açıklama:** R2 storage bağlantısını test eder
+- **Response:** Storage yapılandırması, write test ve cleanup sonucu
+- **Kullanım:** R2 konfigürasyonu değişikliklerinden sonra doğrulama için
+
+#### URL Generation Logic
+- MediaSerializer ve ReportListSerializer otomatik URL generation destekler
+- Custom domain varsa o kullanılır, yoksa direct R2 endpoint
+- Her zaman HTTPS protokolü sağlanır
+- Server restart gerektirir environment değişikliklerinden sonra
 
 ### Mobile (Flutter)
 - Çalıştırma:

@@ -97,6 +97,11 @@ H) Medya ve Dosya Yönetimi
 - [x] Geliştirmede dosya servis; üretimde CDN/harici depolama notu
 - [x] Yükleme yolu kuralı: `reports/YYYY/MM/DD/<report_id>/<filename>` (upload_to fonksiyonu ile dinamik klasörleme)
 - [x] Serializer: `MediaSerializer.file` alanı mutlak URL döndürür (Flutter Image.network için)
+- [x] Cloudflare R2 Storage entegrasyonu (django-storages ile)
+- [x] R2 SSL sorun giderme: Custom domain sorunlarında direct endpoint kullanımı
+- [x] Health check endpoint ile R2 bağlantı testi
+- [x] R2 API token permissions: Object Read & Write
+- [x] URL generation: Custom domain ve direct endpoint arasında otomatik geçiş
 
 Harita ve Konum (Frontend)
 - [x] Leaflet ve react-leaflet kuruldu, leaflet.css global import edildi
