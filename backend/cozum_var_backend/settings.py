@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     "rest_framework",
     "corsheaders",
     "rest_framework_simplejwt",
+    "storages",
     "users",
     "reports",
 ]
@@ -117,6 +118,39 @@ SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 # Media
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
+
+# R2 / S3 compatible storage (optional - enable via USE_R2)
+USE_R2 = os.environ.get('USE_R2', 'False').lower() == 'true'
+if USE_R2:
+    R2_ACCOUNT_ID = os.environ.get('R2_ACCOUNT_ID')
+    R2_ACCESS_KEY_ID = os.environ.get('R2_ACCESS_KEY_ID')
+    R2_SECRET_ACCESS_KEY = os.environ.get('R2_SECRET_ACCESS_KEY')
+    R2_BUCKET_NAME = os.environ.get('R2_BUCKET_NAME')
+    R2_CUSTOM_DOMAIN = os.environ.get('R2_CUSTOM_DOMAIN')  # e.g. media.example.com or pub-xxxx.r2.dev
+
+    STORAGES = {
+        "default": {
+            "BACKEND": "storages.backends.s3.S3Storage",
+            "OPTIONS": {
+                "bucket_name": R2_BUCKET_NAME,
+                "endpoint_url": f"https://{R2_ACCOUNT_ID}.r2.cloudflarestorage.com",
+                "access_key": R2_ACCESS_KEY_ID,
+                "secret_key": R2_SECRET_ACCESS_KEY,
+                "region_name": "auto",
+                "addressing_style": "virtual",
+                "querystring_auth": False,
+                "custom_domain": R2_CUSTOM_DOMAIN,
+            },
+        },
+        # Keep static files local via collectstatic + Nginx
+        "staticfiles": {
+            "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+        },
+    }
+
+    if R2_CUSTOM_DOMAIN:
+        MEDIA_URL = f"https://{R2_CUSTOM_DOMAIN}/"
+
 
 # DRF
 REST_FRAMEWORK = {

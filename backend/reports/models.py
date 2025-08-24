@@ -5,6 +5,8 @@ from django.core.validators import FileExtensionValidator
 from django.db import models
 from PIL import Image, UnidentifiedImageError
 from datetime import date
+from io import BytesIO
+from django.core.files.uploadedfile import InMemoryUploadedFile
 
 
 class Category(models.Model):
@@ -140,25 +142,73 @@ class Media(models.Model):
         verbose_name_plural = "Medyalar"
 
     def save(self, *args, **kwargs):
-        """Dosya bilgilerini otomatik doldur"""
+        """Dosya bilgilerini otomatik doldur ve R2/S3 gibi uzak depolarla uyumlu şekilde görüntüleri optimize et"""
         if self.file:
-            self.file_path = self.file.name
-            self.file_size = self.file.size
-
-        super().save(*args, **kwargs)
-
-        # Resim boyutunu optimize et
-        if self.file and self.media_type == "IMAGE":
-            img_path = self.file.path
-            if os.path.exists(img_path):
+            # Yeni dosya yüklemelerinde (henüz storage'a yazılmamışken) optimize et
+            if not getattr(self.file, "_committed", False) and self.media_type == "IMAGE":
                 try:
-                    with Image.open(img_path) as img:
+                    try:
+                        self.file.seek(0)
+                    except Exception:
+                        pass
+
+                    with Image.open(self.file) as img:
+                        img_format = (img.format or "").upper()
+                        if img_format in ("JPG",):
+                            img_format = "JPEG"
+
+                        # Büyük görselleri 1024x1024 içinde tut
                         if img.height > 1024 or img.width > 1024:
                             img.thumbnail((1024, 1024), Image.Resampling.LANCZOS)
-                            img.save(img_path, optimize=True, quality=85)
+
+                        buffer = BytesIO()
+                        save_kwargs = {"optimize": True}
+                        if img_format == "JPEG":
+                            save_kwargs["quality"] = 85
+                        # Geçersiz formatlarda JPEG'e düş
+                        final_format = img_format if img_format in ("JPEG", "PNG", "WEBP") else "JPEG"
+                        img.save(buffer, format=final_format, **save_kwargs)
+                        buffer.seek(0)
+
+                        # İçerik türü belirle
+                        content_type = "image/jpeg" if final_format == "JPEG" else f"image/{final_format.lower()}"
+
+                        # Dosya adını koru, uzantıyı formatla eşleştir
+                        original_name = getattr(self.file, "name", "upload")
+                        root, ext = os.path.splitext(original_name)
+                        if final_format == "JPEG" and ext.lower() not in (".jpg", ".jpeg"):
+                            new_name = f"{root}.jpg"
+                        elif final_format == "PNG" and ext.lower() != ".png":
+                            new_name = f"{root}.png"
+                        elif final_format == "WEBP" and ext.lower() != ".webp":
+                            new_name = f"{root}.webp"
+                        else:
+                            new_name = original_name
+
+                        new_file = InMemoryUploadedFile(
+                            file=buffer,
+                            field_name="file",
+                            name=new_name,
+                            content_type=content_type,
+                            size=buffer.getbuffer().nbytes,
+                            charset=None,
+                        )
+                        self.file = new_file
                 except (UnidentifiedImageError, OSError):
                     # Geçersiz/bozuk dosya içeriğinde optimizasyonu atla
                     pass
+                except Exception:
+                    # Beklenmedik durumlarda optimizasyonu atla, yüklemeye engel olma
+                    pass
+
+            # Dosya meta bilgileri
+            self.file_path = self.file.name
+            try:
+                self.file_size = self.file.size
+            except Exception:
+                self.file_size = None
+
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.report.title} - {self.get_media_type_display()}"
