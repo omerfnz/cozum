@@ -1,4 +1,3 @@
-// dart format width=80
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
 // **************************************************************************
@@ -11,12 +10,53 @@
 part of 'app_router.dart';
 
 /// generated route for
-/// [HomeView]
-class HomeRoute extends PageRouteInfo<void> {
-  const HomeRoute({List<PageRouteInfo>? children})
-    : super(HomeRoute.name, initialChildren: children);
+/// [AdminDashboardView]
+class AdminDashboardViewRoute extends PageRouteInfo<void> {
+  const AdminDashboardViewRoute({List<PageRouteInfo>? children})
+      : super(
+          AdminDashboardViewRoute.name,
+          initialChildren: children,
+        );
 
-  static const String name = 'HomeRoute';
+  static const String name = 'AdminDashboardViewRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      return const AdminDashboardView();
+    },
+  );
+}
+
+/// generated route for
+/// [CreateReportView]
+class CreateReportViewRoute extends PageRouteInfo<void> {
+  const CreateReportViewRoute({List<PageRouteInfo>? children})
+      : super(
+          CreateReportViewRoute.name,
+          initialChildren: children,
+        );
+
+  static const String name = 'CreateReportViewRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      return const CreateReportView();
+    },
+  );
+}
+
+/// generated route for
+/// [HomeView]
+class HomeViewRoute extends PageRouteInfo<void> {
+  const HomeViewRoute({List<PageRouteInfo>? children})
+      : super(
+          HomeViewRoute.name,
+          initialChildren: children,
+        );
+
+  static const String name = 'HomeViewRoute';
 
   static PageInfo page = PageInfo(
     name,
@@ -28,11 +68,14 @@ class HomeRoute extends PageRouteInfo<void> {
 
 /// generated route for
 /// [LoginView]
-class LoginRoute extends PageRouteInfo<void> {
-  const LoginRoute({List<PageRouteInfo>? children})
-    : super(LoginRoute.name, initialChildren: children);
+class LoginViewRoute extends PageRouteInfo<void> {
+  const LoginViewRoute({List<PageRouteInfo>? children})
+      : super(
+          LoginViewRoute.name,
+          initialChildren: children,
+        );
 
-  static const String name = 'LoginRoute';
+  static const String name = 'LoginViewRoute';
 
   static PageInfo page = PageInfo(
     name,
@@ -43,12 +86,34 @@ class LoginRoute extends PageRouteInfo<void> {
 }
 
 /// generated route for
-/// [RegisterView]
-class RegisterRoute extends PageRouteInfo<void> {
-  const RegisterRoute({List<PageRouteInfo>? children})
-    : super(RegisterRoute.name, initialChildren: children);
+/// [ProfileView]
+class ProfileViewRoute extends PageRouteInfo<void> {
+  const ProfileViewRoute({List<PageRouteInfo>? children})
+      : super(
+          ProfileViewRoute.name,
+          initialChildren: children,
+        );
 
-  static const String name = 'RegisterRoute';
+  static const String name = 'ProfileViewRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      return const ProfileView();
+    },
+  );
+}
+
+/// generated route for
+/// [RegisterView]
+class RegisterViewRoute extends PageRouteInfo<void> {
+  const RegisterViewRoute({List<PageRouteInfo>? children})
+      : super(
+          RegisterViewRoute.name,
+          initialChildren: children,
+        );
+
+  static const String name = 'RegisterViewRoute';
 
   static PageInfo page = PageInfo(
     name,
@@ -59,12 +124,84 @@ class RegisterRoute extends PageRouteInfo<void> {
 }
 
 /// generated route for
-/// [SplashView]
-class SplashRoute extends PageRouteInfo<void> {
-  const SplashRoute({List<PageRouteInfo>? children})
-    : super(SplashRoute.name, initialChildren: children);
+/// [ReportDetailView]
+class ReportDetailViewRoute extends PageRouteInfo<ReportDetailViewRouteArgs> {
+  ReportDetailViewRoute({
+    Key? key,
+    required String reportId,
+    List<PageRouteInfo>? children,
+  }) : super(
+          ReportDetailViewRoute.name,
+          args: ReportDetailViewRouteArgs(
+            key: key,
+            reportId: reportId,
+          ),
+          rawPathParams: {'reportId': reportId},
+          initialChildren: children,
+        );
 
-  static const String name = 'SplashRoute';
+  static const String name = 'ReportDetailViewRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      final pathParams = data.inheritedPathParams;
+      final args = data.argsAs<ReportDetailViewRouteArgs>(
+          orElse: () => ReportDetailViewRouteArgs(
+              reportId: pathParams.getString('reportId')));
+      return ReportDetailView(
+        key: args.key,
+        reportId: args.reportId,
+      );
+    },
+  );
+}
+
+class ReportDetailViewRouteArgs {
+  const ReportDetailViewRouteArgs({
+    this.key,
+    required this.reportId,
+  });
+
+  final Key? key;
+
+  final String reportId;
+
+  @override
+  String toString() {
+    return 'ReportDetailViewRouteArgs{key: $key, reportId: $reportId}';
+  }
+}
+
+/// generated route for
+/// [SettingsView]
+class SettingsViewRoute extends PageRouteInfo<void> {
+  const SettingsViewRoute({List<PageRouteInfo>? children})
+      : super(
+          SettingsViewRoute.name,
+          initialChildren: children,
+        );
+
+  static const String name = 'SettingsViewRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      return const SettingsView();
+    },
+  );
+}
+
+/// generated route for
+/// [SplashView]
+class SplashViewRoute extends PageRouteInfo<void> {
+  const SplashViewRoute({List<PageRouteInfo>? children})
+      : super(
+          SplashViewRoute.name,
+          initialChildren: children,
+        );
+
+  static const String name = 'SplashViewRoute';
 
   static PageInfo page = PageInfo(
     name,

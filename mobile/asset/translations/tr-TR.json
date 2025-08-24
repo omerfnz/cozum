@@ -1,0 +1,38 @@
+{
+  "app": {
+    "title": "Çözüm Var",
+    "subtitle": "Vatandaşın Sesi, Belediyenin Hızı"
+  },
+  "auth": {
+    "login": "Giriş Yap",
+    "register": "Kayıt Ol",
+    "logout": "Çıkış Yap",
+    "email": "E-posta",
+    "password": "Şifre",
+    "username": "Kullanıcı Adı",
+    "welcome": "Hoş geldiniz"
+  },
+  "home": {
+    "title": "Ana Sayfa",
+    "reports": "Bildirimler",
+    "categories": "Kategoriler",
+    "profile": "Profil"
+  },
+  "report": {
+    "create": "Bildirim Oluştur",
+    "title": "Başlık",
+    "description": "Açıklama",
+    "category": "Kategori",
+    "location": "Konum",
+    "submit": "Gönder"
+  },
+  "common": {
+    "save": "Kaydet",
+    "cancel": "İptal",
+    "delete": "Sil",
+    "edit": "Düzenle",
+    "loading": "Yükleniyor...",
+    "error": "Hata",
+    "success": "Başarılı"
+  }
+}

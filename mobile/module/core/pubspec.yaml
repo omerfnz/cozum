@@ -1,0 +1,32 @@
+name: core
+description: Core module for MVVM architecture - contains fundamental business logic and data access
+version: 1.0.0
+
+environment:
+  sdk: ">=3.1.3 <4.0.0"
+  flutter: ">=3.1.3"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  
+  # Local storage and database
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
+  path_provider: ^2.1.1
+  
+  # Network and HTTP
+  dio: ^5.4.0
+  
+  # Utilities
+  equatable: ^2.0.5
+  logger: ^2.0.2+1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  very_good_analysis: ^5.1.0
+  hive_generator: ^2.0.1
+  build_runner: ^2.4.7
+
+flutter:

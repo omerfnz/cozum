@@ -1,44 +1,105 @@
 name: mobile
-description: "A new Flutter project."
+description: "Çözüm Var - MVVM Architecture ile geliştirilmiş vatandaş bildirim uygulaması"
 publish_to: 'none'
+
 version: 1.0.0+1
 
 environment:
-  sdk: ^3.8.1
+  sdk: ">=3.1.3 <4.0.0"
+  flutter: ">=3.1.3"
 
 dependencies:
-  auto_route: ^10.1.2
-  cached_network_image: ^3.3.0
-  cupertino_icons: ^1.0.8
-  dio: ^5.9.0
-  equatable: ^2.0.7
   flutter:
     sdk: flutter
-  flutter_bloc: ^9.1.1
-  flutter_secure_storage: ^9.2.4
-  get_it: ^8.2.0
-  image_picker: ^1.2.0
-  intl: ^0.19.0
-  oktoast: ^3.4.0
-  logger: ^2.6.1
-  url_launcher: ^6.3.0
-  flutter_map: ^6.1.0
-  latlong2: ^0.9.1
+  cupertino_icons: ^1.0.8
+  
+  # Temel Mimari Bileşenleri
+  equatable: ^2.0.5
+  get_it: ^8.0.0
+  flutter_bloc: ^8.1.6
+  
+  # Ağ ve Veri Katmanı
+  dio: ^5.4.0
+  retrofit: ^4.1.0
+  
+  # UI ve Navigasyon
+  auto_route: ^9.2.2
+  google_fonts: ^6.1.0
+  
+  # Yerelleştirme
+  easy_localization: ^3.0.3
+  
+  # Güvenli Depolama
+  flutter_secure_storage: ^9.2.2
+  
+  # Medya ve Dosyalar
+  image_picker: ^1.0.4
+  cached_network_image: ^3.3.1
+  
+  # Konum Servisleri
   geolocator: ^10.1.0
-  flutter_native_splash: ^2.4.1
+  geocoding: ^2.1.1
+  
+  # Harita
+  flutter_map: ^6.1.0
+  latlong2: ^0.9.0
+  
+  # UI Yardımcıları
+  loading_animation_widget: ^1.2.0+4
+  fluttertoast: ^8.2.4
+  
+  # Yardımcı Araçlar
+  logger: ^2.0.2+1
+  intl: ^0.20.2
+  
+  # Modüller
+  widgets:
+    path: module/widgets
+  gen:
+    path: module/gen
+  common:
+    path: module/common
+  core:
+    path: module/core
+  json_annotation: ^4.9.0
 
 dev_dependencies:
-  auto_route_generator: ^10.2.3
-  build_runner: ^2.5.4
-  flutter_lints: ^5.0.0
   flutter_test:
     sdk: flutter
-  very_good_analysis: ^9.0.0
+  very_good_analysis: ^5.1.0
+  auto_route_generator: ^9.0.0
+  retrofit_generator: ^8.1.0
+  build_runner: ^2.4.7
+  json_serializable: ^6.7.1
+  mockito: ^5.4.4
+  bloc_test: ^9.1.5
+  flutter_launcher_icons: ^0.14.1
+  device_preview: ^1.1.0
+  flutter_lints: ^6.0.0
+  flutter_native_splash: ^2.4.0
 
 flutter:
   uses-material-design: true
+  
+  assets:
+    - asset/translations/
+    - asset/images/
+    - asset/icons/
+  
+  fonts:
+    - family: Inter
+      fonts:
+        - asset: asset/fonts/Inter-Regular.ttf
+        - asset: asset/fonts/Inter-Medium.ttf
+          weight: 500
+        - asset: asset/fonts/Inter-SemiBold.ttf
+          weight: 600
+        - asset: asset/fonts/Inter-Bold.ttf
+          weight: 700
 
 flutter_native_splash:
   color: "#1976D2"
+  color_dark: "#0D47A1"
   android_12:
     color: "#1976D2"
+    color_dark: "#0D47A1"

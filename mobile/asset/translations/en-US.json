@@ -1,0 +1,38 @@
+{
+  "app": {
+    "title": "Çözüm Var",
+    "subtitle": "Citizen's Voice, Municipality's Speed"
+  },
+  "auth": {
+    "login": "Login",
+    "register": "Register",
+    "logout": "Logout",
+    "email": "Email",
+    "password": "Password",
+    "username": "Username",
+    "welcome": "Welcome"
+  },
+  "home": {
+    "title": "Home",
+    "reports": "Reports",
+    "categories": "Categories",
+    "profile": "Profile"
+  },
+  "report": {
+    "create": "Create Report",
+    "title": "Title",
+    "description": "Description",
+    "category": "Category",
+    "location": "Location",
+    "submit": "Submit"
+  },
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success"
+  }
+}

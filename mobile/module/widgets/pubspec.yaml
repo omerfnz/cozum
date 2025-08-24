@@ -1,0 +1,27 @@
+name: widgets
+description: Reusable UI widgets and components
+version: 1.0.0
+
+environment:
+  sdk: ">=3.1.3 <4.0.0"
+  flutter: ">=3.1.3"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  
+  # Responsive design
+  responsive_framework: ^1.1.1
+  
+  # Loading and progress indicators
+  loading_animation_widget: ^1.2.0+4
+  
+  # Toast messages
+  fluttertoast: ^8.2.4
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  very_good_analysis: ^5.1.0
+
+flutter:

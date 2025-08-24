@@ -1,81 +1,38 @@
-# 📦 Veritabanı Şeması (MVP)
+# 📦 Veritabanı Şeması (Güncel)
 
-Bu şema, MVP kapsamındaki modelleri ve aralarındaki ilişkileri basitçe tanımlar.
+Bu şema, aktif backend modellerini ve ilişkilerini özetler.
 
-### 1. User (Kullanıcı)
-Sistemdeki tüm aktörleri (vatandaş, personel) bu model tutar.
-
-* `id` (Primary Key)
-* `username` (Kullanıcı Adı)
-* `email` (Email, **Benzersiz, Giriş için kullanılır**)
-* `password` (Hash'lenmiş şifre)
-* `first_name` (Ad)
-* `last_name` (Soyad)
-* `role` (Rol - Seçenekler: `VATANDAS`, `EKIP`, `OPERATOR`, `ADMIN`)
-* `team` (İlişki -> Team, Boş olabilir. Sadece `EKIP` rolündeki kullanıcılar için.)
-* `phone` (Telefon Numarası, opsiyonel)
-* `address` (Adres, opsiyonel)
+### 1. User (Özel Kullanıcı)
+- Giriş alanı: email (USERNAME_FIELD=email, benzersiz)
+- Zorunlu ek alan: username
+- Alanlar: id, email, username, first_name, last_name, password (hash), role [VATANDAS|EKIP|OPERATOR|ADMIN], team (FK→Team, null olabilir), phone, address, is_staff, is_superuser, date_joined, last_login
+- Manager: UserManager (create_user / create_superuser)
 
 ### 2. Team (Saha Ekibi)
-Belediyenin saha ekiplerini tanımlar.
-
-* `id` (Primary Key)
-* `name` (Ekip Adı, Örn: "Fen İşleri A Ekibi")
-* `description` (Açıklama, opsiyonel)
-* `team_type` (Ekip Tipi - Seçenekler: `EKIP`, `OPERATOR`, `ADMIN`)
-* `created_by` (İlişki -> User, Takımı oluşturan kullanıcı)
-* `created_by_name` (Serializer alanı - oluşturucunun görünen adı)
-* `members` (İlişki -> User, Takım üyeleri)
-* `members_count` (Serializer alanı - üye sayısı)
-* `created_at` (Oluşturulma Tarihi)
-* `is_active` (Aktif mi?)
-
-Not: Takımlar için silme işlemi soft-delete olarak uygulanır (`is_active=false`).
+- Alanlar: id, name, description, team_type [EKIP|OPERATOR|ADMIN], created_by (FK→User), members (M2M→User), created_at, is_active
+- Özellikler: member_count (hesaplanan), created_by_name (hesaplanan)
+- Silme: Soft delete (is_active=false)
 
 ### 3. Category (Kategori)
-Vatandaşların bildirim oluştururken seçeceği sorun tipleri.
+- Alanlar: id, name, description, is_active, created_at
+- Silme: Soft delete (is_active=false)
 
-* `id` (Primary Key)
-* `name` (Kategori Adı, Örn: "Yol ve Kaldırım Sorunları")
-* `description` (Açıklama, opsiyonel)
-* `is_active` (Aktif mi?)
-* `created_at` (Oluşturulma Tarihi)
-
-Not: Kategorilerde silme işlemi soft-delete olarak uygulanır (`is_active=false`).
-
-### 4. Report (Bildirim / Görev)
-Projenin ana objesi. Vatandaş tarafından oluşturulur, personel tarafından göreve dönüştürülür.
-
-* `id` (Primary Key)
-* `title` (Başlık)
-* `description` (Açıklama)
-* `status` (Durum - Seçenekler: `BEKLEMEDE`, `INCELENIYOR`, `COZULDU`, `REDDEDILDI`)
-* `priority` (Öncelik - Seçenekler: `DUSUK`, `ORTA`, `YUKSEK`, `ACIL`)
-* `reporter` (İlişki -> User, Bildirimi yapan vatandaş)
-* `category` (İlişki -> Category)
-* `assigned_team` (İlişki -> Team, Boş olabilir; Operatör tarafından atanır, Saha Ekibi kendi atanmış raporlarını görür)
-* `location` (Konum metni, opsiyonel)
-* `latitude` (Enlem, opsiyonel)
-* `longitude` (Boylam, opsiyonel)
-* `created_at` (Oluşturulma Tarihi)
-* `updated_at` (Güncellenme Tarihi)
+### 4. Report (Bildirim)
+- Alanlar: id, title, description, status [BEKLEMEDE|INCELENIYOR|COZULDU|REDDEDILDI], priority [DUSUK|ORTA|YUKSEK|ACIL], reporter (FK→User), category (FK→Category), assigned_team (FK→Team, null), location (str, opsiyonel), latitude (decimal, opsiyonel), longitude (decimal, opsiyonel), created_at, updated_at
+- Sıralama: created_at desc (en yeni ilk)
 
 ### 5. Media (Medya)
-Bildirimlere eklenen fotoğrafları tutar.
-
-* `id` (Primary Key)
-* `report` (İlişki -> Report)
-* `file` (Dosya Yolu, FileField)
-* `file_path` (Dosya Yolu Metni, opsiyonel)
-* `file_size` (Dosya Boyutu, opsiyonel)
-* `media_type` (Medya Tipi - Seçenekler: `IMAGE`, `VIDEO`)
-* `uploaded_at` (Yüklenme Tarihi)
+- Alanlar: id, report (FK→Report), file (ImageField), file_path (str), file_size (int), media_type [IMAGE|VIDEO], uploaded_at
+- Yükleme yolu: reports/YYYY/MM/DD/<report_id>/<filename>
+- Desteklenen uzantılar: jpg, jpeg, png, webp, heic, heif
+- Görsel optimizasyonu: Büyük görseller 1024x1024 üzerine küçültülür; JPEG kalite 85; PNG/WEBP optimize. Hatalı/bozuk içerikte optimizasyon atlanır.
+- Depolama hataları için anlamlı doğrulama mesajları üretir (örn. R2 yetkilendirme).
 
 ### 6. Comment (Yorum)
-Bildirimlerin altına personel tarafından eklenen notlar.
+- Alanlar: id, report (FK→Report), user (FK→User), content, created_at
+- Sıralama: created_at desc (en yeni ilk)
 
-* `id` (Primary Key)
-* `report` (İlişki -> Report)
-* `user` (İlişki -> User, Yorumu yapan personel)
-* `content` (Yorum içeriği)
-* `created_at` (Oluşturulma Tarihi)
+Notlar
+- Varsayılan izinler: DRF global olarak IsAuthenticated. Register/login uçları AllowAny.
+- Medya URL’leri: Mutlak URL. R2 etkinse https://<bucket>.<account>.r2.cloudflarestorage.com veya tanımlı custom domain kullanılır.
+- APPEND_SLASH=False: Tüm endpoint’ler sondaki / ile eşleşir.

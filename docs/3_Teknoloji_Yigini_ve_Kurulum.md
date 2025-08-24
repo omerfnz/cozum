@@ -1,259 +1,182 @@
-# 🚀 Teknoloji Yığını ve Kurulum Rehberi
+# 🚀 Teknoloji Yığını ve Kurulum Rehberi (Güncel)
 
-### Backend
-* **Framework:** Django
-* **API için:** Django REST Framework (DRF)
-* **Kimlik Doğrulama:** djangorestframework-simplejwt (JWT)
-* **Veritabanı:** Geliştirme için SQLite, Production için PostgreSQL
-* **Medya Yönetimi:** Pillow (Resim işleme kütüphanesi)
-* **Bulut Depolama:** Cloudflare R2 (S3-compatible) - django-storages ile
-* **Medya URL Yönetimi:** Custom domain veya direct R2 endpoint desteği
+Bu doküman, mevcut backend (Django) uygulamasına ve projedeki diğer bileşenlere göre güncellenmiştir. Aşağıdaki adımlar Windows ortamı içindir ve Python sanal ortamı (venv) kullanılmasını zorunlu kılar.
 
-### Frontend
-* **Kütüphane:** React + Vite
-* **Stil:** Tailwind CSS
-* **Harita ve Konum:** Leaflet + react-leaflet
+## Backend
+- Framework: Django 4.2.23
+- API: Django REST Framework (DRF)
+- Kimlik Doğrulama: JWT (djangorestframework-simplejwt)
+- Veritabanı: PostgreSQL (geliştirme ve üretim)
+- Medya İşleme: Pillow
+- Dosya Depolama: Opsiyonel Cloudflare R2 (S3-compatible) — django-storages üzerinden
+- CORS: django-cors-headers
 
-### Adım Adım Backend Kurulumu
-1.  **Python Sanal Ortamını Oluştur ve Aktif Et (Windows PowerShell):**
-    ```powershell
-    python -m venv venv
-    .\venv\Scripts\Activate.ps1
-    ```
+## Frontend (Web)
+- React + Vite
+- Tailwind CSS
+- Harita: Leaflet + react-leaflet
 
-2.  **Gerekli Django Paketlerini Yükle:**
-    ```powershell
-    pip install django djangorestframework Pillow django-cors-headers djangorestframework-simplejwt
-    ```
-
-3.  **Django Projesini ve İlk Uygulamayı Oluştur:**
-    ```bash
-    django-admin startproject cozum_var_backend .
-    python manage.py startapp reports
-    python manage.py startapp users
-    ```
-
-4.  **Önerilen Klasör Yapısı:**
-    ```
-    cozum_var_backend/
-    |-- cozum_var_backend/  # Proje ayarları (settings.py vb.)
-    |-- reports/            # Bildirim, kategori, medya, yorum modelleri burada olacak
-    |-- users/              # Kullanıcı ve Ekip modelleri burada olacak
-    |-- media/              # Yüklenen medya dosyaları
-    |-- manage.py
-    |-- venv/
-    ```
-
-5.  **`settings.py` Dosyasında İlk Ayarlar:**
-    * `INSTALLED_APPS` listesine `'rest_framework'`, `'corsheaders'`, `'reports'`, `'users'` uygulamalarını ekle.
-    * `CORS_ALLOWED_ORIGINS` ayarını ekleyerek React uygulamasının adresini belirt (örn: `["http://localhost:5173"]`).
-
-
-### Adım Adım Frontend Kurulumu
-1.  Node.js 18+ sürümü önerilir.
-2.  Proje kökünde frontend klasörüne geçin ve bağımlılıkları kurun:
-    ```powershell
-    cd frontend
-    npm install
-    ```
-3.  API adresini tanımlayın (.env dosyası):
-    ```ini
-    VITE_API_BASE_URL=http://localhost:8000/api
-    ```
-4.  Leaflet ve react-leaflet bağımlılıklarını kurun (TypeScript için tipler dahil):
-    ```powershell
-    npm i leaflet react-leaflet
-    npm i -D @types/leaflet
-    ```
-5.  Leaflet CSS'ini global olarak dahil edin (src/main.tsx):
-    ```ts
-    import 'leaflet/dist/leaflet.css'
-    ```
-6.  Geliştirme sunucusunu başlatın:
-    ```powershell
-    npm run dev
-    ```
-7.  Kod kalitesi ve tip kontrolü (önerilir):
-    ```powershell
-    npm run lint
-    npx tsc --noEmit
-    ```
+## Mobil (Flutter)
+- Flutter 3.22+
+- Önerilen paketler: dio, get_it, auto_route, flutter_bloc, image_picker, geolocator, url_launcher, intl
 
 ---
 
-### Medya Yükleme Yolu (Django)
-- Uygulama, vatandaş tarafından yüklenen medya dosyalarını yıl/ay/gün ve Bildirim ID’sine göre klasörleyen bir yapı kullanır.
-- Kural: `media/reports/YYYY/MM/DD/<report_id>/<filename>`
-- Teknik uygulama: `reports.models.Media.file` alanında `upload_to` bir fonksiyona atanmıştır (report_media_upload_to). Bu sayede her yüklemede dinamik klasör yolu oluşturulur.
-- Not: Bu değişiklik migrasyon gerektirmez; yol kuralları çalışma zamanında uygulanır.
+## Adım Adım Backend Kurulumu (Windows)
+1) Python Sanal Ortamını Oluştur ve Aktif Et (PowerShell)
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+# Gerekirse (script çalıştırma izni yoksa): Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+```
 
-### Cloudflare R2 Storage Konfigürasyonu
+2) Bağımlılıkları Yükle
+```powershell
+pip install -r requirements.txt
+```
 
-#### Ortam Değişkenleri (.env)
+3) Ortam Değişkenlerini Yapılandır (.env)
+- Kök dizindeki .env.example dosyasını .env olarak kopyalayın ve değerleri düzenleyin:
+  - SECRET_KEY, DEBUG
+  - ALLOWED_HOSTS (örn: localhost,127.0.0.1,192.168.1.10)
+  - CORS_ALLOWED_ORIGINS (örn: http://localhost:5173)
+  - DB_NAME, DB_USER, DB_PASSWORD, DB_HOST, DB_PORT
+  - USE_R2, R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET_NAME, R2_CUSTOM_DOMAIN (opsiyonel)
+
+```powershell
+Copy-Item .env.example .env
+```
+
+4) Veritabanı Migrasyonları ve Yönetici Kullanıcı
+```powershell
+python manage.py migrate
+python manage.py createsuperuser
+```
+
+5) Geliştirme Sunucusunu Başlat
+```powershell
+python manage.py runserver 0.0.0.0:8000
+```
+
+6) Sağlık Kontrolü
+- Tarayıcıdan veya bir HTTP istemcisinden GET /api/health/ çağırın:
+  - R2 kapalıysa yerel medya ayarlarını,
+  - R2 etkinse R2 bağlantı/URL yapılandırmasını, yazma/temizleme test sonuçlarını döner.
+
+---
+
+## Docker ile Çalıştırma (Opsiyonel)
+- Proje kökünde aşağıdaki komutu çalıştırın:
+```powershell
+docker compose up --build -d
+```
+- docker-compose, PostgreSQL ve Django’yu birlikte ayağa kaldırmak için yapılandırılmıştır. İlk kurulumda migrate/createsuperuser adımlarını konteyner içinde çalıştırmanız gerekebilir.
+
+---
+
+## Önemli Ayarlar (settings.py ile uyumlu)
+- APPEND_SLASH=False: Tüm API yolları sondaki eğik çizgi ile çağrılmalıdır (ör. /api/reports/). Slashesiz çağrılar 404 dönebilir.
+- DRF Varsayılan İzin: IsAuthenticated. Sadece register ve login uçları AllowAny.
+- JWT Süreleri: ACCESS_TOKEN 60 dk, REFRESH_TOKEN 7 gün.
+- CORS: Geliştirmede CORS_ALLOW_ALL_ORIGINS=True; üretimde CORS_ALLOWED_ORIGINS ortam değişkeni ile alan kısıtlayın.
+- Proxy Arkası HTTPS: USE_X_FORWARDED_HOST=True ve SECURE_PROXY_SSL_HEADER tanımlıdır.
+- Medya/R2:
+  - Varsayılan: MEDIA_URL=/media/, MEDIA_ROOT=<proje_kökü>/media
+  - USE_R2=True ise S3 Storage kullanılır. R2_CUSTOM_DOMAIN doluysa MEDIA_URL=https://<custom_domain>/, boşsa https://<bucket>.<account>.r2.cloudflarestorage.com/
+
+---
+
+## Cloudflare R2 Konfigürasyonu (Opsiyonel)
+### Ortam Değişkenleri (.env)
 ```ini
-# R2 Storage Configuration
 USE_R2=True
 R2_ACCOUNT_ID=your_account_id
 R2_ACCESS_KEY_ID=your_access_key
 R2_SECRET_ACCESS_KEY=your_secret_key
-R2_BUCKET_NAME=your_bucket_name
-# Custom domain (opsiyonel - boş bırakılabilir)
-R2_CUSTOM_DOMAIN=media.yourdomain.com
+R2_BUCKET_NAME=your_bucket
+# Opsiyonel: media.example.com veya pub-xxxxxxx.r2.dev
+R2_CUSTOM_DOMAIN=
 ```
 
-#### SSL Sorun Giderme
-- **Problem:** Custom domain'ler SSL sertifika sorunlarına neden olabilir
-- **Çözüm:** 
-  1. `R2_CUSTOM_DOMAIN`'i boş string olarak ayarlayın
-  2. Django sunucusunu yeniden başlatın
-  3. Direct R2 endpoint kullanılacaktır: `bucket-name.account-id.r2.cloudflarestorage.com`
-  4. SSL sertifikaları düzgün yapılandırıldıktan sonra custom domain'i tekrar aktif edin
+### SSL ve URL Seçimi
+- Custom domain SSL sorun çıkarıyorsa R2_CUSTOM_DOMAIN boş bırakın; Django otomatik olarak güvenilir doğrudan R2 endpoint’ini (bucket.account.r2.cloudflarestorage.com) kullanır.
 
-#### R2 API Token Gereksinimleri
-- **Permissions:** Object Read & Write
-- **TTL:** Forever (test için)
-- **IP Filtering:** Boş (test için)
-- **Bucket Scope:** Apply to all buckets (tek bucket varsa)
+### Sağlık Kontrolü ile Doğrulama
+- GET /api/health/ çağrısı; R2 yapılandırması, örnek URL üretimi, yazma/temizleme test sonuçlarını döndürür.
 
-#### Health Check Endpoint
-- **URL:** `GET /api/health/`
-- **Açıklama:** R2 storage bağlantısını test eder
-- **Response:** Storage yapılandırması, write test ve cleanup sonucu
-- **Kullanım:** R2 konfigürasyonu değişikliklerinden sonra doğrulama için
-
-#### URL Generation Logic
-- MediaSerializer ve ReportListSerializer otomatik URL generation destekler
-- Custom domain varsa o kullanılır, yoksa direct R2 endpoint
-- Her zaman HTTPS protokolü sağlanır
-- Server restart gerektirir environment değişikliklerinden sonra
-
-### Mobile (Flutter)
-- Çalıştırma:
-  - Windows PowerShell: `cd mobile` ve `flutter run`
-- Ortam değişkeni:
-  - `--dart-define=API_BASE_URL=http://localhost:8000/api` ile taban URL geçilir.
-- Ağ katmanı:
-  - `dio` ile HTTP istemcisi; Authorization: `Bearer <token>` başlığı için interceptor.
-  - 401 durumunda refresh token akışı ve otomatik yeniden deneme; refresh başarısızsa otomatik logout ve `LoginRoute`'a yönlendirme.
-  - Access/refresh token saklama: `flutter_secure_storage` (Android/iOS güvenli depolama)
-- Medya:
-  - `image_picker` ile tek fotoğraf seçimi; `FormData` ile multipart POST (dio).
-- Navigasyon ve Mimarî:
-  - `auto_route` ile yönlendirme, `get_it` ile DI, `flutter_bloc`/`equatable` ile state yönetimi.
-  - Router kullanımı: `AppRouter` tekil örnek olarak DI (get_it) üzerinden sağlanır; interceptor yönlendirmeleriyle aynı router örneği paylaşılır.
-- Home Feed Varsayılanları (Mobil):
-  - Rol bazlı varsayılan kapsam seçimi: VATANDAS → "mine", EKIP → "assigned", OPERATOR/ADMIN → "all".
-  - HomeFeedCubit `fetch(scope)` imzası ile `state.scope` güncellenir ve veri rol bazlı çekilir.
-- Not:
-  - MVP’de harita entegrasyonu opsiyoneldir; konum metin alanı yeterlidir. Harita için `google_maps_flutter` eklenerek AndroidManifest’e Google Maps API anahtarı gömülmelidir.
-
-#### Lint ve Analiz (Flutter)
-- Lint kural seti: `analysis_options.yaml` içerisinde `package:flutter_lints/flutter.yaml` dahil edilmiştir ve geliştirmeyi hızlandırmak için bazı stil kuralları gevşetilmiştir.
-- Kullanılan dev bağımlılıklar: `flutter_lints`, `very_good_analysis` (pubspec altında mevcuttur).
-- Kod güncellemeleri:
-  - `withOpacity(..)` çağrıları `withValues(alpha: ..)` ile güncellendi (deprecate uyarıları giderildi).
-  - Import sırası düzeltildi (directives_ordering).
-  - Kayıt sayfasında yalnızca sayısal şifreleri reddeden regex `%5E\d%2B$` → `^\d+$` olarak düzeltildi.
-  - AutoRoute codegen dosyaları güncellendi (`dart run build_runner build -d`).
-- Doğrulama:
-  - `flutter analyze` sonucu: No issues found!
+### Medya URL Üretimi
+- Serializer’lar (özellikle Media/Report) mutlak URL üretir. İstek bağlamı varsa request.build_absolute_uri(file.url) kullanılır; aksi halde file.url döner.
 
 ---
 
-#### Kurulum Adımları (Windows)
-1) Flutter kurulumu doğrula
+## Medya Yükleme Yolu
+- Yükleme kuralı: reports/YYYY/MM/DD/<report_id>/<filename>
+- Desteklenen uzantılar: jpg, jpeg, png, webp, heic, heif
+- Görsel optimizasyonu: Büyük görseller 1024x1024’e kadar küçültülür; JPEG kalite 85; PNG/WEBP optimize edilir.
+
+---
+
+## Test ve Kod Kalitesi
+- Testler (pytest):
 ```powershell
-flutter doctor
+pytest -q
+```
+- Lint (flake8):
+```powershell
+flake8
+```
+- Otomatik format (black) ve import düzeni (isort):
+```powershell
+black .
+isort .
 ```
 
-2) Projeyi oluştur (kök dizinde)
+---
+
+## Frontend Kurulumu (özet)
+1) Node.js 18+
+2) İlgili frontend klasöründe:
 ```powershell
-flutter create mobile
+npm install
+npm run dev
+```
+3) .env (örnek):
+```ini
+VITE_API_BASE_URL=http://localhost:8000/api
+```
+4) Leaflet bağımlılıkları:
+```powershell
+npm i leaflet react-leaflet
+npm i -D @types/leaflet
 ```
 
-3) Bağımlılıkları ekle
-```powershell
-cd mobile
-flutter pub add dio flutter_bloc equatable get_it auto_route flutter_secure_storage image_picker
-flutter pub add --dev build_runner auto_route_generator very_good_analysis
-```
-
-4) Çalıştırma (API adresi ile)
+## Mobil (Flutter) Notları (özet)
+- Çalıştırma:
 ```powershell
 flutter run --dart-define=API_BASE_URL=http://localhost:8000/api
 ```
+- Ağ katmanı: Authorization: Bearer <access>
+- Varsayılan feed kapsamı (rol bazlı): VATANDAS→mine, EKIP→assigned, OPERATOR/ADMIN→all
+- Medya: multipart/form-data ile görsel yükleme desteklenir.
 
-5) Android izinleri (gerekli durumlarda)
-- AndroidManifest.xml içine aşağıdaki izinleri ekleyin (hedef API seviyesine göre güncellenebilir):
-```xml
-<uses-permission android:name="android.permission.INTERNET" />
-<uses-permission android:name="android.permission.CAMERA" />
-<uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
-<!-- Eski cihazlar için: <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" /> -->
+- AutoRoute v9 notu:
+  - MaterialApp.router bağlama: `routerConfig: appRouter.config()`
+  - Kod üretimi: `dart run build_runner build --delete-conflicting-outputs`
+
+- Native Splash (flutter_native_splash):
+  1) Geliştirme bağımlılığı ekleyin (pubspec.yaml dev_dependencies): `flutter_native_splash: ^2.4.0`
+  2) pubspec.yaml altında konfigürasyon ekleyin:
+```yaml
+flutter_native_splash:
+  color: "#1976D2"
+  color_dark: "#0D47A1"
+  android_12:
+    color: "#1976D2"
+    color_dark: "#0D47A1"
 ```
-
-6) Harita (opsiyonel)
-- `google_maps_flutter` ekleyin ve AndroidManifest.xml içine aşağıdaki meta veriyi ekleyin:
-```xml
-<meta-data android:name="com.google.android.geo.API_KEY" android:value="@string/google_maps_api_key" />
+  3) PowerShell'de oluşturun:
+```powershell
+flutter pub get
+dart run flutter_native_splash:create
 ```
-- Anahtarı yerel `local.properties` ya da `res/values/strings.xml` içinde yönetip git’e eklemeyin.
-
-7) Sorun giderme
-- `flutter doctor` uyarılarını giderin (Android SDK/JDK, platform-tools, cihaz/emu bağlantısı).
-- İzin reddi veya medya seçimi hatalarında Manifest ve runtime izinlerini kontrol edin.
-- Ağ çağrısı hatalarında `--dart-define=API_BASE_URL` değerini doğrulayın.
-
----
-
-# Teknoloji Yığını ve Kurulum
-
-Bu doküman, proje geliştirme ortamının kurulumu ve kullanılan teknolojilerin özetini içerir.
-
-## Backend
-- Django, Django REST Framework
-- PostgreSQL
-- Kimlik doğrulama: JWT (access/refresh)
-- Medya: Django Media (MEDIA_URL, MEDIA_ROOT)
-
-## Frontend (Web)
-- React (Vite)
-- Tailwind CSS
-- Leaflet (OpenStreetMap)
-
-## Mobil (Flutter)
-- Flutter 3.22+
-- Paketler: dio, get_it, auto_route, flutter_bloc, flutter_map, geolocator, image_picker, url_launcher, intl, cached_network_image
-- Ortam değişkenleri: API_BASE_URL (örn: http://192.168.1.33:8000/api/)
-- Medya URL: http://192.168.1.33:8000/ (MEDIA_URL kökü) — mobil istemci, görsel önizlemelerinde tam URL bekler
-
-### İzinler
-- AndroidManifest.xml:
-  - INTERNET
-  - ACCESS_COARSE_LOCATION, ACCESS_FINE_LOCATION
-  - CAMERA, READ_EXTERNAL_STORAGE (Android 13+: READ_MEDIA_IMAGES)
-- iOS Info.plist:
-  - NSLocationWhenInUseUsageDescription
-  - NSCameraUsageDescription
-  - NSPhotoLibraryUsageDescription
-
-### Geliştirme ve Çalıştırma
-- Windows PowerShell üzerinden:
-  - Flutter kurulum kontrolü: flutter doctor
-  - Bağımlılıkları indir: flutter pub get
-  - Uygulamayı çalıştır: flutter run -d chrome veya cihaz ID
-  - Kod üretimi (auto_route): dart run build_runner build --delete-conflicting-outputs
-
-### LAN/IP Notları
-- Mobil cihazın, backend ile aynı yerel ağda olduğundan emin olun.
-- API_BASE_URL ve medya URL’lerinde cihazdan erişilebilen LAN IP kullanılmalıdır (localhost yerine IP adresi).
-- Android Emulator kullanıyorsanız backend’e erişim için özel IP kullanımı: 10.0.2.2 (fiziksel cihazda geçerli değildir).
-
-### Lint ve Analiz
-- analysis_options.yaml içinde linter kuralları aktif
-- dart fix --apply ve dart analyze ile düzenli kontrol önerilir
-
-- DRF tarafında `MediaSerializer` içerisinde `file` alanı mutlak URL olarak döndürülecek şekilde güncellendi.
-- Teknik detay: `request.build_absolute_uri(file.url)` kullanılır; istek bağlamı yoksa `file.url` döner.
-- Sonuç: Flutter’da `Image.network` ve webde `<img src>` doğrudan çalışır; `first_media_url` (liste) ve `media_files[].file` (detay) alanları tam URL döndürür.
-- Not: Bu değişiklik yalnızca serializer düzeyindedir, migrasyon gerektirmez. Backend’de bu davranışın testleri eklenmeli; prod ortamında `ALLOWED_HOSTS` ve `CSRF_TRUSTED_ORIGINS` LAN/IP yapılandırmalarına dikkat edilmelidir.
+  4) Doğrulama: Uygulamayı başlatın, native splash ardından AutoRoute Guard akışı (SplashView → LoginView/HomeView) çalışmalıdır.

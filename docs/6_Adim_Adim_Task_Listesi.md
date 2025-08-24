@@ -165,74 +165,59 @@ M) Güvenlik ve Üretim Notları (MVP Sonrası)
 - [ ] DRF şema + Swagger (drf-spectacular) dokümantasyonu (opsiyonel)
 
 N) Mobil (Flutter)
+
 1) Kurulum ve Proje Başlatma
    - [x] Flutter SDK ve Android toolchain doğrulandı (flutter doctor)
    - [x] mobile klasörü Flutter ile oluşturuldu (flutter create mobile)
+
 2) Bağımlılıklar
    - [x] dio, flutter_bloc, equatable, get_it, auto_route, flutter_secure_storage, image_picker
    - [x] cached_network_image, geolocator, oktoast, very_good_analysis
    - [x] Dev: build_runner, auto_route_generator, very_good_analysis
+
 3) Mimari ve Navigasyon
    - [x] Clean Architecture iskeleti ve Material3 tema
    - [x] auto_route yapılandırması ve route generator kurulumu
    - [x] get_it container ve service/repository kayıtları (locator.dart)
+
 4) Ağ ve Kimlik Doğrulama
    - [x] dio instance + interceptor (Bearer access token)
    - [x] 401 için refresh token akışı ve otomatik yeniden deneme
    - [x] flutter_secure_storage ile token saklama (TokenStorage)
+
 5) Özellikler (MVP)
    - [x] Auth: Kayıt (Vatandaş) ve giriş ekranları (LoginView, RegisterView)
-   - [x] Splash ekranı ve otomatik giriş kontrolü
+   - [x] Splash ekranı ve otomatik giriş kontrolü (Next: native splash flutter_native_splash ile yapılandırılacak)
    - [x] Ana sayfa: Rol bazlı rapor listesi (HomeView)
    - [x] Rapor Oluştur: başlık, açıklama, kategori, 1 fotoğraf, konum (CreateReportView)
    - [x] Rapor Detay: Görüntüleme ve yorum ekleme (ReportDetailView)
    - [x] Profil sayfası: Kullanıcı bilgileri ve çıkış (ProfileView)
    - [x] Ayarlar: Tema değiştirme (SettingsView)
    - [x] Admin paneli: Takım, kullanıcı, kategori yönetimi (AdminTeamsView, AdminUsersView, AdminCategoriesView)
+
 6) Medya
    - [x] image_picker ile fotoğraf seçimi, dio FormData ile yükleme
    - [x] cached_network_image ile görsel önizleme
+
 7) Çevresel Ayarlar
    - [x] API taban adresi: --dart-define=API_BASE_URL=http://localhost:8000/api
    - [x] LAN testi (gerçek cihaz/emülatör): `--dart-define=API_BASE_URL=http://192.168.1.101:8000/api`
    - [x] AppConfig ile ortam değişkeni yönetimi
    - [ ] Android izinleri: INTERNET, CAMERA, READ_MEDIA_IMAGES
+
 8) Çalıştırma
    - [x] flutter run --dart-define=API_BASE_URL=http://localhost:8000/api
+
 9) Harita (opsiyonel)
    - [ ] google_maps_flutter ekleme ve Android API key tanımı
    - [x] geolocator ile konum alma (CreateReportView'da kullanılıyor)
 
-Güncel notlar (Android)
-- Gerekli izinler ve API anahtarları git’e eklenmemelidir; yerel/secret yönetimi kullanılmalıdır.
-
-# Adım Adım Task Listesi (Güncel)
-
-Bu dosya MVP’yi hayata geçirmek için gerekli adımların güncel halidir.
-
-## Durum Özeti
-- Dokümanlar güncellendi: MVP kapsamı, teknoloji yığını, API listesi.
-- Mobil uygulama: Login, Register, Home Feed, Report Create, Report Detail, Yorum ekleme, Harita seçici çalışır durumda.
-- DI ve Dio interceptor’lar (Authorization, refresh flow) aktif.
-- Router tekilliği: `AppRouter` DI üzerinden tekil örnek olarak kullanılıyor; interceptor yönlendirmeleri aynı örneği kullanır.
-- Varsayılan scope (mobil): Rol bazlı olarak otomatik belirlenir (VATANDAS=mine, EKIP=assigned, OPERATOR/ADMIN=all).
-- Yorum kısıtı (mobil): VATANDAS sadece kendi raporunda yorum yazabilir.
-
-## Mobil (Flutter) – Eksikler ve Sıradaki Adımlar
-
-### Tamamlanan Özellikler ✅
-- Clean Architecture yapısı ve katmanlı mimari
-- BLoC/Cubit pattern ile state management
-- Auto Route ile navigasyon sistemi
-- GetIt ile dependency injection
-- JWT tabanlı kimlik doğrulama (login, register, refresh token)
-- Rol bazlı ana sayfa (VATANDAS, EKIP, OPERATOR, ADMIN)
-- Rapor oluşturma (başlık, açıklama, kategori, fotoğraf, konum)
-- Rapor detay görüntüleme ve yorum ekleme
-- Admin paneli (takım, kullanıcı, kategori yönetimi)
-- Profil sayfası ve tema değiştirme
-- Medya yükleme ve önizleme
-- Geolocator ile konum alma
+### Yapılan Teknik Düzeltmeler (Güncel)
+- AutoRoute v9 uyumluluğu: AppRouter artık RootStackRouter'ı extend eder; MaterialApp.router içinde routerConfig: appRouter.config() kullanılır.
+- Rota sınıf adlandırması: @AutoRouterConfig içinde replaceInRouteName: 'View,Page,Screen,Dialog,Widget=Route' uygulanmıştır; örn. LoginViewRoute, HomeViewRoute, SplashViewRoute.
+- Guard'lar (AuthGuard, AdminGuard, GuestGuard): pushReplacement yerine replace/replaceAll kullanıldı ve const yapıcılar eklendi; yanlış rota sınıf adları güncellendi.
+- Kod üretimi başarıyla çalıştırıldı: dart run build_runner build --delete-conflicting-outputs; ardından flutter analyze → "No issues found!".
+- Router dosyası (app_router.gr.dart) güncel ve .page referansları AppRouter yapılandırması ile uyumlu.
 
 ### Kritik Eksikler ve Sıradaki Adımlar 🔴
 1) **Android İzinleri (Yüksek Öncelik)**
@@ -255,48 +240,62 @@ Bu dosya MVP’yi hayata geçirmek için gerekli adımların güncel halidir.
    - Ağ bağlantısı olmadığında cached veriler
    - Senkronizasyon mekanizması
 
-### Teknik İyileştirmeler 🔧
-1) **Kod Kalitesi**
-   - dart analyze ve dart fix --apply çalıştır
-   - very_good_analysis kurallarına uyum
-   - Test coverage artırma
+5) **Native Splash (Yüksek Öncelik)**
+   - flutter_native_splash bağımlılığını ekle ve pubspec.yaml altında "flutter_native_splash" konfigüre et (background, image, dark theme desteği).
+   - PowerShell komutu ile oluştur: `dart run flutter_native_splash:create`.
+   - Android 12+ için adaptive icon/splash ayarlarını doğrula; iOS için LaunchScreen storyboard güncellemelerini kontrol et.
+   - Splash'tan sonra AutoRoute guard akışının (SplashView → LoginView/HomeView) sorunsuz çalıştığını doğrula.
 
-2) **Performans**
-   - ListView.builder optimizasyonları
-   - Image caching iyileştirmeleri
-   - Memory leak kontrolü
+### Kritik Eksikler ve Sıradaki Adımlar 🔴
+1) **Android İzinleri (Yüksek Öncelik)**
+   - android/app/src/main/AndroidManifest.xml'e INTERNET, CAMERA, ACCESS_FINE_LOCATION izinleri
+   - iOS için Info.plist kamera ve konum izin metinleri
 
-3) **UX İyileştirmeleri**
-   - Loading states ve skeleton screens
-   - Error handling ve user-friendly mesajlar
-   - Pull-to-refresh özelliği
-   - Infinite scrolling
+2) **Harita Entegrasyonu (Orta Öncelik)**
+   - google_maps_flutter paketi ekleme
+   - Android API key yapılandırması
+   - Rapor oluşturmada harita ile konum seçimi
+   - Rapor detayında konum gösterimi
 
-### Ortam Yapılandırması 🔧
-1) **API Konfigürasyonu**
-   - API_BASE_URL'i LAN IP ile ver (örn: http://192.168.1.33:8000/api/)
-   - Medya URL kökü: http://192.168.1.33:8000/
-   - Prod/Dev/Test ortam ayrımı
+3) **Filtreleme ve Arama (Orta Öncelik)**
+   - Ana sayfada rapor filtreleme (durum, kategori, tarih)
+   - Arama özelliği (başlık, açıklama)
+   - Sıralama seçenekleri
 
-2) **Build ve Deploy**
-   - AutoRoute codegen: dart run build_runner build --delete-conflicting-outputs
-   - APK/AAB build konfigürasyonu
-   - Code signing (geliştirici imzaları ayrı tutulur)
+4) **Offline Support (Düşük Öncelik)**
+   - Hive/SQLite ile yerel veri saklama
+   - Ağ bağlantısı olmadığında cached veriler
+   - Senkronizasyon mekanizması
 
-## Backend – Kontrol Listesi
-- MEDIA_URL mutlak URL üretimi (serializer’da request.build_absolute_uri)
-- CORS ve ALLOWED_HOSTS LAN IP dahil güncel
-- /api altında auth, reports, categories, comments uçları aktif ve dokümanla uyumlu
+5) **Native Splash (Yüksek Öncelik)**
+   - flutter_native_splash bağımlılığını ekle ve pubspec.yaml altında "flutter_native_splash" konfigüre et (background, image, dark theme desteği).
+   - PowerShell komutu ile oluştur: `dart run flutter_native_splash:create`.
+   - Android 12+ için adaptive icon/splash ayarlarını doğrula; iOS için LaunchScreen storyboard güncellemelerini kontrol et.
+   - Splash'tan sonra AutoRoute guard akışının (SplashView → LoginView/HomeView) sorunsuz çalıştığını doğrula.
 
-## Çalıştırma
-- Windows PowerShell:
-  - flutter pub get
-  - dart run build_runner build --delete-conflicting-outputs
-  - flutter run --dart-define=API_BASE_URL=http://192.168.1.33:8000/api/
+### Kritik Eksikler ve Sıradaki Adımlar 🔴
+1) **Android İzinleri (Yüksek Öncelik)**
+   - android/app/src/main/AndroidManifest.xml'e INTERNET, CAMERA, ACCESS_FINE_LOCATION izinleri
+   - iOS için Info.plist kamera ve konum izin metinleri
 
-## Doğrulama
-- Fiziksel cihaz ile aynı LAN: evet
-- Login/refresh/logout akışı: OK
-- Report create (tek görsel) -> listede ve detailde görünüyor: OK
-- Yorum ekleme yetkisi: sadece Operatör/Ekip
-- Medya URL’leri mutlak ve erişilebilir
+2) **Harita Entegrasyonu (Orta Öncelik)**
+   - google_maps_flutter paketi ekleme
+   - Android API key yapılandırması
+   - Rapor oluşturmada harita ile konum seçimi
+   - Rapor detayında konum gösterimi
+
+3) **Filtreleme ve Arama (Orta Öncelik)**
+   - Ana sayfada rapor filtreleme (durum, kategori, tarih)
+   - Arama özelliği (başlık, açıklama)
+   - Sıralama seçenekleri
+
+4) **Offline Support (Düşük Öncelik)**
+   - Hive/SQLite ile yerel veri saklama
+   - Ağ bağlantısı olmadığında cached veriler
+   - Senkronizasyon mekanizması
+
+5) **Native Splash (Yüksek Öncelik)**
+   - flutter_native_splash bağımlılığını ekle ve pubspec.yaml altında "flutter_native_splash" konfigüre et (background, image, dark theme desteği).
+   - PowerShell komutu ile oluştur: `dart run flutter_native_splash:create`.
+   - Android 12+ için adaptive icon/splash ayarlarını doğrula; iOS için LaunchScreen storyboard güncellemelerini kontrol et.
+   - Splash'tan sonra AutoRoute guard akışının (SplashView → LoginView/HomeView) sorunsuz çalıştığını doğrula.

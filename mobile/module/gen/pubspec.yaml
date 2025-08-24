@@ -1,0 +1,36 @@
+name: gen
+description: Generated assets and code module
+version: 1.0.0
+
+environment:
+  sdk: ">=3.1.3 <4.0.0"
+  flutter: ">=3.1.3"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  
+  # JSON serialization
+  json_annotation: ^4.8.1
+  
+  # SVG support
+  flutter_svg: ^2.0.9
+  
+  # Lottie animations
+  lottie: ^2.7.0
+  
+  # Environment variables
+  envied: ^0.5.3
+  
+  # Localization
+  easy_localization: ^3.0.3
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  very_good_analysis: ^5.1.0
+  json_serializable: ^6.7.1
+  envied_generator: ^0.5.3
+  build_runner: ^2.4.7
+
+flutter:
