@@ -129,7 +129,7 @@ export default function ReportsCreate() {
       toast.success('Bildirim oluşturuldu')
       navigate('/dashboard')
     } catch (err: unknown) {
-      console.error(err)
+      console.error('Report creation error:', err)
       let detail = ''
       if (isAxiosError(err)) {
         const resp = err.response?.data

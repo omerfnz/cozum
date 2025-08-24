@@ -157,8 +157,8 @@ export async function createReport(payload: CreateReportPayload): Promise<Report
 
   // Tek fotoğraf yükleme (MVP gereksinimi)
   if (payload.media_files && payload.media_files.length > 0) {
-    // DRF tarafında ListField(FileField) için dizi anahtarını kullan (media_files[])
-    payload.media_files.forEach((file) => formData.append('media_files[]', file))
+    // Backend media_files anahtarını bekliyor
+    payload.media_files.forEach((file) => formData.append('media_files', file))
   }
 
   // Content-Type başlığını tarayıcının sınır (boundary) eklemesi için MANUEL AYARLAMAYIN

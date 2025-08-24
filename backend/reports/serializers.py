@@ -196,6 +196,16 @@ class ReportCreateSerializer(serializers.ModelSerializer):
 
     def validate(self, attrs):
         """Tek/çoklu dosyada farklı alan isimlerini destekle ve listeye dönüştür"""
+        # Kategori kontrolü
+        category = attrs.get('category')
+        if not category:
+            raise serializers.ValidationError({'category': 'Kategori seçimi zorunludur.'})
+        
+        # Kategori var mı kontrolü
+        from .models import Category
+        if not Category.objects.filter(id=category.id, is_active=True).exists():
+            raise serializers.ValidationError({'category': 'Seçilen kategori geçerli değil veya aktif değil.'})
+        
         request = self.context.get("request")
         if request and hasattr(request, "FILES"):
             files = []
@@ -213,6 +223,9 @@ class ReportCreateSerializer(serializers.ModelSerializer):
                     files.append(single)
             if files:
                 attrs["media_files"] = files
+            else:
+                # Fotoğraf zorunlu (MVP gereği)
+                raise serializers.ValidationError({'media_files': 'En az bir fotoğraf yüklenmesi zorunludur.'})
         return attrs
 
     def create(self, validated_data):
