@@ -1,6 +1,8 @@
 """Reports app serileştiricileri"""
 
 from rest_framework import serializers
+from django.db import transaction, IntegrityError
+from django.core.exceptions import ValidationError as DjangoValidationError
 
 from users.serializers import TeamSerializer, UserDetailSerializer
 
@@ -175,17 +177,33 @@ class ReportCreateSerializer(serializers.ModelSerializer):
         return attrs
 
     def create(self, validated_data):
-        """Bildirim ve medya dosyalarını birlikte oluştur"""
+        """Bildirim ve medya dosyalarını birlikte oluştur (atomik) ve hataları 4xx olarak döndür"""
         media_files = validated_data.pop("media_files", [])
 
-        # Bildirimi oluştur
-        report = Report.objects.create(**validated_data)
+        try:
+            with transaction.atomic():
+                # Bildirimi oluştur
+                report = Report.objects.create(**validated_data)
 
-        # Medya dosyalarını oluştur
-        for media_file in media_files:
-            Media.objects.create(report=report, file=media_file, media_type="IMAGE")
+                # Medya dosyalarını oluştur (dosya validasyonlarını tetikle)
+                for media_file in media_files:
+                    media = Media(report=report, file=media_file, media_type="IMAGE")
+                    # Model alan doğrulamalarını (örn. uzantı) çalıştır
+                    media.full_clean()
+                    media.save()
 
-        return report
+                return report
+        except DjangoValidationError as e:
+            # Model full_clean() veya alan hataları -> 400 döndür
+            if hasattr(e, "message_dict"):
+                raise serializers.ValidationError(e.message_dict)
+            raise serializers.ValidationError({"detail": e.messages})
+        except IntegrityError as e:
+            # FK/benzersizlik vb. veritabanı hataları -> 400 döndür
+            raise serializers.ValidationError({"detail": f"Veritabanı hatası: {str(e)}"})
+        except Exception as e:
+            # Beklenmeyen durumlar -> 400 ile anlamlı mesaj döndür (geçici teşhis için)
+            raise serializers.ValidationError({"detail": f"Yükleme sırasında bir hata oluştu: {str(e)}"})
 
 
 class ReportUpdateSerializer(serializers.ModelSerializer):
