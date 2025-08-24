@@ -30,6 +30,26 @@ def health_check(request):
             from django.core.files.storage import default_storage
             test_url = default_storage.url('test/dummy.jpg')
             health_info["storage"]["test_url"] = test_url
+            
+            # Test R2 write permissions
+            try:
+                from django.core.files.base import ContentFile
+                test_file = ContentFile(b"test content", name="health_check_test.txt")
+                test_path = default_storage.save('health_test/test.txt', test_file)
+                health_info["storage"]["write_test"] = "SUCCESS"
+                health_info["storage"]["test_file_path"] = test_path
+                
+                # Clean up test file
+                try:
+                    default_storage.delete(test_path)
+                    health_info["storage"]["cleanup"] = "SUCCESS"
+                except:
+                    health_info["storage"]["cleanup"] = "FAILED"
+                    
+            except Exception as write_error:
+                health_info["storage"]["write_test"] = "FAILED"
+                health_info["storage"]["write_error"] = str(write_error)
+                
         except Exception as e:
             health_info["storage"]["url_error"] = str(e)
     

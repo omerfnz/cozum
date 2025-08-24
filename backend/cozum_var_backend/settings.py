@@ -141,7 +141,7 @@ if USE_R2:
                 "addressing_style": "virtual",
                 "querystring_auth": False,
                 "custom_domain": R2_CUSTOM_DOMAIN,
-                "file_overwrite": False,  # Prevent accidental overwrites
+                "file_overwrite": True,  # Temporarily enable for testing
                 "default_acl": None,  # Don't set ACL, use bucket policy
                 "url_protocol": "https:",  # Force HTTPS protocol
                 "signature_version": "s3v4",  # Use signature version 4
