@@ -159,11 +159,11 @@ if USE_R2:
         },
     }
 
-    # Always use custom domain for media URL when R2 is active
-    if R2_CUSTOM_DOMAIN:
+    # Use direct R2 endpoint for reliable HTTPS instead of custom domain
+    if R2_CUSTOM_DOMAIN and R2_CUSTOM_DOMAIN.strip():
         MEDIA_URL = f"https://{R2_CUSTOM_DOMAIN}/"
     else:
-        # Fallback if no custom domain is set
+        # Use direct R2 endpoint which has proper SSL certificates
         MEDIA_URL = f"https://{R2_BUCKET_NAME}.{R2_ACCOUNT_ID}.r2.cloudflarestorage.com/"
 
 

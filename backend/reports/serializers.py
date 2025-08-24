@@ -43,13 +43,21 @@ class MediaSerializer(serializers.ModelSerializer):
         try:
             url = file_field.url
             # If using R2 storage, ensure URL has proper HTTPS protocol
-            if getattr(settings, 'USE_R2', False) and hasattr(settings, 'R2_CUSTOM_DOMAIN') and settings.R2_CUSTOM_DOMAIN:
-                # Ensure URL starts with https://
+            if getattr(settings, 'USE_R2', False):
+                # For R2 storage, ensure URL starts with https://
                 if not url.startswith('https://'):
                     if url.startswith('//'):
                         url = 'https:' + url
                     elif url.startswith('/'):
-                        url = f'https://{settings.R2_CUSTOM_DOMAIN}{url}'
+                        # Build URL with either custom domain or direct endpoint
+                        domain = getattr(settings, 'R2_CUSTOM_DOMAIN', '')
+                        if domain and domain.strip():
+                            url = f'https://{domain}{url}'
+                        else:
+                            # Use direct R2 endpoint
+                            account_id = getattr(settings, 'R2_ACCOUNT_ID', '')
+                            bucket_name = getattr(settings, 'R2_BUCKET_NAME', '')
+                            url = f'https://{bucket_name}.{account_id}.r2.cloudflarestorage.com{url}'
                     elif not url.startswith('http'):
                         url = f'https://{url}'
                 return url
@@ -114,13 +122,21 @@ class ReportListSerializer(serializers.ModelSerializer):
             try:
                 url = media.file.url
                 # If using R2 storage, ensure URL has proper HTTPS protocol
-                if getattr(settings, 'USE_R2', False) and hasattr(settings, 'R2_CUSTOM_DOMAIN') and settings.R2_CUSTOM_DOMAIN:
-                    # Ensure URL starts with https://
+                if getattr(settings, 'USE_R2', False):
+                    # For R2 storage, ensure URL starts with https://
                     if not url.startswith('https://'):
                         if url.startswith('//'):
                             url = 'https:' + url
                         elif url.startswith('/'):
-                            url = f'https://{settings.R2_CUSTOM_DOMAIN}{url}'
+                            # Build URL with either custom domain or direct endpoint
+                            domain = getattr(settings, 'R2_CUSTOM_DOMAIN', '')
+                            if domain and domain.strip():
+                                url = f'https://{domain}{url}'
+                            else:
+                                # Use direct R2 endpoint
+                                account_id = getattr(settings, 'R2_ACCOUNT_ID', '')
+                                bucket_name = getattr(settings, 'R2_BUCKET_NAME', '')
+                                url = f'https://{bucket_name}.{account_id}.r2.cloudflarestorage.com{url}'
                         elif not url.startswith('http'):
                             url = f'https://{url}'
                     return url
