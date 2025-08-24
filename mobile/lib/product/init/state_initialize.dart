@@ -9,14 +9,21 @@ final class StateInitialize extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Global BLoC providers will be added here as we create them
+    final providers = <BlocProvider<dynamic>>[
+      // Example:
+      // BlocProvider<AuthCubit>(
+      //   create: (context) => serviceLocator<AuthCubit>(),
+      // ),
+    ];
+
+    if (providers.isEmpty) {
+      // Eğer henüz global provider yoksa, gereksiz MultiBlocProvider sarmalamasını kullanmayalım
+      return child;
+    }
+
     return MultiBlocProvider(
-      providers: [
-        // Global BLoC providers will be added here as we create them
-        // Example:
-        // BlocProvider<AuthCubit>(
-        //   create: (context) => serviceLocator<AuthCubit>(),
-        // ),
-      ],
+      providers: providers,
       child: child,
     );
   }

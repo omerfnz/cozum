@@ -30,10 +30,10 @@ Future<void> setupServiceLocator() async {
   // Network
   serviceLocator.registerLazySingleton<Dio>(() {
     final dio = Dio();
-    dio.options.baseUrl = const String.fromEnvironment(
-      'API_BASE_URL',
-      defaultValue: 'http://localhost:8000/api/',
-    );
+    // Prefer dart-define provided value; otherwise compute from defaults
+    final envBase = const String.fromEnvironment('API_BASE_URL', defaultValue: '');
+    final computedBase = envBase.isNotEmpty ? envBase : _computeDefaultBaseUrl();
+    dio.options.baseUrl = _normalizeBaseUrl(computedBase);
     dio.options.connectTimeout = const Duration(seconds: 30);
     dio.options.receiveTimeout = const Duration(seconds: 30);
     dio.options.sendTimeout = const Duration(seconds: 30);
@@ -100,4 +100,47 @@ Future<void> setupServiceLocator() async {
 /// Clean up all dependencies
 Future<void> cleanupServiceLocator() async {
   await serviceLocator.reset();
+}
+
+// --- Base URL helpers ---
+String _computeDefaultBaseUrl() {
+  // Varsayılan olarak prod domaini kullan (HTTPS tercih edilir)
+  const host = 'api.ntek.com.tr';
+  // İleriye dönük: platforma göre farklılaştırmak gerekirse kIsWeb / defaultTargetPlatform kullanılabilir
+  return 'https://$host';
+}
+
+String _normalizeBaseUrl(String raw) {
+  var url = raw.trim();
+  // FQDN’de sonda nokta varsa temizle ("api.ntek.com.tr.")
+  if (url.endsWith('.')) {
+    url = url.substring(0, url.length - 1);
+  }
+  // Şema yoksa HTTPS varsay
+  if (!url.startsWith('http://') && !url.startsWith('https://')) {
+    url = 'https://$url';
+  }
+  // Uri parse ederek pathSegments üzerinden /api/ segmentini garanti et
+  Uri? parsed;
+  try {
+    parsed = Uri.parse(url);
+  } catch (_) {
+    parsed = null;
+  }
+  if (parsed != null) {
+    final segments = List<String>.from(parsed.pathSegments);
+    if (segments.isEmpty || segments.first != 'api') {
+      segments.insert(0, 'api');
+    }
+    // Sonda slash olsun diye boş segment ekle
+    if (segments.isEmpty || segments.last.isNotEmpty) {
+      segments.add('');
+    }
+    final normalized = parsed.replace(pathSegments: segments);
+    return normalized.toString();
+  }
+  // Parse başarısızsa güvenli fallback
+  if (!url.endsWith('/')) url = '$url/';
+  if (!url.contains('/api/')) url = '${url}api/';
+  return url;
 }

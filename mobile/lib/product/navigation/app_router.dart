@@ -11,6 +11,8 @@ import '../../feature/report/view/create_report_view.dart';
 import '../../feature/profile/view/profile_view.dart';
 import '../../feature/profile/view/settings_view.dart';
 import '../../feature/profile/view/admin_dashboard_view.dart';
+import '../../feature/tasks/view/tasks_view.dart';
+import '../../feature/teams/view/teams_view.dart';
 
 part 'app_router.gr.dart';
 
@@ -39,6 +41,16 @@ class AppRouter extends RootStackRouter {
     AutoRoute(
       page: HomeViewRoute.page,
       path: '/home',
+    ),
+    
+    // Tasks & Teams
+    AutoRoute(
+      page: TasksViewRoute.page,
+      path: '/tasks',
+    ),
+    AutoRoute(
+      page: TeamsViewRoute.page,
+      path: '/teams',
     ),
     
     // Report Routes

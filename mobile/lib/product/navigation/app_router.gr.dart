@@ -210,3 +210,41 @@ class SplashViewRoute extends PageRouteInfo<void> {
     },
   );
 }
+
+/// generated route for
+/// [TasksView]
+class TasksViewRoute extends PageRouteInfo<void> {
+  const TasksViewRoute({List<PageRouteInfo>? children})
+      : super(
+          TasksViewRoute.name,
+          initialChildren: children,
+        );
+
+  static const String name = 'TasksViewRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      return const TasksView();
+    },
+  );
+}
+
+/// generated route for
+/// [TeamsView]
+class TeamsViewRoute extends PageRouteInfo<void> {
+  const TeamsViewRoute({List<PageRouteInfo>? children})
+      : super(
+          TeamsViewRoute.name,
+          initialChildren: children,
+        );
+
+  static const String name = 'TeamsViewRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      return const TeamsView();
+    },
+  );
+}
