@@ -24,5 +24,13 @@ def health_check(request):
         health_info["storage"]["bucket"] = getattr(settings, 'R2_BUCKET_NAME', 'not-set')
         health_info["storage"]["domain"] = getattr(settings, 'R2_CUSTOM_DOMAIN', 'not-set')
         health_info["storage"]["media_url"] = getattr(settings, 'MEDIA_URL', 'not-set')
+        
+        # Test URL generation with dummy path
+        try:
+            from django.core.files.storage import default_storage
+            test_url = default_storage.url('test/dummy.jpg')
+            health_info["storage"]["test_url"] = test_url
+        except Exception as e:
+            health_info["storage"]["url_error"] = str(e)
     
     return JsonResponse(health_info)

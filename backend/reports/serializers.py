@@ -42,11 +42,16 @@ class MediaSerializer(serializers.ModelSerializer):
             return None
         try:
             url = file_field.url
-            # If using R2 storage, the URL should already be absolute
-            # Don't use build_absolute_uri as it may add wrong domain
-            from django.conf import settings  # pyright: ignore[reportMissingImports]
+            # If using R2 storage, ensure URL has proper HTTPS protocol
             if getattr(settings, 'USE_R2', False) and hasattr(settings, 'R2_CUSTOM_DOMAIN') and settings.R2_CUSTOM_DOMAIN:
-                # R2 storage returns absolute URLs, use them directly
+                # Ensure URL starts with https://
+                if not url.startswith('https://'):
+                    if url.startswith('//'):
+                        url = 'https:' + url
+                    elif url.startswith('/'):
+                        url = f'https://{settings.R2_CUSTOM_DOMAIN}{url}'
+                    elif not url.startswith('http'):
+                        url = f'https://{url}'
                 return url
             else:
                 # For local storage, build absolute URI
@@ -108,9 +113,16 @@ class ReportListSerializer(serializers.ModelSerializer):
         if media and getattr(media, "file", None):
             try:
                 url = media.file.url
-                # If using R2 storage, the URL should already be absolute
+                # If using R2 storage, ensure URL has proper HTTPS protocol
                 if getattr(settings, 'USE_R2', False) and hasattr(settings, 'R2_CUSTOM_DOMAIN') and settings.R2_CUSTOM_DOMAIN:
-                    # R2 storage returns absolute URLs, use them directly
+                    # Ensure URL starts with https://
+                    if not url.startswith('https://'):
+                        if url.startswith('//'):
+                            url = 'https:' + url
+                        elif url.startswith('/'):
+                            url = f'https://{settings.R2_CUSTOM_DOMAIN}{url}'
+                        elif not url.startswith('http'):
+                            url = f'https://{url}'
                     return url
                 else:
                     # For local storage, build absolute URI
@@ -206,29 +218,45 @@ class ReportCreateSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         """Bildirim ve medya dosyalarını birlikte oluştur (atomik) ve hataları 4xx olarak döndür"""
         media_files = validated_data.pop("media_files", [])
+        
+        # Debug logging
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info(f"Creating report with {len(media_files)} media files")
+        logger.info(f"Validated data: {validated_data}")
 
         try:
             with transaction.atomic():
                 # Bildirimi oluştur
                 report = Report.objects.create(**validated_data)
+                logger.info(f"Created report with ID: {report.id}")
 
                 # Medya dosyalarını oluştur (dosya validasyonlarını tetikle)
-                for media_file in media_files:
-                    media = Media(report=report, file=media_file, media_type="IMAGE")
-                    # Model alan doğrulamalarını (örn. uzantı) çalıştır
-                    media.full_clean()
-                    media.save()
+                for i, media_file in enumerate(media_files):
+                    try:
+                        logger.info(f"Processing media file {i+1}: {media_file.name}, size: {media_file.size}")
+                        media = Media(report=report, file=media_file, media_type="IMAGE")
+                        # Model alan doğrulamalarını (örn. uzantı) çalıştır
+                        media.full_clean()
+                        media.save()
+                        logger.info(f"Saved media file {i+1} successfully")
+                    except Exception as media_error:
+                        logger.error(f"Error processing media file {i+1}: {str(media_error)}")
+                        raise
 
                 return report
         except DjangoValidationError as e:
+            logger.error(f"Django validation error: {e}")
             # Model full_clean() veya alan hataları -> 400 döndür
             if hasattr(e, "message_dict"):
                 raise serializers.ValidationError(e.message_dict)
             raise serializers.ValidationError({"detail": e.messages})
         except IntegrityError as e:
+            logger.error(f"Database integrity error: {e}")
             # FK/benzersizlik vb. veritabanı hataları -> 400 döndür
             raise serializers.ValidationError({"detail": f"Veritabanı hatası: {str(e)}"})
         except Exception as e:
+            logger.error(f"Unexpected error during report creation: {e}")
             # Beklenmeyen durumlar -> 400 ile anlamlı mesaj döndür (geçici teşhis için)
             raise serializers.ValidationError({"detail": f"Yükleme sırasında bir hata oluştu: {str(e)}"})
 

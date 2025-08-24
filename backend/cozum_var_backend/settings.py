@@ -143,6 +143,7 @@ if USE_R2:
                 "custom_domain": R2_CUSTOM_DOMAIN,
                 "file_overwrite": False,  # Prevent accidental overwrites
                 "default_acl": None,  # Don't set ACL, use bucket policy
+                "url_protocol": "https:",  # Force HTTPS protocol
             },
         },
         # Keep static files local via collectstatic + Nginx
@@ -220,3 +221,25 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+# Logging configuration
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'INFO',
+    },
+    'loggers': {
+        'reports.serializers': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+    },
+}
