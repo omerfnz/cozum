@@ -144,6 +144,10 @@ if USE_R2:
                 "file_overwrite": False,  # Prevent accidental overwrites
                 "default_acl": None,  # Don't set ACL, use bucket policy
                 "url_protocol": "https:",  # Force HTTPS protocol
+                "signature_version": "s3v4",  # Use signature version 4
+                "object_parameters": {
+                    "CacheControl": "max-age=86400",  # 1 day cache
+                },
             },
         },
         # Keep static files local via collectstatic + Nginx

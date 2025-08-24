@@ -208,7 +208,17 @@ class Media(models.Model):
             except Exception:
                 self.file_size = None
 
-        super().save(*args, **kwargs)
+        try:
+            super().save(*args, **kwargs)
+        except Exception as e:
+            # R2/S3 storage errors often show up here
+            from django.core.exceptions import ValidationError
+            if "403" in str(e) or "Forbidden" in str(e):
+                raise ValidationError("Dosya yükleme izni reddedildi. R2 storage ayarlarını kontrol edin.")
+            elif "HeadObject" in str(e):
+                raise ValidationError("R2 storage bağlantı hatası. Yetkilendirme ayarlarını kontrol edin.")
+            else:
+                raise ValidationError(f"Dosya yükleme hatası: {str(e)}")
 
     def __str__(self):
         return f"{self.report.title} - {self.get_media_type_display()}"
