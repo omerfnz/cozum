@@ -141,6 +141,8 @@ if USE_R2:
                 "addressing_style": "virtual",
                 "querystring_auth": False,
                 "custom_domain": R2_CUSTOM_DOMAIN,
+                "file_overwrite": False,  # Prevent accidental overwrites
+                "default_acl": None,  # Don't set ACL, use bucket policy
             },
         },
         # Keep static files local via collectstatic + Nginx
@@ -149,8 +151,12 @@ if USE_R2:
         },
     }
 
+    # Always use custom domain for media URL when R2 is active
     if R2_CUSTOM_DOMAIN:
         MEDIA_URL = f"https://{R2_CUSTOM_DOMAIN}/"
+    else:
+        # Fallback if no custom domain is set
+        MEDIA_URL = f"https://{R2_BUCKET_NAME}.{R2_ACCOUNT_ID}.r2.cloudflarestorage.com/"
 
 
 # DRF

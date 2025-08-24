@@ -1,8 +1,9 @@
 """Reports app serileştiricileri"""
 
-from rest_framework import serializers
-from django.db import transaction, IntegrityError
-from django.core.exceptions import ValidationError as DjangoValidationError
+from rest_framework import serializers  # pyright: ignore[reportMissingImports]
+from django.db import transaction, IntegrityError  # pyright: ignore[reportMissingImports]
+from django.core.exceptions import ValidationError as DjangoValidationError  # pyright: ignore[reportMissingImports]
+from django.conf import settings  # pyright: ignore[reportMissingImports]
 
 from users.serializers import TeamSerializer, UserDetailSerializer
 
@@ -41,10 +42,18 @@ class MediaSerializer(serializers.ModelSerializer):
             return None
         try:
             url = file_field.url
-            request = self.context.get("request") if hasattr(self, "context") else None
-            if request is not None:
-                return request.build_absolute_uri(url)
-            return url
+            # If using R2 storage, the URL should already be absolute
+            # Don't use build_absolute_uri as it may add wrong domain
+            from django.conf import settings  # pyright: ignore[reportMissingImports]
+            if getattr(settings, 'USE_R2', False) and hasattr(settings, 'R2_CUSTOM_DOMAIN') and settings.R2_CUSTOM_DOMAIN:
+                # R2 storage returns absolute URLs, use them directly
+                return url
+            else:
+                # For local storage, build absolute URI
+                request = self.context.get("request") if hasattr(self, "context") else None
+                if request is not None:
+                    return request.build_absolute_uri(url)
+                return url
         except Exception:
             return None
 
@@ -98,11 +107,17 @@ class ReportListSerializer(serializers.ModelSerializer):
         media = obj.media_files.first()
         if media and getattr(media, "file", None):
             try:
-                request = self.context.get("request") if hasattr(self, "context") else None
                 url = media.file.url
-                if request is not None:
-                    return request.build_absolute_uri(url)
-                return url
+                # If using R2 storage, the URL should already be absolute
+                if getattr(settings, 'USE_R2', False) and hasattr(settings, 'R2_CUSTOM_DOMAIN') and settings.R2_CUSTOM_DOMAIN:
+                    # R2 storage returns absolute URLs, use them directly
+                    return url
+                else:
+                    # For local storage, build absolute URI
+                    request = self.context.get("request") if hasattr(self, "context") else None
+                    if request is not None:
+                        return request.build_absolute_uri(url)
+                    return url
             except Exception:
                 return None
         return None
