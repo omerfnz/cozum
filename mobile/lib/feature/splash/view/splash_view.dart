@@ -1,6 +1,7 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:logger/logger.dart';
 import 'package:mobile/product/auth/auth_repository.dart';
 import 'package:mobile/product/auth/token_storage.dart';
@@ -19,9 +20,16 @@ final class SplashView extends StatefulWidget {
 }
 
 final class _SplashViewState extends State<SplashView> {
+  bool _animate = false;
   @override
   void initState() {
     super.initState();
+    // Animasyonu tetikle
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) setState(() => _animate = true);
+      // İlk frame çizildikten sonra native splash'ı kaldır
+      FlutterNativeSplash.remove();
+    });
     _bootstrap();
   }
 
@@ -92,21 +100,38 @@ final class _SplashViewState extends State<SplashView> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.bolt, size: 96, color: scheme.primaryContainer.withValues(alpha: 0.7)),
+            AnimatedScale(
+              scale: _animate ? 1.0 : 0.85,
+              duration: const Duration(milliseconds: 700),
+              curve: Curves.easeOutBack,
+              child: AnimatedOpacity(
+                opacity: _animate ? 1 : 0,
+                duration: const Duration(milliseconds: 600),
+                child: Icon(Icons.bolt, size: 96, color: scheme.primaryContainer.withValues(alpha: 0.7)),
+              ),
+            ),
             const SizedBox(height: 16),
-            Text(
-              'Cozum',
-              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    color: scheme.onPrimary.withValues(alpha: 0.9),
-                    fontWeight: FontWeight.bold,
-                  ),
+            AnimatedOpacity(
+              opacity: _animate ? 1 : 0,
+              duration: const Duration(milliseconds: 700),
+              child: Text(
+                'Cozum',
+                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                      color: scheme.onPrimary.withValues(alpha: 0.9),
+                      fontWeight: FontWeight.bold,
+                    ),
+              ),
             ),
             const SizedBox(height: 8),
-            Text(
-              'Yükleniyor...',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: scheme.onPrimary.withValues(alpha: 0.7),
-                  ),
+            AnimatedOpacity(
+              opacity: _animate ? 1 : 0,
+              duration: const Duration(milliseconds: 800),
+              child: Text(
+                'Yükleniyor...',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: scheme.onPrimary.withValues(alpha: 0.7),
+                    ),
+              ),
             ),
             const SizedBox(height: 24),
             LinearProgressIndicator(color: scheme.onPrimary.withValues(alpha: 0.1)),

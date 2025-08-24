@@ -170,32 +170,38 @@ N) Mobil (Flutter)
    - [x] mobile klasörü Flutter ile oluşturuldu (flutter create mobile)
 2) Bağımlılıklar
    - [x] dio, flutter_bloc, equatable, get_it, auto_route, flutter_secure_storage, image_picker
+   - [x] cached_network_image, geolocator, oktoast, very_good_analysis
    - [x] Dev: build_runner, auto_route_generator, very_good_analysis
 3) Mimari ve Navigasyon
    - [x] Clean Architecture iskeleti ve Material3 tema
-   - [ ] auto_route yapılandırması ve route generator kurulumu
-   - [ ] get_it container ve service/repository kayıtları
+   - [x] auto_route yapılandırması ve route generator kurulumu
+   - [x] get_it container ve service/repository kayıtları (locator.dart)
 4) Ağ ve Kimlik Doğrulama
-   - [ ] dio instance + interceptor (Bearer access token)
-   - [ ] 401 için refresh token akışı ve otomatik yeniden deneme
-   - [ ] flutter_secure_storage ile token saklama
+   - [x] dio instance + interceptor (Bearer access token)
+   - [x] 401 için refresh token akışı ve otomatik yeniden deneme
+   - [x] flutter_secure_storage ile token saklama (TokenStorage)
 5) Özellikler (MVP)
-   - [ ] Auth: Kayıt (Vatandaş) ve giriş ekranları
-   - [ ] Rapor Oluştur: başlık, açıklama, kategori, 1 fotoğraf, konum (metin)
-   - [ ] Raporlarım: Liste + detay
-   - [ ] Operatör: tüm raporlar listesi, atama/durum
-   - [ ] Ekip: atanmış raporlar, durumu COZULDU yapma, yorum ekleme
-   - [ ] Yorumlar: detayda listeleme/ekleme (yetkiye göre)
+   - [x] Auth: Kayıt (Vatandaş) ve giriş ekranları (LoginView, RegisterView)
+   - [x] Splash ekranı ve otomatik giriş kontrolü
+   - [x] Ana sayfa: Rol bazlı rapor listesi (HomeView)
+   - [x] Rapor Oluştur: başlık, açıklama, kategori, 1 fotoğraf, konum (CreateReportView)
+   - [x] Rapor Detay: Görüntüleme ve yorum ekleme (ReportDetailView)
+   - [x] Profil sayfası: Kullanıcı bilgileri ve çıkış (ProfileView)
+   - [x] Ayarlar: Tema değiştirme (SettingsView)
+   - [x] Admin paneli: Takım, kullanıcı, kategori yönetimi (AdminTeamsView, AdminUsersView, AdminCategoriesView)
 6) Medya
-   - [ ] image_picker ile fotoğraf seçimi, dio FormData ile yükleme
+   - [x] image_picker ile fotoğraf seçimi, dio FormData ile yükleme
+   - [x] cached_network_image ile görsel önizleme
 7) Çevresel Ayarlar
    - [x] API taban adresi: --dart-define=API_BASE_URL=http://localhost:8000/api
    - [x] LAN testi (gerçek cihaz/emülatör): `--dart-define=API_BASE_URL=http://192.168.1.101:8000/api`
+   - [x] AppConfig ile ortam değişkeni yönetimi
    - [ ] Android izinleri: INTERNET, CAMERA, READ_MEDIA_IMAGES
 8) Çalıştırma
    - [x] flutter run --dart-define=API_BASE_URL=http://localhost:8000/api
 9) Harita (opsiyonel)
    - [ ] google_maps_flutter ekleme ve Android API key tanımı
+   - [x] geolocator ile konum alma (CreateReportView'da kullanılıyor)
 
 Güncel notlar (Android)
 - Gerekli izinler ve API anahtarları git’e eklenmemelidir; yerel/secret yönetimi kullanılmalıdır.
@@ -213,21 +219,69 @@ Bu dosya MVP’yi hayata geçirmek için gerekli adımların güncel halidir.
 - Yorum kısıtı (mobil): VATANDAS sadece kendi raporunda yorum yazabilir.
 
 ## Mobil (Flutter) – Eksikler ve Sıradaki Adımlar
-1) Ortam yapılandırması
-   - API_BASE_URL’i LAN IP ile ver (örn: http://192.168.1.33:8000/api/)
+
+### Tamamlanan Özellikler ✅
+- Clean Architecture yapısı ve katmanlı mimari
+- BLoC/Cubit pattern ile state management
+- Auto Route ile navigasyon sistemi
+- GetIt ile dependency injection
+- JWT tabanlı kimlik doğrulama (login, register, refresh token)
+- Rol bazlı ana sayfa (VATANDAS, EKIP, OPERATOR, ADMIN)
+- Rapor oluşturma (başlık, açıklama, kategori, fotoğraf, konum)
+- Rapor detay görüntüleme ve yorum ekleme
+- Admin paneli (takım, kullanıcı, kategori yönetimi)
+- Profil sayfası ve tema değiştirme
+- Medya yükleme ve önizleme
+- Geolocator ile konum alma
+
+### Kritik Eksikler ve Sıradaki Adımlar 🔴
+1) **Android İzinleri (Yüksek Öncelik)**
+   - android/app/src/main/AndroidManifest.xml'e INTERNET, CAMERA, ACCESS_FINE_LOCATION izinleri
+   - iOS için Info.plist kamera ve konum izin metinleri
+
+2) **Harita Entegrasyonu (Orta Öncelik)**
+   - google_maps_flutter paketi ekleme
+   - Android API key yapılandırması
+   - Rapor oluşturmada harita ile konum seçimi
+   - Rapor detayında konum gösterimi
+
+3) **Filtreleme ve Arama (Orta Öncelik)**
+   - Ana sayfada rapor filtreleme (durum, kategori, tarih)
+   - Arama özelliği (başlık, açıklama)
+   - Sıralama seçenekleri
+
+4) **Offline Support (Düşük Öncelik)**
+   - Hive/SQLite ile yerel veri saklama
+   - Ağ bağlantısı olmadığında cached veriler
+   - Senkronizasyon mekanizması
+
+### Teknik İyileştirmeler 🔧
+1) **Kod Kalitesi**
+   - dart analyze ve dart fix --apply çalıştır
+   - very_good_analysis kurallarına uyum
+   - Test coverage artırma
+
+2) **Performans**
+   - ListView.builder optimizasyonları
+   - Image caching iyileştirmeleri
+   - Memory leak kontrolü
+
+3) **UX İyileştirmeleri**
+   - Loading states ve skeleton screens
+   - Error handling ve user-friendly mesajlar
+   - Pull-to-refresh özelliği
+   - Infinite scrolling
+
+### Ortam Yapılandırması 🔧
+1) **API Konfigürasyonu**
+   - API_BASE_URL'i LAN IP ile ver (örn: http://192.168.1.33:8000/api/)
    - Medya URL kökü: http://192.168.1.33:8000/
-2) İzinler
-   - Android/iOS izin metinleri kontrol (camera, location, internet)
-3) Lint ve analiz
-   - dart analyze ve dart fix --apply çalıştır, kritik uyarıları temizle
-4) Test veri akışı
-   - Report create -> listede görünürlük -> detail -> yorum -> media önizleme uçtan uca senaryo
-5) Edge case’ler
-   - Token yenileme hata yönetimi (refresh fail -> logout)
-   - Ağ hatası durumlarında kullanıcı mesajları
-6) Build runner
+   - Prod/Dev/Test ortam ayrımı
+
+2) **Build ve Deploy**
    - AutoRoute codegen: dart run build_runner build --delete-conflicting-outputs
-7) Yayına hazırlık (geliştirici imzaları ayrı tutulur)
+   - APK/AAB build konfigürasyonu
+   - Code signing (geliştirici imzaları ayrı tutulur)
 
 ## Backend – Kontrol Listesi
 - MEDIA_URL mutlak URL üretimi (serializer’da request.build_absolute_uri)

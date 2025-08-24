@@ -84,9 +84,36 @@ final class AuthRepository {
     return true;
   }
 
-  /// Tüm saklı tokenları temizleyerek çıkış yapar.
-  Future<void> logout() {
-    di<Logger>().i('[Auth] Logout, tokenlar temizleniyor');
-    return _storage.clear();
+  /// Çıkış yapar: backend'e haber verir ve tüm saklı tokenları temizler.
+  Future<void> logout() async {
+    di<Logger>().i('[Auth] POST logout');
+    try {
+      await _dio.post<void>('auth/logout/');
+      di<Logger>().i('[Auth] Logout endpoint çağrısı tamamlandı');
+    } catch (e, st) {
+      // Backend logout endpoint'i opsiyonel olabilir; hata olsa dahi tokenları temizlemeye devam ediyoruz.
+      di<Logger>().w('[Auth] Logout endpoint hatası, token temizlemeye devam', error: e, stackTrace: st);
+    } finally {
+      di<Logger>().i('[Auth] Logout, tokenlar temizleniyor');
+      await _storage.clear();
+    }
+  }
+
+  /// Kullanıcının şifresini değiştirir.
+  Future<void> changePassword({
+    required String oldPassword,
+    required String newPassword,
+    required String newPasswordConfirm,
+  }) async {
+    di<Logger>().i('[Auth] PATCH change password');
+    await _dio.patch<void>(
+      'auth/password/change/',
+      data: {
+        'old_password': oldPassword,
+        'new_password': newPassword,
+        'new_password_confirm': newPasswordConfirm,
+      },
+    );
+    di<Logger>().i('[Auth] Şifre değiştirildi');
   }
 }

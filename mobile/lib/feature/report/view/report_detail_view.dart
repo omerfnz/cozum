@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:logger/logger.dart';
+import 'package:mobile/core/widgets/widgets.dart';
 import 'package:mobile/product/auth/auth_repository.dart';
 import 'package:mobile/product/init/locator.dart';
 import 'package:mobile/product/report/model/report_models.dart';
@@ -466,7 +467,7 @@ class _CommentComposer extends StatelessWidget {
               ? const SizedBox(
                   width: 16,
                   height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2),
+                  child: ButtonLoadingWidget(),
                 )
               : const Icon(Icons.send_outlined),
           label: const Text('Gönder'),

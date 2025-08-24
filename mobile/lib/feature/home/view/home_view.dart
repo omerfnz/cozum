@@ -2,7 +2,12 @@ import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:logger/logger.dart';
+import 'package:mobile/core/widgets/widgets.dart';
+import 'package:mobile/feature/admin/categories/view/categories_view.dart';
+import 'package:mobile/feature/admin/teams/view/teams_view.dart' as teams;
+import 'package:mobile/feature/admin/users/view/users_view.dart';
 import 'package:mobile/feature/home/cubit/home_feed_cubit.dart';
+import 'package:mobile/feature/profile/view/profile_view.dart';
 import 'package:mobile/feature/report/view/report_create_view.dart';
 import 'package:mobile/feature/report/view/report_detail_view.dart';
 import 'package:mobile/product/auth/auth_repository.dart';
@@ -25,6 +30,10 @@ final class HomeView extends StatefulWidget {
 
 final class _HomeViewState extends State<HomeView> {
   late final HomeFeedCubit _cubit;
+  int _tabIndex = 0;
+  String? _role; // ADMIN, OPERATOR, EKIP, VATANDAS
+
+  bool get _isAdminLike => (_role == 'ADMIN' || _role == 'OPERATOR');
 
   @override
   void initState() {
@@ -35,9 +44,10 @@ final class _HomeViewState extends State<HomeView> {
 
   Future<void> _initFetch() async {
     String scope = 'all';
+    String? role;
     try {
       final me = await di<AuthRepository>().me();
-      final role = (me?['role'] as String?)?.toUpperCase();
+      role = (me?['role'] as String?)?.toUpperCase();
       if (role == 'VATANDAS') scope = 'mine';
       if (role == 'EKIP') scope = 'assigned';
       if (role == 'OPERATOR' || role == 'ADMIN') scope = 'all';
@@ -45,6 +55,7 @@ final class _HomeViewState extends State<HomeView> {
       scope = 'all';
     }
     if (!mounted) return;
+    setState(() => _role = role);
     await _cubit.fetch(scope: scope);
   }
 
@@ -62,31 +73,122 @@ final class _HomeViewState extends State<HomeView> {
       {'label': 'Atanan', 'value': 'assigned', 'icon': Icons.groups_2_outlined},
     ];
 
+    final pages = <Widget>[
+      // Akış (Feed)
+      SafeArea(
+        child: Column(
+          children: [
+            _ScopeTabs(tabs: tabs),
+            const Divider(height: 1),
+            Expanded(
+              child: BlocConsumer<HomeFeedCubit, HomeFeedState>(
+                listener: (context, state) {
+                  if (state.error != null && state.items.isNotEmpty) {
+                    showToast('Yüklenirken hata: ${state.error}');
+                    di<Logger>().e('[HomeView] Hata: ${state.error}');
+                  }
+                },
+                builder: (context, state) {
+                  if (state.isLoading && state.items.isEmpty) {
+                    return const _FeedSkeleton();
+                  }
+                  if (state.error != null && state.items.isEmpty) {
+                    return CompactErrorWidget(message: state.error!, onRetry: _cubit.fetch);
+                  }
+                  if (state.items.isEmpty) {
+                    return const _EmptyView();
+                  }
+                  return RefreshIndicator(
+                    onRefresh: _cubit.refresh,
+                    child: NotificationListener<ScrollNotification>(
+                      onNotification: (sn) {
+                        if (sn.metrics.pixels >= sn.metrics.maxScrollExtent - 200) {
+                          di<Logger>().i('[HomeView] Scroll sonu -> fetchNext');
+                          _cubit.fetchNext();
+                        }
+                        return false;
+                      },
+                      child: ListView.separated(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        itemBuilder: (context, index) {
+                          final state = context.watch<HomeFeedCubit>().state;
+                          if (index >= state.items.length) {
+                            return const _BottomLoader();
+                          }
+                          final item = state.items[index];
+                          return _FeedCard(item: item);
+                        },
+                        separatorBuilder: (context, index) => const SizedBox(height: 8),
+                        itemCount: context.watch<HomeFeedCubit>().state.items.length + (context.watch<HomeFeedCubit>().state.isLoadingMore ? 1 : 0),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+      if (_isAdminLike) const SafeArea(child: CategoriesView()),
+      if (_isAdminLike) const SafeArea(child: teams.TeamsView()),
+      if (_isAdminLike) const SafeArea(child: UsersView()),
+      const SafeArea(child: ProfileView(embedded: true)),
+    ];
+
+    final destinations = <NavigationDestination>[
+      const NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'Akış'),
+      if (_isAdminLike)
+        const NavigationDestination(icon: Icon(Icons.category_outlined), selectedIcon: Icon(Icons.category), label: 'Kategoriler'),
+      if (_isAdminLike)
+        const NavigationDestination(icon: Icon(Icons.groups_outlined), selectedIcon: Icon(Icons.groups), label: 'Ekipler'),
+      if (_isAdminLike)
+        const NavigationDestination(icon: Icon(Icons.group_outlined), selectedIcon: Icon(Icons.group), label: 'Kullanıcılar'),
+      const NavigationDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person), label: 'Profil'),
+    ];
+
+    String title = 'Çözüm Var';
+    if (_isAdminLike) {
+      if (_tabIndex == 1) title = 'Kategoriler';
+      if (_tabIndex == 2) title = 'Ekipler';
+      if (_tabIndex == 3) title = 'Kullanıcılar';
+      if (_tabIndex == 4) title = 'Profil';
+    } else {
+      if (_tabIndex == 1) title = 'Profil';
+    }
+
     return BlocProvider.value(
       value: _cubit,
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('Çözüm Var'),
+          title: Text(title),
           actions: [
-            IconButton(
-              tooltip: 'Yeni',
-              onPressed: () async {
-                final navigator = Navigator.of(context);
-                final created = await navigator.push<bool>(
-                  MaterialPageRoute(builder: (_) => const ReportCreateView()),
-                );
-                if (created == true) {
-                  if (!context.mounted) return;
-                  await _cubit.refresh();
-                }
-              },
-              icon: const Icon(Icons.add_circle_outline),
-            ),
+            if (_tabIndex == 0)
+              IconButton(
+                tooltip: 'Yeni',
+                onPressed: () async {
+                  final navigator = Navigator.of(context);
+                  final created = await navigator.push<bool>(
+                    MaterialPageRoute(builder: (_) => const ReportCreateView()),
+                  );
+                  if (created == true) {
+                    if (!context.mounted) return;
+                    await _cubit.refresh();
+                  }
+                },
+                icon: const Icon(Icons.add_circle_outline),
+              ),
             IconButton(
               tooltip: 'Çıkış',
               onPressed: () async {
                 final router = context.router;
-                await di<TokenStorage>().clear();
+                try {
+                  await di<AuthRepository>().logout();
+                } catch (e) {
+                  di<Logger>().w('[HomeView] Logout çağrısı başarısız: $e');
+                } finally {
+                  await di<TokenStorage>().clear();
+                }
                 showToast('Çıkış yapıldı');
                 if (!context.mounted) return;
                 await router.replaceAll([const LoginRoute()]);
@@ -95,59 +197,11 @@ final class _HomeViewState extends State<HomeView> {
             ),
           ],
         ),
-        body: SafeArea(
-          child: Column(
-            children: [
-              _ScopeTabs(tabs: tabs),
-              const Divider(height: 1),
-              Expanded(
-                child: BlocConsumer<HomeFeedCubit, HomeFeedState>(
-                  listener: (context, state) {
-                    if (state.error != null && state.items.isNotEmpty) {
-                      showToast('Yüklenirken hata: ${state.error}');
-                      di<Logger>().e('[HomeView] Hata: ${state.error}');
-                    }
-                  },
-                  builder: (context, state) {
-                    if (state.isLoading && state.items.isEmpty) {
-                      return const _FeedSkeleton();
-                    }
-                    if (state.error != null && state.items.isEmpty) {
-                      return _ErrorView(message: state.error!, onRetry: _cubit.fetch);
-                    }
-                    if (state.items.isEmpty) {
-                      return const _EmptyView();
-                    }
-                    return RefreshIndicator(
-                      onRefresh: _cubit.refresh,
-                      child: NotificationListener<ScrollNotification>(
-                        onNotification: (sn) {
-                          if (sn.metrics.pixels >= sn.metrics.maxScrollExtent - 200) {
-                            di<Logger>().i('[HomeView] Scroll sonu -> fetchNext');
-                            _cubit.fetchNext();
-                          }
-                          return false;
-                        },
-                        child: ListView.separated(
-                          physics: const AlwaysScrollableScrollPhysics(),
-                          padding: const EdgeInsets.symmetric(vertical: 8),
-                          itemBuilder: (context, index) {
-                            if (index >= state.items.length) {
-                              return const _BottomLoader();
-                            }
-                            final item = state.items[index];
-                            return _FeedCard(item: item);
-                          },
-                          separatorBuilder: (context, index) => const SizedBox(height: 8),
-                          itemCount: state.items.length + (state.isLoadingMore ? 1 : 0),
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
+        body: IndexedStack(index: _tabIndex, children: pages),
+        bottomNavigationBar: NavigationBar(
+          selectedIndex: _tabIndex,
+          onDestinationSelected: (idx) => setState(() => _tabIndex = idx),
+          destinations: destinations,
         ),
       ),
     );
@@ -252,41 +306,7 @@ class _EmptyView extends StatelessWidget {
   }
 }
 
-class _ErrorView extends StatelessWidget {
-  const _ErrorView({required this.message, required this.onRetry});
-
-  final String message;
-  final Future<void> Function() onRetry;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.error_outline, size: 56, color: Theme.of(context).colorScheme.error),
-            const SizedBox(height: 12),
-            const Text('Bir hata oluştu'),
-            const SizedBox(height: 4),
-            Text(
-              message,
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-            const SizedBox(height: 12),
-            FilledButton.icon(
-              onPressed: onRetry,
-              icon: const Icon(Icons.refresh),
-              label: const Text('Tekrar dene'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
+// Removed old custom error widget - now using global widgets
 
 class _FeedCard extends StatelessWidget {
   const _FeedCard({required this.item});

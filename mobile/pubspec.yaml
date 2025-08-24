@@ -25,6 +25,7 @@ dependencies:
   flutter_map: ^6.1.0
   latlong2: ^0.9.1
   geolocator: ^10.1.0
+  flutter_native_splash: ^2.4.1
 
 dev_dependencies:
   auto_route_generator: ^10.2.3
@@ -36,3 +37,8 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+
+flutter_native_splash:
+  color: "#1976D2"
+  android_12:
+    color: "#1976D2"

@@ -3,24 +3,39 @@ import 'dart:io';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:latlong2/latlong.dart' as latlng;
 import 'package:logger/logger.dart';
+import 'package:mobile/core/widgets/widgets.dart';
+import 'package:mobile/feature/report/cubit/report_create_cubit.dart';
+import 'package:mobile/feature/report/cubit/report_create_state.dart';
 import 'package:mobile/product/init/locator.dart';
-import 'package:mobile/product/report/model/report_models.dart';
 import 'package:mobile/product/report/report_repository.dart';
 import 'package:oktoast/oktoast.dart';
 
-class ReportCreateView extends StatefulWidget {
+class ReportCreateView extends StatelessWidget {
   const ReportCreateView({super.key});
 
   @override
-  State<ReportCreateView> createState() => _ReportCreateViewState();
+  Widget build(BuildContext context) {
+    return BlocProvider(
+      create: (context) => ReportCreateCubit(di<ReportRepository>())..loadCategories(),
+      child: const _ReportCreateViewBody(),
+    );
+  }
 }
 
-class _ReportCreateViewState extends State<ReportCreateView> {
+class _ReportCreateViewBody extends StatefulWidget {
+  const _ReportCreateViewBody();
+
+  @override
+  State<_ReportCreateViewBody> createState() => _ReportCreateViewBodyState();
+}
+
+class _ReportCreateViewBodyState extends State<_ReportCreateViewBody> {
   final _formKey = GlobalKey<FormState>();
 
   final _titleCtrl = TextEditingController();
@@ -29,45 +44,16 @@ class _ReportCreateViewState extends State<ReportCreateView> {
   final _latCtrl = TextEditingController();
   final _lngCtrl = TextEditingController();
 
-  bool _loading = false;
-  String? _error;
-
-  List<CategoryDto> _categories = const [];
-  int? _selectedCategoryId;
-  bool _catLoading = true;
-
-  String? _imagePath;
-
   @override
   void initState() {
     super.initState();
-    _loadCategories();
+    // Kategorileri yükle
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<ReportCreateCubit>().loadCategories();
+    });
   }
 
-  Future<void> _loadCategories() async {
-    setState(() {
-      _catLoading = true;
-    });
-    try {
-      final repo = di<ReportRepository>();
-      final list = await repo.fetchCategories();
-      if (!mounted) return;
-      setState(() {
-        _categories = list;
-        if (_categories.isNotEmpty) {
-          _selectedCategoryId ??= _categories.first.id;
-        }
-      });
-      di<Logger>().i('[Create] Kategori sayısı: ${list.length}');
-    } on Object catch (e) {
-      if (!mounted) return;
-      setState(() => _error = 'Kategoriler alınamadı: $e');
-      showToast('Kategoriler alınamadı');
-      di<Logger>().e('[Create] Kategori hatası: $e');
-    } finally {
-      if (mounted) setState(() => _catLoading = false);
-    }
-  }
+
 
   @override
   void dispose() {
@@ -80,17 +66,11 @@ class _ReportCreateViewState extends State<ReportCreateView> {
   }
 
   Future<void> _pickFromCamera() async {
-    final picker = ImagePicker();
-    final x = await picker.pickImage(
-      source: ImageSource.camera,
-      imageQuality: 75,
-      maxWidth: 1600,
-      maxHeight: 1600,
-    );
-    if (x != null) {
-      setState(() => _imagePath = x.path);
-      showToast('Kamera: görsel yakalandı');
-    }
+    context.read<ReportCreateCubit>().pickImageFromCamera();
+  }
+
+  Future<void> _pickFromGallery() async {
+    context.read<ReportCreateCubit>().pickImageFromGallery();
   }
 
   Future<void> _openMapPicker() async {
@@ -114,73 +94,85 @@ class _ReportCreateViewState extends State<ReportCreateView> {
   Future<void> _onSubmit() async {
     final formState = _formKey.currentState;
     if (formState == null || !formState.validate()) return;
-    if (_selectedCategoryId == null) {
-      setState(() => _error = 'Lütfen bir kategori seçin.');
-      return;
+
+    double? lat;
+    double? lng;
+    final latText = _latCtrl.text.trim().replaceAll(',', '.');
+    final lngText = _lngCtrl.text.trim().replaceAll(',', '.');
+    if (latText.isNotEmpty) {
+      final v = double.tryParse(latText);
+      if (v == null || v < -90 || v > 90) {
+        context.read<ReportCreateCubit>().setError(
+          'Lütfen geçerli bir enlem değeri girin (-90 ile 90 arası).',
+        );
+        return;
+      }
+      lat = v;
     }
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-    try {
-      final repo = di<ReportRepository>();
-      final lat = double.tryParse(_latCtrl.text.trim());
-      final lng = double.tryParse(_lngCtrl.text.trim());
-      di<Logger>().i('[Create] Gönderim başlıyor: title="${_titleCtrl.text.trim()}" cat=$_selectedCategoryId img=${_imagePath != null}');
-      final id = await repo.createReport(
-        title: _titleCtrl.text.trim(),
-        description: _descCtrl.text.trim().isEmpty ? null : _descCtrl.text.trim(),
-        categoryId: _selectedCategoryId!,
-        location: _locationCtrl.text.trim().isEmpty ? null : _locationCtrl.text.trim(),
-        latitude: lat,
-        longitude: lng,
-        imagePaths: _imagePath == null ? const [] : <String>[_imagePath!],
-      );
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Bildirim oluşturuldu (ID: $id)')),
-      );
-      showToast('Bildirim oluşturuldu');
-      di<Logger>().i('[Create] Başarılı: id=$id');
-      Navigator.of(context).pop(true);
-    } on Exception catch (e) {
-      setState(() => _error = e.toString());
-      showToast('Gönderim başarısız');
-      di<Logger>().e('[Create] Hata: $e');
-    } finally {
-      if (mounted) setState(() => _loading = false);
+    if (lngText.isNotEmpty) {
+      final v = double.tryParse(lngText);
+      if (v == null || v < -180 || v > 180) {
+        context.read<ReportCreateCubit>().setError(
+          'Lütfen geçerli bir boylam değeri girin (-180 ile 180 arası).',
+        );
+        return;
+      }
+      lng = v;
     }
+
+    await context.read<ReportCreateCubit>().createReport(
+      title: _titleCtrl.text.trim(),
+      description: _descCtrl.text.trim().isEmpty ? null : _descCtrl.text.trim(),
+      location: _locationCtrl.text.trim().isEmpty ? null : _locationCtrl.text.trim(),
+      latitude: lat ?? 0.0,
+      longitude: lng ?? 0.0,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold
-    (
-      appBar: AppBar(title: const Text('Yeni Bildirim')),
-      body: SafeArea(
-        child: Form(
-          key: _formKey,
-          child: ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-              if (_error != null) ...[
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  margin: const EdgeInsets.only(bottom: 12),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.errorContainer,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Icon(Icons.error_outline, color: Theme.of(context).colorScheme.error),
-                      const SizedBox(width: 8),
-                      Expanded(child: Text(_error!)),
+    return BlocListener<ReportCreateCubit, ReportCreateState>(
+      listener: (context, state) {
+        if (state.submitSuccess) {
+          ErrorSnackBar.showSuccess(
+            context,
+            'Rapor oluşturuldu!',
+          );
+          showToast('Bildirim oluşturuldu');
+          Navigator.of(context).pop(true);
+        }
+        if (state.error != null) {
+          showToast('Hata: ${state.error}');
+        }
+      },
+      child: Scaffold(
+        appBar: AppBar(title: const Text('Yeni Bildirim')),
+        body: SafeArea(
+          child: Form(
+            key: _formKey,
+            child: BlocBuilder<ReportCreateCubit, ReportCreateState>(
+              builder: (context, state) {
+                return ListView(
+                  padding: const EdgeInsets.all(16),
+                  children: [
+                    if (state.error != null) ...[
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        margin: const EdgeInsets.only(bottom: 12),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.errorContainer,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Icon(Icons.error_outline, color: Theme.of(context).colorScheme.error),
+                            const SizedBox(width: 8),
+                            Expanded(child: Text(state.error!)),
+                          ],
+                        ),
+                      ),
                     ],
-                  ),
-                ),
-              ],
               TextFormField(
                 controller: _titleCtrl,
                 textInputAction: TextInputAction.next,
@@ -205,49 +197,53 @@ class _ReportCreateViewState extends State<ReportCreateView> {
                   border: OutlineInputBorder(),
                 ),
               ),
-              const SizedBox(height: 12),
-              if (_catLoading)
-                Container(
-                  height: 56,
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                )
-              else
-                InputDecorator(
-                  decoration: const InputDecoration(
-                    labelText: 'Kategori',
-                    border: OutlineInputBorder(),
-                  ),
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<int>(
-                      isExpanded: true,
-                      value: _selectedCategoryId,
-                      items: _categories
-                          .map((c) => DropdownMenuItem<int>(
-                                value: c.id,
-                                child: Text(c.name),
-                              ))
-                          .toList(),
-                      onChanged: (v) => setState(() => _selectedCategoryId = v),
-                    ),
-                  ),
-                ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _locationCtrl,
-                decoration: InputDecoration(
-                  labelText: 'Konum (isteğe bağlı)',
-                  hintText: 'Örn. Beşiktaş, İstanbul',
-                  border: const OutlineInputBorder(),
-                  suffixIcon: IconButton(
-                    tooltip: 'Haritadan seç',
-                    onPressed: _loading ? null : _openMapPicker,
-                    icon: const Icon(Icons.map_outlined),
-                  ),
-                ),
-              ),
+                     const SizedBox(height: 12),
+                     if (state.categoriesLoading)
+                       Container(
+                         height: 56,
+                         decoration: BoxDecoration(
+                           color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                           borderRadius: BorderRadius.circular(12),
+                         ),
+                       )
+                     else
+                       InputDecorator(
+                         decoration: const InputDecoration(
+                           labelText: 'Kategori',
+                           border: OutlineInputBorder(),
+                         ),
+                         child: DropdownButtonHideUnderline(
+                           child: DropdownButton<int>(
+                             isExpanded: true,
+                             value: state.selectedCategoryId,
+                             items: state.categories
+                                 .map((c) => DropdownMenuItem<int>(
+                                       value: c.id,
+                                       child: Text(c.name),
+                                     ))
+                                 .toList(),
+                             onChanged: (v) {
+                               if (v != null) {
+                                 context.read<ReportCreateCubit>().selectCategory(v);
+                               }
+                             },
+                           ),
+                         ),
+                       ),
+                     const SizedBox(height: 12),
+                     TextFormField(
+                       controller: _locationCtrl,
+                       decoration: InputDecoration(
+                         labelText: 'Konum (isteğe bağlı)',
+                         hintText: 'Örn. Beşiktaş, İstanbul',
+                         border: const OutlineInputBorder(),
+                         suffixIcon: IconButton(
+                           tooltip: 'Haritadan seç',
+                           onPressed: state.isSubmitting ? null : _openMapPicker,
+                           icon: const Icon(Icons.map_outlined),
+                         ),
+                       ),
+                     ),
               const SizedBox(height: 12),
               Row(
                 children: [
@@ -255,6 +251,7 @@ class _ReportCreateViewState extends State<ReportCreateView> {
                     child: TextFormField(
                       controller: _latCtrl,
                       keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
+                      inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[-0-9.,]'))],
                       decoration: const InputDecoration(
                         labelText: 'Enlem (isteğe bağlı)',
                         border: OutlineInputBorder(),
@@ -266,6 +263,7 @@ class _ReportCreateViewState extends State<ReportCreateView> {
                     child: TextFormField(
                       controller: _lngCtrl,
                       keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
+                      inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[-0-9.,]'))],
                       decoration: const InputDecoration(
                         labelText: 'Boylam (isteğe bağlı)',
                         border: OutlineInputBorder(),
@@ -274,80 +272,103 @@ class _ReportCreateViewState extends State<ReportCreateView> {
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
-              Text('Görsel (opsiyonel)', style: Theme.of(context).textTheme.titleMedium),
-              const SizedBox(height: 8),
-              if (_imagePath != null)
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: Stack(
-                    children: [
-                      AspectRatio(
-                        aspectRatio: 16 / 9,
-                        child: Image.file(
-                          File(_imagePath!),
-                          fit: BoxFit.cover,
-                        ),
-                      ),
-                      Positioned(
-                        top: 8,
-                        right: 8,
-                        child: Material(
-                          color: Colors.black54,
-                          borderRadius: BorderRadius.circular(20),
-                          child: InkWell(
-                            onTap: () => setState(() => _imagePath = null),
-                            borderRadius: BorderRadius.circular(20),
-                            child: const Padding(
-                              padding: EdgeInsets.all(6.0),
-                              child: Icon(Icons.close, color: Colors.white),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                )
-              else
-                Container(
-                  height: 180,
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Theme.of(context).dividerColor),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Center(
-                    child: Text(
-                      'Görsel seçilmedi',
-                      style: TextStyle(color: Theme.of(context).hintColor),
-                    ),
-                  ),
-                ),
-              const SizedBox(height: 8),
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  onPressed: _loading ? null : _pickFromCamera,
-                  icon: const Icon(Icons.photo_camera_outlined),
-                  label: const Text('Kamera ile çek'),
-                ),
-              ),
-              const SizedBox(height: 24),
-              FilledButton.icon(
-                onPressed: _loading ? null : _onSubmit,
-                icon: _loading
-                    ? const SizedBox(
-                        height: 18,
-                        width: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.send_outlined),
-                label: Text(_loading ? 'Gönderiliyor...' : 'Bildirimi oluştur'),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
+                     const SizedBox(height: 16),
+                     Text('Görsel (opsiyonel)', style: Theme.of(context).textTheme.titleMedium),
+                     const SizedBox(height: 8),
+                     if (state.imagePaths.isNotEmpty)
+                       GridView.builder(
+                         shrinkWrap: true,
+                         physics: const NeverScrollableScrollPhysics(),
+                         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                           crossAxisCount: 3,
+                           crossAxisSpacing: 8,
+                           mainAxisSpacing: 8,
+                           childAspectRatio: 1,
+                         ),
+                         itemCount: state.imagePaths.length,
+                         itemBuilder: (context, index) {
+                           final path = state.imagePaths[index];
+                           return Stack(
+                             fit: StackFit.expand,
+                             children: [
+                               ClipRRect(
+                                 borderRadius: BorderRadius.circular(12),
+                                 child: Image.file(File(path), fit: BoxFit.cover),
+                               ),
+                               Positioned(
+                                 top: 6,
+                                 right: 6,
+                                 child: Material(
+                                   color: Colors.black54,
+                                   borderRadius: BorderRadius.circular(20),
+                                   child: InkWell(
+                                     onTap: () => context.read<ReportCreateCubit>().removeImage(index),
+                                     borderRadius: BorderRadius.circular(20),
+                                     child: const Padding(
+                                       padding: EdgeInsets.all(6.0),
+                                       child: Icon(Icons.close, color: Colors.white, size: 18),
+                                     ),
+                                   ),
+                                 ),
+                               ),
+                             ],
+                           );
+                         },
+                       )
+                     else
+                       Container(
+                         height: 120,
+                         decoration: BoxDecoration(
+                           border: Border.all(color: Theme.of(context).dividerColor),
+                           borderRadius: BorderRadius.circular(12),
+                         ),
+                         child: Center(
+                           child: Text(
+                             'Görsel seçilmedi',
+                             style: TextStyle(color: Theme.of(context).hintColor),
+                           ),
+                         ),
+                       ),
+                     const SizedBox(height: 8),
+                     Row(
+                       children: [
+                         Expanded(
+                           child: OutlinedButton.icon(
+                             onPressed: state.isSubmitting ? null : _pickFromCamera,
+                             icon: const Icon(Icons.photo_camera_outlined),
+                             label: const Text('Kamera ile çek'),
+                           ),
+                         ),
+                         const SizedBox(width: 12),
+                         Expanded(
+                           child: OutlinedButton.icon(
+                             onPressed: state.isSubmitting ? null : _pickFromGallery,
+                             icon: const Icon(Icons.photo_library_outlined),
+                             label: const Text('Galeriden seç'),
+                           ),
+                         ),
+                       ],
+                     ),
+                     const SizedBox(height: 24),
+                     FilledButton.icon(
+                       onPressed: state.isSubmitting ? null : _onSubmit,
+                       icon: state.isSubmitting
+                           ? const SizedBox(
+                               height: 18,
+                               width: 18,
+                               child: ButtonLoadingWidget(),
+                             )
+                           : const Icon(Icons.send_outlined),
+                       label: Text(state.isSubmitting ? 'Gönderiliyor...' : 'Bildirimi oluştur'),
+                     ),
+                   ],
+                 );
+               },
+             ),
+           ),
+         ),
+       ),
+     );
   }
 }
 

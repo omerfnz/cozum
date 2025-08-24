@@ -86,54 +86,7 @@ class CategoryDto extends Equatable {
   List<Object?> get props => [id, name];
 }
 
-class TeamDto extends Equatable {
-  const TeamDto({
-    required this.id,
-    required this.name,
-    this.description,
-    this.teamType,
-    this.createdBy,
-    this.createdByName,
-    this.membersCount,
-    this.createdAt,
-    this.isActive,
-  });
-
-  final int id;
-  final String name;
-  final String? description;
-  final String? teamType;
-  final int? createdBy;
-  final String? createdByName;
-  final int? membersCount;
-  final DateTime? createdAt;
-  final bool? isActive;
-
-  factory TeamDto.fromJson(Map<String, dynamic> json) {
-    DateTime? createdAt;
-    final raw = json['created_at'];
-    if (raw is String) {
-      try {
-        createdAt = DateTime.parse(raw);
-      } catch (_) {}
-    }
-
-    return TeamDto(
-      id: (json['id'] as num).toInt(),
-      name: json['name'] as String? ?? '',
-      description: json['description'] as String?,
-      teamType: json['team_type'] as String?,
-      createdBy: (json['created_by'] as num?)?.toInt(),
-      createdByName: json['created_by_name'] as String?,
-      membersCount: (json['members_count'] as num?)?.toInt(),
-      createdAt: createdAt,
-      isActive: json['is_active'] as bool?,
-    );
-  }
-
-  @override
-  List<Object?> get props => [id, name];
-}
+// TeamDto sınıfı aşağıda tanımlanmıştır
 
 class ReportListItem extends Equatable {
   const ReportListItem({
@@ -198,6 +151,62 @@ class ReportListItem extends Equatable {
 
   @override
   List<Object?> get props => [id, title, status, priority, createdAt, updatedAt];
+}
+
+class TeamDto extends Equatable {
+  const TeamDto({
+    required this.id,
+    required this.name,
+    this.description,
+    this.teamType,
+    this.isActive,
+    this.membersCount,
+    this.createdAt,
+    this.updatedAt,
+  });
+
+  final int id;
+  final String name;
+  final String? description;
+  final String? teamType;
+  final bool? isActive;
+  final int? membersCount;
+  final DateTime? createdAt;
+  final DateTime? updatedAt;
+
+  factory TeamDto.fromJson(Map<String, dynamic> json) {
+    DateTime? parseDate(dynamic v) {
+      if (v == null) return null;
+      try {
+        return DateTime.parse(v as String);
+      } catch (_) {
+        return null;
+      }
+    }
+
+    return TeamDto(
+      id: (json['id'] as num).toInt(),
+      name: json['name'] as String? ?? '',
+      description: json['description'] as String?,
+      teamType: json['team_type'] as String?,
+      isActive: json['is_active'] as bool?,
+      membersCount: json['members_count'] as int?,
+      createdAt: parseDate(json['created_at']),
+      updatedAt: parseDate(json['updated_at']),
+    );
+  }
+
+  @override
+  List<Object?> get props => [
+        id,
+        name,
+        description,
+        teamType,
+        isActive,
+        membersCount,
+        createdAt,
+        updatedAt,
+      ];
 }
 
 class ReportPage {
@@ -281,6 +290,34 @@ class CommentDto extends Equatable {
 
   @override
   List<Object?> get props => [id, content, createdAt];
+}
+
+class ReportCreateRequest {
+  const ReportCreateRequest({
+    required this.title,
+    this.description,
+    required this.categoryId,
+    this.latitude,
+    this.longitude,
+    this.imagePaths,
+  });
+
+  final String title;
+  final String? description;
+  final int categoryId;
+  final double? latitude;
+  final double? longitude;
+  final List<String>? imagePaths;
+
+  Map<String, dynamic> toJson() {
+    return {
+      'title': title,
+      'description': description,
+      'category': categoryId,
+      'latitude': latitude,
+      'longitude': longitude,
+    };
+  }
 }
 
 class ReportDetail extends Equatable {
