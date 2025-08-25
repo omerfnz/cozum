@@ -99,6 +99,7 @@ Report _$ReportFromJson(Map<String, dynamic> json) => Report(
       comments: (json['comments'] as List<dynamic>?)
           ?.map((e) => Comment.fromJson(e as Map<String, dynamic>))
           .toList(),
+      firstMediaUrlApi: json['first_media_url'] as String?,
     );
 
 Map<String, dynamic> _$ReportToJson(Report instance) => <String, dynamic>{
@@ -117,6 +118,7 @@ Map<String, dynamic> _$ReportToJson(Report instance) => <String, dynamic>{
       'updated_at': instance.updatedAt?.toIso8601String(),
       'media_files': instance.mediaFiles,
       'comments': instance.comments,
+      'first_media_url': instance.firstMediaUrlApi,
     };
 
 const _$ReportStatusEnumMap = {

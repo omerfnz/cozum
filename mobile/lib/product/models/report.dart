@@ -230,6 +230,7 @@ final class Report extends Equatable {
     this.updatedAt,
     this.mediaFiles,
     this.comments,
+    this.firstMediaUrlApi,
   });
 
   factory Report.fromJson(Map<String, dynamic> json) => _$ReportFromJson(json);
@@ -260,6 +261,10 @@ final class Report extends Equatable {
   
   final List<Comment>? comments;
 
+  /// Backend ReportListSerializer’dan gelen ilk görsel URL’si
+  @JsonKey(name: 'first_media_url')
+  final String? firstMediaUrlApi;
+
   Map<String, dynamic> toJson() => _$ReportToJson(this);
 
   /// Get formatted date string
@@ -270,14 +275,21 @@ final class Report extends Equatable {
 
   /// Get first media file URL
   String? get firstMediaUrl {
+    String? url;
     if (mediaFiles?.isNotEmpty ?? false) {
-      return mediaFiles!.first.file;
+      url = mediaFiles!.first.file;
+    } else {
+      url = firstMediaUrlApi;
     }
-    return null;
+    if (url == null) return null;
+    // Trim ve etrafına gelmiş olası tırnak/backtick/boşluk karakterlerini temizle
+    // Trim ve etrafına gelmiş olası tırnak/backtick/boşluk karakterlerini temizle
+    final cleaned = url.trim().replaceAll(RegExp(r'''^[`'"\s]+|[`'"\s]+$'''), '');
+    return cleaned;
   }
 
   /// Check if report has media
-  bool get hasMedia => mediaFiles?.isNotEmpty ?? false;
+  bool get hasMedia => (mediaFiles?.isNotEmpty ?? false) || (firstMediaUrlApi != null && firstMediaUrlApi!.isNotEmpty);
 
   /// Check if report has comments
   bool get hasComments => comments?.isNotEmpty ?? false;
@@ -302,6 +314,7 @@ final class Report extends Equatable {
         updatedAt,
         mediaFiles,
         comments,
+        firstMediaUrlApi,
       ];
 
   Report copyWith({
@@ -320,6 +333,7 @@ final class Report extends Equatable {
     DateTime? updatedAt,
     List<Media>? mediaFiles,
     List<Comment>? comments,
+    String? firstMediaUrlApi,
   }) {
     return Report(
       id: id ?? this.id,
@@ -337,6 +351,7 @@ final class Report extends Equatable {
       updatedAt: updatedAt ?? this.updatedAt,
       mediaFiles: mediaFiles ?? this.mediaFiles,
       comments: comments ?? this.comments,
+      firstMediaUrlApi: firstMediaUrlApi ?? this.firstMediaUrlApi,
     );
   }
 }

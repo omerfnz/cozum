@@ -209,13 +209,47 @@ final class ErrorInterceptor extends Interceptor {
   String _handleBadResponse(DioException err) {
     final statusCode = err.response?.statusCode;
     final responseData = err.response?.data;
-    
+
+    // Ortak alanlardan mesaj çekme (DRF: detail/message/errors)
+    String? extractMessage(dynamic data) {
+      if (data == null) return null;
+      if (data is String) return data.isNotEmpty ? data : null;
+      if (data is Map) {
+        final dynamic message = data['message'] ?? data['detail'] ?? data['error'];
+        if (message is String && message.isNotEmpty) return message;
+        // errors alanı: {field: ["msg1", "msg2"]} veya {"non_field_errors": ["..."]}
+        final dynamic errors = data['errors'] ?? data['non_field_errors'];
+        if (errors is Map && errors.isNotEmpty) {
+          final first = errors.values.first;
+          if (first is List && first.isNotEmpty) {
+            final firstMsg = first.first;
+            if (firstMsg is String && firstMsg.isNotEmpty) return firstMsg;
+            return firstMsg?.toString();
+          }
+          return first?.toString();
+        }
+        // Alan bazlı hatalar doğrudan map olarak gelebilir
+        // Örn: {"email": ["Bu alan zorunludur."]}
+        for (final entry in data.entries) {
+          final v = entry.value;
+          if (v is List && v.isNotEmpty) {
+            final firstMsg = v.first;
+            if (firstMsg is String && firstMsg.isNotEmpty) return firstMsg;
+            return firstMsg?.toString();
+          }
+        }
+      }
+      if (data is List && data.isNotEmpty) {
+        final first = data.first;
+        return first is String ? first : first?.toString();
+      }
+      return data.toString();
+    }
+
     switch (statusCode) {
       case 400:
-        if (responseData is Map && responseData.containsKey('message')) {
-          return responseData['message'] as String;
-        }
-        return 'Bad request. Please check your input.';
+        final msg = extractMessage(responseData);
+        return msg ?? 'Bad request. Please check your input.';
       case 401:
         return 'Authentication failed. Please login again.';
       case 403:
@@ -223,14 +257,8 @@ final class ErrorInterceptor extends Interceptor {
       case 404:
         return 'Resource not found.';
       case 422:
-        if (responseData is Map && responseData.containsKey('errors')) {
-          final errors = responseData['errors'] as Map;
-          final firstError = errors.values.first;
-          if (firstError is List && firstError.isNotEmpty) {
-            return firstError.first as String;
-          }
-        }
-        return 'Validation error. Please check your input.';
+        final msg = extractMessage(responseData);
+        return msg ?? 'Validation error. Please check your input.';
       case 500:
         return 'Server error. Please try again later.';
       case 502:
@@ -238,7 +266,8 @@ final class ErrorInterceptor extends Interceptor {
       case 503:
         return 'Service unavailable. Please try again later.';
       default:
-        return 'Server error ($statusCode). Please try again later.';
+        final msg = extractMessage(responseData);
+        return msg ?? 'Server error ($statusCode). Please try again later.';
     }
   }
 }

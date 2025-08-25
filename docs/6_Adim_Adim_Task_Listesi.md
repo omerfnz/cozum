@@ -89,7 +89,7 @@ G) Comments API
 1) GET /api/reports/{id}/comments/
    - [x] Giriş yapmış herkes listeler (Vatandaş dahil)
 2) POST /api/reports/{id}/comments/
-   - [x] Operatör ve Saha Ekibi ekler (Vatandaş ekleyemez)
+   - [x] Yetki: Vatandaş sadece kendi oluşturduğu raporlara yorum ekleyebilir; Operatör ve Saha Ekibi ilgili raporlara yorum ekleyebilir
 
 H) Medya ve Dosya Yönetimi
 - [x] MEDIA_ROOT yapısı ve dosya yolu kuralı
@@ -218,6 +218,9 @@ N) Mobil (Flutter)
 - Guard'lar (AuthGuard, AdminGuard, GuestGuard): pushReplacement yerine replace/replaceAll kullanıldı ve const yapıcılar eklendi; yanlış rota sınıf adları güncellendi.
 - Kod üretimi başarıyla çalıştırıldı: dart run build_runner build --delete-conflicting-outputs; ardından flutter analyze → "No issues found!".
 - Router dosyası (app_router.gr.dart) güncel ve .page referansları AppRouter yapılandırması ile uyumlu.
+- mobile/lib/models/report.dart: firstMediaUrl temizleme regex’i raw triple-quoted (r''') kullanılarak düzeltildi; "Unterminated string literal/Expected an identifier" analiz hataları giderildi.
+- mobile/lib/core/network/dio_interceptor.dart: _extractMessage → extractMessage olarak yeniden adlandırıldı; diff kalıntıları temizlendi ve hata mesajı çıkarımı güvenli hâle getirildi.
+- mobile/lib/core/service_locator.dart: LogInterceptor.logPrint içinde null-safe toString ve boş çıktı koruması eklendi.
 
 ### Kritik Eksikler ve Sıradaki Adımlar 🔴
 1) **Android İzinleri (Yüksek Öncelik)**

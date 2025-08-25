@@ -51,7 +51,15 @@ Future<void> setupServiceLocator() async {
           requestHeader: true,
           responseHeader: false,
           error: true,
-          logPrint: (obj) => serviceLocator<Logger>().d(obj),
+          logPrint: (obj) {
+            try {
+              final msg = obj.toString();
+              if (msg.isEmpty) return;
+              serviceLocator<Logger>().d(msg);
+            } catch (e) {
+              serviceLocator<Logger>().d('Log print error: $e');
+            }
+          },
         ),
       );
     }
