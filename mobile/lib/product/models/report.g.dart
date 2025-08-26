@@ -26,7 +26,7 @@ Map<String, dynamic> _$CategoryToJson(Category instance) => <String, dynamic>{
 
 Media _$MediaFromJson(Map<String, dynamic> json) => Media(
       id: (json['id'] as num?)?.toInt(),
-      reportId: (json['report'] as num).toInt(),
+      reportId: (json['report'] as num?)?.toInt(),
       file: json['file'] as String,
       filePath: json['file_path'] as String?,
       fileSize: (json['file_size'] as num?)?.toInt(),
@@ -54,7 +54,7 @@ const _$MediaTypeEnumMap = {
 
 Comment _$CommentFromJson(Map<String, dynamic> json) => Comment(
       id: (json['id'] as num?)?.toInt(),
-      reportId: (json['report'] as num).toInt(),
+      reportId: (json['report'] as num?)?.toInt(),
       user: User.fromJson(json['user'] as Map<String, dynamic>),
       content: json['content'] as String,
       createdAt: json['created_at'] == null
@@ -73,7 +73,7 @@ Map<String, dynamic> _$CommentToJson(Comment instance) => <String, dynamic>{
 Report _$ReportFromJson(Map<String, dynamic> json) => Report(
       id: (json['id'] as num?)?.toInt(),
       title: json['title'] as String,
-      description: json['description'] as String,
+      description: json['description'] as String?,
       status: $enumDecodeNullable(_$ReportStatusEnumMap, json['status']) ??
           ReportStatus.beklemede,
       priority:
@@ -100,6 +100,7 @@ Report _$ReportFromJson(Map<String, dynamic> json) => Report(
           ?.map((e) => Comment.fromJson(e as Map<String, dynamic>))
           .toList(),
       firstMediaUrlApi: json['first_media_url'] as String?,
+      commentCountApi: (json['comment_count'] as num?)?.toInt(),
     );
 
 Map<String, dynamic> _$ReportToJson(Report instance) => <String, dynamic>{
@@ -119,6 +120,7 @@ Map<String, dynamic> _$ReportToJson(Report instance) => <String, dynamic>{
       'media_files': instance.mediaFiles,
       'comments': instance.comments,
       'first_media_url': instance.firstMediaUrlApi,
+      'comment_count': instance.commentCountApi,
     };
 
 const _$ReportStatusEnumMap = {

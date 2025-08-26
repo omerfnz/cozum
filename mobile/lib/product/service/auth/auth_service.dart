@@ -113,8 +113,11 @@ final class AuthService implements IAuthService {
     
     if (response.isSuccess && response.data != null) {
       final tokens = response.data!;
-      await _storageService.write(StorageKeys.accessToken, tokens.accessToken);
-      await _storageService.write(StorageKeys.refreshToken, tokens.refreshToken);
+      // Cache + persist tek noktadan
+      await _storageService.saveTokens(
+        accessToken: tokens.accessToken,
+        refreshToken: tokens.refreshToken,
+      );
     }
     
     return response;
@@ -159,7 +162,7 @@ final class AuthService implements IAuthService {
   
   @override
   Future<NetworkResponse<AuthTokens>> refreshToken() async {
-    final refreshToken = await _storageService.read(StorageKeys.refreshToken);
+    final refreshToken = await _storageService.getRefreshToken();
     if (refreshToken == null) {
       return const NetworkResponse<AuthTokens>(
         data: null,
@@ -177,8 +180,10 @@ final class AuthService implements IAuthService {
     
     if (response.isSuccess && response.data != null) {
       final tokens = response.data!;
-      await _storageService.write(StorageKeys.accessToken, tokens.accessToken);
-      await _storageService.write(StorageKeys.refreshToken, tokens.refreshToken);
+      await _storageService.saveTokens(
+        accessToken: tokens.accessToken,
+        refreshToken: tokens.refreshToken,
+      );
     }
     
     return response;
@@ -193,12 +198,12 @@ final class AuthService implements IAuthService {
   
   @override
   Future<bool> isLoggedIn() async {
-    final token = await _storageService.read(StorageKeys.accessToken);
+    final token = await _storageService.getAccessToken();
     return token != null;
   }
   
   @override
   Future<String?> getAccessToken() async {
-    return await _storageService.read(StorageKeys.accessToken);
+    return await _storageService.getAccessToken();
   }
 }

@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'dart:async';
 
 /// HTTP request types
 enum RequestType { get, post, put, patch, delete }
@@ -65,47 +66,46 @@ final class NetworkService implements INetworkService {
       
       Response response;
       
-      switch (type) {
-        case RequestType.get:
-          response = await _dio.get(
-            path,
-            queryParameters: queryParameters,
-            options: options,
-          );
-          break;
-        case RequestType.post:
-          response = await _dio.post(
-            path,
-            data: data,
-            queryParameters: queryParameters,
-            options: options,
-          );
-          break;
-        case RequestType.put:
-          response = await _dio.put(
-            path,
-            data: data,
-            queryParameters: queryParameters,
-            options: options,
-          );
-          break;
-        case RequestType.patch:
-          response = await _dio.patch(
-            path,
-            data: data,
-            queryParameters: queryParameters,
-            options: options,
-          );
-          break;
-        case RequestType.delete:
-          response = await _dio.delete(
-            path,
-            data: data,
-            queryParameters: queryParameters,
-            options: options,
-          );
-          break;
+      Future<Response> exec() async {
+        switch (type) {
+          case RequestType.get:
+            return _dio.get(
+              path,
+              queryParameters: queryParameters,
+              options: options,
+            );
+          case RequestType.post:
+            return _dio.post(
+              path,
+              data: data,
+              queryParameters: queryParameters,
+              options: options,
+            );
+          case RequestType.put:
+            return _dio.put(
+              path,
+              data: data,
+              queryParameters: queryParameters,
+              options: options,
+            );
+          case RequestType.patch:
+            return _dio.patch(
+              path,
+              data: data,
+              queryParameters: queryParameters,
+              options: options,
+            );
+          case RequestType.delete:
+            return _dio.delete(
+              path,
+              data: data,
+              queryParameters: queryParameters,
+              options: options,
+            );
+        }
       }
+      
+      response = await exec().timeout(const Duration(seconds: 25));
       
       T? parsedData;
       if (parser != null && response.data != null) {
@@ -120,6 +120,12 @@ final class NetworkService implements INetworkService {
         message: 'Success',
       );
       
+    } on TimeoutException {
+      return NetworkResponse<T>(
+        data: null,
+        statusCode: 0,
+        error: 'Request timed out. Please try again.',
+      );
     } on DioException catch (e) {
       return NetworkResponse<T>(
         data: null,
@@ -165,13 +171,15 @@ final class NetworkService implements INetworkService {
         method: 'POST',
       );
       
-      final response = await _dio.post(
-        path,
-        data: formData,
-        queryParameters: queryParameters,
-        options: options,
-        onSendProgress: onSendProgress,
-      );
+      final response = await _dio
+          .post(
+            path,
+            data: formData,
+            queryParameters: queryParameters,
+            options: options,
+            onSendProgress: onSendProgress,
+          )
+          .timeout(const Duration(seconds: 25));
       
       T? parsedData;
       if (parser != null && response.data != null) {
@@ -186,6 +194,12 @@ final class NetworkService implements INetworkService {
         message: 'Upload successful',
       );
       
+    } on TimeoutException {
+      return NetworkResponse<T>(
+        data: null,
+        statusCode: 0,
+        error: 'Upload timed out. Please try again.',
+      );
     } on DioException catch (e) {
       return NetworkResponse<T>(
         data: null,

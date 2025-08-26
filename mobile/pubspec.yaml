@@ -35,6 +35,7 @@ dependencies:
   # Medya ve Dosyalar
   image_picker: ^1.0.4
   cached_network_image: ^3.3.1
+  permission_handler: ^11.0.1
   
   # Konum Servisleri
   geolocator: ^10.1.0
@@ -62,6 +63,7 @@ dependencies:
   core:
     path: module/core
   json_annotation: ^4.9.0
+  shimmer: ^3.0.0
 
 dev_dependencies:
   flutter_test:

@@ -102,7 +102,7 @@ final class Category extends Equatable {
 final class Media extends Equatable {
   const Media({
     this.id,
-    required this.reportId,
+    this.reportId,
     required this.file,
     this.filePath,
     this.fileSize,
@@ -115,7 +115,7 @@ final class Media extends Equatable {
   final int? id;
   
   @JsonKey(name: 'report')
-  final int reportId;
+  final int? reportId;
   
   final String file;
   
@@ -170,7 +170,7 @@ final class Media extends Equatable {
 final class Comment extends Equatable {
   const Comment({
     this.id,
-    required this.reportId,
+    this.reportId,
     required this.user,
     required this.content,
     this.createdAt,
@@ -181,7 +181,7 @@ final class Comment extends Equatable {
   final int? id;
   
   @JsonKey(name: 'report')
-  final int reportId;
+  final int? reportId;
   
   final User user;
   final String content;
@@ -217,7 +217,7 @@ final class Report extends Equatable {
   const Report({
     this.id,
     required this.title,
-    required this.description,
+    this.description,
     this.status = ReportStatus.beklemede,
     this.priority = ReportPriority.orta,
     required this.reporter,
@@ -231,13 +231,14 @@ final class Report extends Equatable {
     this.mediaFiles,
     this.comments,
     this.firstMediaUrlApi,
+    this.commentCountApi,
   });
 
   factory Report.fromJson(Map<String, dynamic> json) => _$ReportFromJson(json);
 
   final int? id;
   final String title;
-  final String description;
+  final String? description;
   final ReportStatus status;
   final ReportPriority priority;
   final User reporter;
@@ -265,6 +266,10 @@ final class Report extends Equatable {
   @JsonKey(name: 'first_media_url')
   final String? firstMediaUrlApi;
 
+  /// Backend ReportListSerializer’dan gelen yorum sayısı
+  @JsonKey(name: 'comment_count')
+  final int? commentCountApi;
+
   Map<String, dynamic> toJson() => _$ReportToJson(this);
 
   /// Get formatted date string
@@ -283,8 +288,17 @@ final class Report extends Equatable {
     }
     if (url == null) return null;
     // Trim ve etrafına gelmiş olası tırnak/backtick/boşluk karakterlerini temizle
-    // Trim ve etrafına gelmiş olası tırnak/backtick/boşluk karakterlerini temizle
-    final cleaned = url.trim().replaceAll(RegExp(r'''^[`'"\s]+|[`'"\s]+$'''), '');
+    String cleaned = url.trim();
+    if (cleaned.length >= 2) {
+      final start = cleaned[0];
+      final end = cleaned[cleaned.length - 1];
+      final isWrappedInSingle = start == "'" && end == "'";
+      final isWrappedInDouble = start == '"' && end == '"';
+      final isWrappedInBacktick = start == '`' && end == '`';
+      if (isWrappedInSingle || isWrappedInDouble || isWrappedInBacktick) {
+        cleaned = cleaned.substring(1, cleaned.length - 1).trim();
+      }
+    }
     return cleaned;
   }
 
@@ -292,10 +306,10 @@ final class Report extends Equatable {
   bool get hasMedia => (mediaFiles?.isNotEmpty ?? false) || (firstMediaUrlApi != null && firstMediaUrlApi!.isNotEmpty);
 
   /// Check if report has comments
-  bool get hasComments => comments?.isNotEmpty ?? false;
+  bool get hasComments => comments?.isNotEmpty ?? (commentCountApi != null && commentCountApi! > 0);
 
   /// Get comment count
-  int get commentCount => comments?.length ?? 0;
+  int get commentCount => comments?.length ?? (commentCountApi ?? 0);
 
   @override
   List<Object?> get props => [
@@ -315,6 +329,7 @@ final class Report extends Equatable {
         mediaFiles,
         comments,
         firstMediaUrlApi,
+        commentCountApi,
       ];
 
   Report copyWith({
@@ -334,6 +349,7 @@ final class Report extends Equatable {
     List<Media>? mediaFiles,
     List<Comment>? comments,
     String? firstMediaUrlApi,
+    int? commentCountApi,
   }) {
     return Report(
       id: id ?? this.id,
@@ -352,6 +368,7 @@ final class Report extends Equatable {
       mediaFiles: mediaFiles ?? this.mediaFiles,
       comments: comments ?? this.comments,
       firstMediaUrlApi: firstMediaUrlApi ?? this.firstMediaUrlApi,
+      commentCountApi: commentCountApi ?? this.commentCountApi,
     );
   }
 }

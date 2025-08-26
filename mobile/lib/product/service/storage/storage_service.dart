@@ -21,6 +21,10 @@ final class StorageService implements IStorageService {
   
   final FlutterSecureStorage _secureStorage;
   
+  // In-memory cache to avoid repeated secure storage hits
+  String? _accessTokenCache;
+  String? _refreshTokenCache;
+  
   @override
   Future<void> write(String key, String value) async {
     await _secureStorage.write(key: key, value: value);
@@ -48,16 +52,28 @@ final class StorageService implements IStorageService {
   
   @override
   Future<String?> getAccessToken() async {
-    return await read(StorageKeys.accessToken);
+    if (_accessTokenCache != null) return _accessTokenCache;
+    final token = await read(StorageKeys.accessToken);
+    _accessTokenCache = token;
+    return token;
   }
   
   @override
   Future<String?> getRefreshToken() async {
-    return await read(StorageKeys.refreshToken);
+    if (_refreshTokenCache != null) return _refreshTokenCache;
+    final token = await read(StorageKeys.refreshToken);
+    _refreshTokenCache = token;
+    return token;
   }
   
   @override
   Future<void> saveTokens({required String accessToken, String? refreshToken}) async {
+    // Update cache first
+    _accessTokenCache = accessToken;
+    if (refreshToken != null) {
+      _refreshTokenCache = refreshToken;
+    }
+    // Persist to secure storage
     await write(StorageKeys.accessToken, accessToken);
     if (refreshToken != null) {
       await write(StorageKeys.refreshToken, refreshToken);
@@ -66,6 +82,10 @@ final class StorageService implements IStorageService {
   
   @override
   Future<void> clearTokens() async {
+    // Clear cache
+    _accessTokenCache = null;
+    _refreshTokenCache = null;
+    // Remove from storage
     await delete(StorageKeys.accessToken);
     await delete(StorageKeys.refreshToken);
   }

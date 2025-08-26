@@ -221,6 +221,9 @@ N) Mobil (Flutter)
 - mobile/lib/models/report.dart: firstMediaUrl temizleme regex’i raw triple-quoted (r''') kullanılarak düzeltildi; "Unterminated string literal/Expected an identifier" analiz hataları giderildi.
 - mobile/lib/core/network/dio_interceptor.dart: _extractMessage → extractMessage olarak yeniden adlandırıldı; diff kalıntıları temizlendi ve hata mesajı çıkarımı güvenli hâle getirildi.
 - mobile/lib/core/service_locator.dart: LogInterceptor.logPrint içinde null-safe toString ve boş çıktı koruması eklendi.
+- mobile/lib/models/report.dart: Media ve Comment modellerinde reportId alanı int? yapıldı; JSON parse null güvenli hâle getirildi; build_runner ile report.g.dart güncellendi (Media/Comment.reportId ve Report.commentCountApi alanları (json['...'] as num?)?.toInt() şeklinde ayrıştırılır).
+- Bildirim Detayı ekranındaki "type null is not a subtype of type num in type cast" hatası giderildi; yorum ekleme/yenileme akışı doğrulandı (manuel uçtan uca doğrulama bekleniyor).
+- Android (MIUI) ilk açılış ANR: android/app/src/main/AndroidManifest.xml'de tools namespace eklendi ve <meta-data android:name="androidx.profileinstaller.ProfileInstaller" android:value="false" /> ile Profile Installer devre dışı bırakıldı; ardından flutter clean ve flutter pub get çalıştırıldı. İlk kurulumda uygulamayı kaldırıp yeniden yükleyerek doğrulama önerilir.
 
 ### Kritik Eksikler ve Sıradaki Adımlar 🔴
 1) **Android İzinleri (Yüksek Öncelik)**

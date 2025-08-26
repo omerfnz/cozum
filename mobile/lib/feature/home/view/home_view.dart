@@ -2,6 +2,8 @@ import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 
+import 'dart:async';
+
 import '../../../product/navigation/app_router.dart';
 import '../../../product/service/auth/auth_service.dart';
 import '../../feed/view/feed_view.dart';
@@ -18,26 +20,30 @@ class HomeView extends StatefulWidget {
 class _HomeViewState extends State<HomeView> {
   final _authService = GetIt.I<IAuthService>();
   int _currentIndex = 0;
-  bool _loadingUser = true;
   String _role = 'VATANDAS';
 
   @override
   void initState() {
     super.initState();
+    // kullanıcı verisini arka planda çekiyoruz
     _loadUser();
   }
 
   Future<void> _loadUser() async {
     try {
-      final me = await _authService.getCurrentUser();
+      final me = await _authService
+          .getCurrentUser()
+          .timeout(const Duration(seconds: 12));
       if (!mounted) return;
       setState(() {
         _role = me.data?.role ?? 'VATANDAS';
-        _loadingUser = false;
       });
+    } on TimeoutException {
+      if (!mounted) return;
+      setState(() {});
     } catch (_) {
       if (!mounted) return;
-      setState(() => _loadingUser = false);
+      setState(() {});
     }
   }
 
@@ -62,12 +68,7 @@ class _HomeViewState extends State<HomeView> {
 
   @override
   Widget build(BuildContext context) {
-    if (_loadingUser) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
-    }
-
+    // Kullanıcı bilgisi beklenirken de ana UI'yi göster
     final tabs = _buildTabsByRole(_role);
     final isWide = MediaQuery.of(context).size.width >= 900;
 
@@ -75,22 +76,25 @@ class _HomeViewState extends State<HomeView> {
       appBar: AppBar(
         title: Text(_appBarTitle(tabs)),
         actions: [
-          IconButton(
-            tooltip: 'Yeni Bildirim',
-            onPressed: _goCreateReport,
-            icon: const Icon(Icons.add_circle_outline_rounded),
-          ),
-          IconButton(
-            tooltip: 'Ayarlar',
-            onPressed: _goSettings,
-            icon: const Icon(Icons.settings_outlined),
-          ),
+          // Yeni bildirim butonu AppBar'dan kaldırıldı (FAB zaten mevcut)
+          // Ayarlar butonu üç nokta menüsüne taşındı
           PopupMenuButton<String>(
             tooltip: 'Diğer',
             onSelected: (v) {
+              if (v == 'settings') _goSettings();
               if (v == 'logout') _logout();
             },
             itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'settings',
+                child: Row(
+                  children: [
+                    Icon(Icons.settings_outlined),
+                    SizedBox(width: 12),
+                    Text('Ayarlar'),
+                  ],
+                ),
+              ),
               const PopupMenuItem(
                 value: 'logout',
                 child: Row(

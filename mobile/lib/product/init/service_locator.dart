@@ -48,16 +48,20 @@ Future<void> setupServiceLocator() async {
         LogInterceptor(
           requestBody: true,
           responseBody: true,
-          requestHeader: true,
+          requestHeader: false, // Disable to avoid logging sensitive headers
           responseHeader: false,
           error: true,
           logPrint: (obj) {
             try {
               final msg = obj.toString();
               if (msg.isEmpty) return;
-              serviceLocator<Logger>().d(msg);
+              // Basit ve güvenli log: uzun mesajları kısalt, ek işlem yapma
+              final out = msg.length > 4000
+                  ? '${msg.substring(0, 4000)}... (truncated, total=${msg.length})'
+                  : msg;
+              serviceLocator<Logger>().d(out);
             } catch (e) {
-              serviceLocator<Logger>().d('Log print error: $e');
+              // Eğer log yazımında hata olursa sessizce yut, uygulama akışını etkileme
             }
           },
         ),

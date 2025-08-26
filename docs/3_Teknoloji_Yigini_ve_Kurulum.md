@@ -180,3 +180,21 @@ flutter pub get
 dart run flutter_native_splash:create
 ```
   4) Doğrulama: Uygulamayı başlatın, native splash ardından AutoRoute Guard akışı (SplashView → LoginView/HomeView) çalışmalıdır.
+
+### Android - MIUI Cihazlarda İlk Açılış ANR Çözümü
+- Bazı MIUI cihazlarda ilk açılışta Profile Installer tetiklenmesi ANR'a sebep olabilir.
+- Çözüm: Profile Installer'ı devre dışı bırakın.
+  1) AndroidManifest'e tools namespace ekleyin (manifest etiketi): `xmlns:tools="http://schemas.android.com/tools"`
+  2) application etiketine aşağıdaki meta-data'yı ekleyin:
+```xml
+<meta-data
+    android:name="androidx.profileinstaller.ProfileInstaller"
+    android:value="false" />
+```
+  3) PowerShell'de temizleyip bağımlılıkları yenileyin:
+```powershell
+flutter clean
+flutter pub get
+```
+  4) Doğrulama: Uygulamayı cihazdan kaldırıp yeniden yükleyin ve ilk açılışta ANR olmadığını doğrulayın.
+- Not: PowerShell'de komutları && ile zincirlemeyin; ayrı ayrı çalıştırın.

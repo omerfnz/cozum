@@ -47,5 +47,18 @@
 		<true/>
 		<key>UIStatusBarHidden</key>
 		<false/>
+
+        <!-- Privacy - Location When In Use Usage Description -->
+        <key>NSLocationWhenInUseUsageDescription</key>
+        <string>Harita üzerinde konumunuzu almak için konum erişimine ihtiyaç duyuyoruz.</string>
+        <!-- Privacy - Camera Usage Description -->
+        <key>NSCameraUsageDescription</key>
+        <string>Şikayet bildirimi için fotoğraf çekebilmek amacıyla kamera erişimine ihtiyaç duyuyoruz.</string>
+        <!-- Privacy - Photo Library Additions Usage Description -->
+        <key>NSPhotoLibraryAddUsageDescription</key>
+        <string>Çekilen fotoğrafları galeride saklamak için fotoğraf kitaplığı erişimine ihtiyaç duyuyoruz.</string>
+        <!-- Privacy - Photo Library Usage Description -->
+        <key>NSPhotoLibraryUsageDescription</key>
+        <string>Galeriden fotoğraf seçebilmek için fotoğraf kitaplığı erişimine ihtiyaç duyuyoruz.</string>
 	</dict>
 </plist>

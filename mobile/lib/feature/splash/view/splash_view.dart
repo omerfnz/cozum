@@ -1,5 +1,6 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
+import 'dart:async';
 
 import '../../../product/init/service_locator.dart';
 import '../../../product/service/auth/auth_service.dart';
@@ -32,7 +33,9 @@ class _SplashViewState extends State<SplashView> {
 
       if (isLoggedIn) {
         // Token var, sunucudan kullanıcıyı doğrula
-        final me = await authService.getCurrentUser();
+        final me = await authService
+            .getCurrentUser()
+            .timeout(const Duration(seconds: 12));
         if (me.isSuccess && me.data != null) {
           if (!mounted) return;
           router.replaceAll([const HomeViewRoute()]);
@@ -45,18 +48,25 @@ class _SplashViewState extends State<SplashView> {
           return;
         }
       }
+    } on TimeoutException {
+      // Başlangıçta uzun beklemelerde kullanıcıyı login'e al
+      if (!mounted) return;
+      final authService = serviceLocator<IAuthService>();
+      await authService.logout();
+      router.replaceAll([const LoginViewRoute()]);
+      return;
     } catch (_) {
       isLoggedIn = false;
     }
 
-    if (!mounted) return;
+     if (!mounted) return;
 
-    if (isLoggedIn) {
-      router.replaceAll([const HomeViewRoute()]);
-    } else {
-      router.replaceAll([const LoginViewRoute()]);
-    }
-  }
+     if (isLoggedIn) {
+       router.replaceAll([const HomeViewRoute()]);
+     } else {
+       router.replaceAll([const LoginViewRoute()]);
+     }
+   }
 
   @override
   Widget build(BuildContext context) {

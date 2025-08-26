@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:logger/logger.dart';
 
@@ -19,6 +20,8 @@ final class AuthInterceptor extends Interceptor {
   // Track if we're currently refreshing to avoid multiple refresh calls
   bool _isRefreshing = false;
   final List<RequestOptions> _failedQueue = [];
+  // Completer to notify waiting requests when refresh completes
+  Completer<String?>? _refreshCompleter;
 
   @override
   Future<void> onRequest(
@@ -51,25 +54,60 @@ final class AuthInterceptor extends Interceptor {
     try {
       // Handle 401 Unauthorized errors
       if (err.response?.statusCode == 401 && !_isAuthEndpoint(err.requestOptions.path)) {
-        if (_isRefreshing) {
-          // If refresh is in progress, queue the request
-          _failedQueue.add(err.requestOptions);
-          return;
+        // If a refresh is already in progress, wait for it to complete and then retry
+        if (_isRefreshing && _refreshCompleter != null) {
+          try {
+            final newToken = await _refreshCompleter!.future;
+            if (newToken != null) {
+              final cloned = await _cloneRequest(err.requestOptions);
+              cloned.headers['Authorization'] = 'Bearer $newToken';
+              // Zaman aşımı tanımlı, minimal ayarlı lokal Dio kullan
+              final dio = Dio(
+                BaseOptions(
+                  baseUrl: cloned.baseUrl,
+                  connectTimeout: const Duration(seconds: 30),
+                  receiveTimeout: const Duration(seconds: 30),
+                  sendTimeout: const Duration(seconds: 30),
+                  headers: const {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                  },
+                ),
+              );
+              final retryResponse = await dio.fetch(cloned);
+              return handler.resolve(retryResponse);
+            }
+          } catch (e) {
+            _logger.e('Waiting for refresh failed: $e');
+          }
+          return handler.next(err);
         }
 
         _isRefreshing = true;
+        _refreshCompleter = Completer<String?>();
         
         try {
           final refreshToken = await _storageService.getRefreshToken();
           if (refreshToken == null) {
             // No refresh token, redirect to login
             await _storageService.clearTokens();
+            _refreshCompleter?.complete(null);
             return handler.next(err);
           }
 
-          // Attempt to refresh the token
-          final dio = Dio();
-          dio.options.baseUrl = err.requestOptions.baseUrl;
+          // Attempt to refresh the token (timeout ve header’lar ile lokal Dio)
+          final dio = Dio(
+            BaseOptions(
+              baseUrl: err.requestOptions.baseUrl,
+              connectTimeout: const Duration(seconds: 30),
+              receiveTimeout: const Duration(seconds: 30),
+              sendTimeout: const Duration(seconds: 30),
+              headers: const {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+              },
+            ),
+          );
           
           final response = await dio.post(
             ApiEndpoints.refresh,
@@ -86,21 +124,27 @@ final class AuthInterceptor extends Interceptor {
                 refreshToken: newRefreshToken ?? refreshToken,
               );
 
+              // Notify waiters
+              _refreshCompleter?.complete(newAccessToken);
+
               // Retry the original request with new token
               final clonedRequest = await _cloneRequest(err.requestOptions);
               clonedRequest.headers['Authorization'] = 'Bearer $newAccessToken';
               
               final retryResponse = await dio.fetch(clonedRequest);
               
-              // Process queued requests
+              // Process queued requests (best-effort)
               await _processFailedQueue(newAccessToken);
               
               return handler.resolve(retryResponse);
             }
           }
+          // If we reach here, refresh failed
+          _refreshCompleter?.complete(null);
         } on DioException catch (refreshError) {
           _logger.e('Token refresh failed: $refreshError');
           await _storageService.clearTokens();
+          _refreshCompleter?.completeError(refreshError);
           await _rejectFailedQueue();
         } finally {
           _isRefreshing = false;
@@ -111,6 +155,7 @@ final class AuthInterceptor extends Interceptor {
     } catch (e) {
       _logger.e('Auth interceptor error handling failed: $e');
       _isRefreshing = false;
+      _refreshCompleter ??= Completer<String?>()..complete(null);
       handler.next(err);
     }
   }
@@ -140,8 +185,18 @@ final class AuthInterceptor extends Interceptor {
     for (final requestOptions in _failedQueue) {
       try {
         requestOptions.headers['Authorization'] = 'Bearer $newAccessToken';
-        final dio = Dio();
-        dio.options.baseUrl = requestOptions.baseUrl;
+        final dio = Dio(
+          BaseOptions(
+            baseUrl: requestOptions.baseUrl,
+            connectTimeout: const Duration(seconds: 30),
+            receiveTimeout: const Duration(seconds: 30),
+            sendTimeout: const Duration(seconds: 30),
+            headers: const {
+              'Accept': 'application/json',
+              'Content-Type': 'application/json',
+            },
+          ),
+        );
         await dio.fetch(requestOptions);
       } catch (e) {
         _logger.e('Failed to retry queued request: $e');
