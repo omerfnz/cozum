@@ -35,6 +35,8 @@ Bu doküman, projenin ilk versiyonunda nelerin yer alacağını ve daha da önem
     * OPERATOR/ADMIN: Varsayılan olarak "all" (tüm raporlar) sekmesi açılır.
 * **Otomatik Güvenlik (Mobil):**
     * Refresh token hatası durumunda otomatik çıkış yapma ve giriş sayfasına yönlendirme.
+* **Yönetim (Mobil - Admin):**
+    * Takım ve Kategori yönetimi için temel CRUD akışları mobil uygulamada sağlandı (TeamsView ve CategoriesView güncel). Rol bazlı yetkilendirme ve soft-delete davranışı uygulanıyor. Görsel doğrulama bir sonraki seansta yapılacak.
 
 ---
 

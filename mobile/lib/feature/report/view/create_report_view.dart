@@ -7,6 +7,9 @@ import 'package:get_it/get_it.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:geolocator/geolocator.dart' as geo;
 import 'package:permission_handler/permission_handler.dart' as ph;
+import 'package:shimmer/shimmer.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 
 import '../../../product/constants/api_endpoints.dart';
 import '../../../product/models/report.dart';
@@ -20,6 +23,7 @@ class CreateReportView extends StatefulWidget {
   @override
   State<CreateReportView> createState() => _CreateReportViewState();
 }
+
 
 class _CreateReportViewState extends State<CreateReportView> {
   final _net = GetIt.I<INetworkService>();
@@ -178,6 +182,8 @@ class _CreateReportViewState extends State<CreateReportView> {
         _latitude = position.latitude;
         _longitude = position.longitude;
       });
+      // Koordinatlar alındıktan sonra adresi otomatik doldur
+      await _fillAddressFromCoordinates();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Konum alındı: ${_latitude?.toStringAsFixed(5)}, ${_longitude?.toStringAsFixed(5)}')),
@@ -189,6 +195,38 @@ class _CreateReportViewState extends State<CreateReportView> {
           SnackBar(content: Text('Konum alınamadı: $e')),
         );
       }
+    }
+  }
+
+  Future<void> _fillAddressFromCoordinates() async {
+    if (_latitude == null || _longitude == null) return;
+    try {
+      final dio = Dio(
+        BaseOptions(
+          headers: {
+            'User-Agent': 'cozum-mobile/1.0 (+https://example.com)'
+          },
+        ),
+      );
+      final res = await dio.get(
+        'https://nominatim.openstreetmap.org/reverse',
+        queryParameters: {
+          'format': 'jsonv2',
+          'lat': _latitude,
+          'lon': _longitude,
+        },
+      );
+      if (res.statusCode == 200 && res.data is Map) {
+        final data = res.data as Map;
+        final displayName = data['display_name'] as String?;
+        if (displayName != null && mounted) {
+          setState(() {
+            _locationCtrl.text = displayName;
+          });
+        }
+      }
+    } catch (_) {
+      // Sessizce geç, adres doldurma isteğe bağlı
     }
   }
 
@@ -302,7 +340,7 @@ class _CreateReportViewState extends State<CreateReportView> {
         title: const Text('Bildirim Oluştur'),
       ),
       body: _loadingCats
-          ? const Center(child: CircularProgressIndicator())
+          ? const _CreateReportShimmer()
           : _loadError != null
               ? _ErrorView(message: _loadError!, onRetry: _fetchCategories)
               : SafeArea(
@@ -417,6 +455,28 @@ class _CreateReportViewState extends State<CreateReportView> {
                           ],
                         ),
                         const SizedBox(height: 8),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: SizedBox(
+                            height: 200,
+                            child: FlutterMap(
+                              options: MapOptions(
+                                initialCenter: _latitude != null && _longitude != null
+                                    ? LatLng(_latitude!, _longitude!)
+                                    : LatLng(41.015137, 28.979530),
+                                initialZoom: 13,
+                              ),
+                              children: [
+                                TileLayer(
+                                  urlTemplate: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+                                  subdomains: ['a', 'b', 'c'],
+                                  userAgentPackageName: 'cozum.mobile',
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
                         TextFormField(
                           controller: _locationCtrl,
                           decoration: const InputDecoration(
@@ -466,6 +526,83 @@ class _ErrorView extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _CreateReportShimmer extends StatelessWidget {
+  const _CreateReportShimmer();
+
+  @override
+  Widget build(BuildContext context) {
+    final base = Colors.grey.shade300;
+    final highlight = Colors.grey.shade100;
+
+    Widget box({double height = 16, double width = double.infinity, BorderRadius? radius}) {
+      return Shimmer.fromColors(
+        baseColor: base,
+        highlightColor: highlight,
+        child: Container(
+          height: height,
+          width: width,
+          decoration: BoxDecoration(
+            color: base,
+            borderRadius: radius ?? BorderRadius.circular(8),
+          ),
+        ),
+      );
+    }
+
+    return SafeArea(
+      child: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          // Başlık alanı
+          box(height: 56),
+          const SizedBox(height: 12),
+          // Açıklama alanı (çok satırlı)
+          box(height: 100),
+          const SizedBox(height: 12),
+          // Kategori dropdown
+          box(height: 56),
+          const SizedBox(height: 16),
+          // Fotoğraf başlığı
+          box(height: 20, width: 120, radius: BorderRadius.circular(4)),
+          const SizedBox(height: 8),
+          // Görsel placeholder
+          box(height: 180),
+          const SizedBox(height: 8),
+          // Kamera / Galeri butonları
+          Row(
+            children: [
+              Expanded(child: box(height: 44)),
+              const SizedBox(width: 8),
+              Expanded(child: box(height: 44)),
+            ],
+          ),
+          const SizedBox(height: 16),
+          // Konum başlığı
+          box(height: 20, width: 160, radius: BorderRadius.circular(4)),
+          const SizedBox(height: 8),
+          // Koordinat satırı + Konumu Kullan butonu
+          Row(
+            children: [
+              Expanded(child: box(height: 20)),
+              const SizedBox(width: 8),
+              box(height: 36, width: 140),
+            ],
+          ),
+          const SizedBox(height: 8),
+          // Harita placeholder
+          box(height: 200),
+          const SizedBox(height: 8),
+          // Adres/konum açıklaması
+          box(height: 56),
+          const SizedBox(height: 24),
+          // Gönder butonu
+          box(height: 48),
+        ],
       ),
     );
   }

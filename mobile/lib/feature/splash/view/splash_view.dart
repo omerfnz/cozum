@@ -6,7 +6,6 @@ import '../../../product/init/service_locator.dart';
 import '../../../product/service/auth/auth_service.dart';
 import '../../../product/navigation/app_router.dart';
 
-@RoutePage()
 class SplashView extends StatefulWidget {
   const SplashView({super.key});
 

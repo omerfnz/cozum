@@ -193,25 +193,6 @@ class SettingsViewRoute extends PageRouteInfo<void> {
 }
 
 /// generated route for
-/// [SplashView]
-class SplashViewRoute extends PageRouteInfo<void> {
-  const SplashViewRoute({List<PageRouteInfo>? children})
-      : super(
-          SplashViewRoute.name,
-          initialChildren: children,
-        );
-
-  static const String name = 'SplashViewRoute';
-
-  static PageInfo page = PageInfo(
-    name,
-    builder: (data) {
-      return const SplashView();
-    },
-  );
-}
-
-/// generated route for
 /// [TasksView]
 class TasksViewRoute extends PageRouteInfo<void> {
   const TasksViewRoute({List<PageRouteInfo>? children})

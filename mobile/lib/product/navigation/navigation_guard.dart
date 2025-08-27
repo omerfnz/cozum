@@ -16,11 +16,11 @@ class AuthGuard extends AutoRouteGuard {
         resolver.next();
       } else {
         // User is not authenticated, redirect to login
-        router.replace(const LoginViewRoute());
+        resolver.redirect(const LoginViewRoute());
       }
     } catch (e) {
       // Error checking authentication, redirect to login for safety
-      router.replace(const LoginViewRoute());
+      resolver.redirect(const LoginViewRoute());
     }
   }
 }
@@ -35,7 +35,7 @@ class AdminGuard extends AutoRouteGuard {
       
       if (!isLoggedIn) {
         // User is not authenticated, redirect to login
-        router.replace(const LoginViewRoute());
+        resolver.redirect(const LoginViewRoute());
         return;
       }
       
@@ -48,15 +48,15 @@ class AdminGuard extends AutoRouteGuard {
           resolver.next();
         } else {
           // User doesn't have admin privileges, redirect to home
-          router.replace(const HomeViewRoute());
+          resolver.redirect(const HomeViewRoute());
         }
       } else {
         // Error getting user data, redirect to login
-        router.replace(const LoginViewRoute());
+        resolver.redirect(const LoginViewRoute());
       }
     } catch (e) {
       // Error checking authorization, redirect to login for safety
-      router.replace(const LoginViewRoute());
+      resolver.redirect(const LoginViewRoute());
     }
   }
 }
@@ -74,7 +74,7 @@ class GuestGuard extends AutoRouteGuard {
         resolver.next();
       } else {
         // User is already authenticated, redirect to home
-        router.replace(const HomeViewRoute());
+        resolver.redirect(const HomeViewRoute());
       }
     } catch (e) {
       // Error checking authentication, allow navigation for safety
@@ -97,9 +97,10 @@ class NavigationHelper {
     router.replaceAll([const LoginViewRoute()]);
   }
   
-  /// Navigate to splash screen
+  /// Navigate to splash screen (in-app splash removed; redirect to home instead)
   static void goToSplash(StackRouter router) {
-    router.replaceAll([const SplashViewRoute()]);
+    // Uygulama içi Splash ekranı kaldırıldı; güvenli varsayılan olarak ana ekrana yönlendiriyoruz
+    router.replaceAll([const HomeViewRoute()]);
   }
   
   /// Show report detail

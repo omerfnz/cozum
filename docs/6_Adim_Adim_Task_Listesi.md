@@ -203,7 +203,7 @@ N) Mobil (Flutter)
    - [x] API taban adresi: --dart-define=API_BASE_URL=http://localhost:8000/api
    - [x] LAN testi (gerçek cihaz/emülatör): `--dart-define=API_BASE_URL=http://192.168.1.101:8000/api`
    - [x] AppConfig ile ortam değişkeni yönetimi
-   - [ ] Android izinleri: INTERNET, CAMERA, READ_MEDIA_IMAGES
+   - [~] Android izinleri: INTERNET, CAMERA, ACCESS_FINE_LOCATION/ACCESS_COARSE_LOCATION eklendi; READ_MEDIA_IMAGES (Android 13+) eklenecek
 
 8) Çalıştırma
    - [x] flutter run --dart-define=API_BASE_URL=http://localhost:8000/api
@@ -211,6 +211,15 @@ N) Mobil (Flutter)
 9) Harita (opsiyonel)
    - [ ] google_maps_flutter ekleme ve Android API key tanımı
    - [x] geolocator ile konum alma (CreateReportView'da kullanılıyor)
+
+### Mobil Mevcut Durum ve Entegrasyon Özeti (Güncel)
+- Profil (ProfileView): Şu an statik kullanıcı adı ve rol gösteriyor; backend entegrasyonu için AuthService.getCurrentUser ile gerçek kullanıcı verisi bağlanmalı ve güvenli depodan yüklenmeli (online/offline).
+- Ayarlar (SettingsView): Tema seçimi UI hazır; tema kalıcılığı ThemeCubit ile var, ancak bildirim ayarları backend ile henüz bağlı değil.
+- AdminDashboardView: Yer tutucu durumda; kullanıcı/ekip/kategori yönetimi için UI ve API bağlantıları eklenecek (admin-only).
+- Bildirim Oluştur (CreateReportView): Kategori yükleme, konum izinleri ve tekli medya yükleme akışı backend ile entegre ve çalışır durumda.
+- Bildirim Detayı (ReportDetailView): Detay ve yorumlar backend’den çekiliyor; yorum ekleme işlevi mevcut ve doğrulandı.
+- İzinler (Android): AndroidManifest’te INTERNET, CAMERA, ACCESS_FINE_LOCATION/COARSE_LOCATION tanımlı; MIUI ilk açılış ANR için ProfileInstaller devre dışı bırakıldı. Android 13+ için READ_MEDIA_IMAGES eklenmeli.
+- İzinler (iOS): Info.plist içinde NSLocationWhenInUseUsageDescription, NSCameraUsageDescription ve Fotoğraf Kütüphanesi izin metinleri mevcut.
 
 ### Yapılan Teknik Düzeltmeler (Güncel)
 - AutoRoute v9 uyumluluğu: AppRouter artık RootStackRouter'ı extend eder; MaterialApp.router içinde routerConfig: appRouter.config() kullanılır.
@@ -224,33 +233,31 @@ N) Mobil (Flutter)
 - mobile/lib/models/report.dart: Media ve Comment modellerinde reportId alanı int? yapıldı; JSON parse null güvenli hâle getirildi; build_runner ile report.g.dart güncellendi (Media/Comment.reportId ve Report.commentCountApi alanları (json['...'] as num?)?.toInt() şeklinde ayrıştırılır).
 - Bildirim Detayı ekranındaki "type null is not a subtype of type num in type cast" hatası giderildi; yorum ekleme/yenileme akışı doğrulandı (manuel uçtan uca doğrulama bekleniyor).
 - Android (MIUI) ilk açılış ANR: android/app/src/main/AndroidManifest.xml'de tools namespace eklendi ve <meta-data android:name="androidx.profileinstaller.ProfileInstaller" android:value="false" /> ile Profile Installer devre dışı bırakıldı; ardından flutter clean ve flutter pub get çalıştırıldı. İlk kurulumda uygulamayı kaldırıp yeniden yükleyerek doğrulama önerilir.
+- CategoriesView: Gereksiz non-null assertion (initial!) kaldırıldı; isEdit ve path hesaplamaları categoryId üzerinden null-safe mantıkla güncellendi; use_build_context_synchronously uyarılarını gidermek için snackbar çağrılarında sheetContext kullanıldı ve await sonrasında mounted kontrolleri eklendi; flutter analyze temiz.
+- TeamsView: Kategori desenleri referans alınarak ekip ekleme/düzenleme/silme (soft-delete) ve "Üye Ekle" fonksiyonu eklendi; rol bazlı yönetim yetkisi (_canManage), bottom sheet formu ve menü eylemleri uygulandı; await sonrası context kullanımlarında mounted ve sheetContext ile use_build_context_synchronously uyarıları giderildi; flutter analyze temiz.
+- Lint/Analiz: teams_view.dart için kalan tek bilgi uyarısı (use_build_context_synchronously) _addMember içine mounted kontrolü eklenerek giderildi; categories_view.dart sentaks hataları ve diff kalıntıları temizlendi; son analizde "No issues found!".
+- Görsel doğrulama: Flutter web sunucusunda (flutter run -d web-server) görsel doğrulama planlandı; komut kullanıcı tarafından atlandığı için manuel UI doğrulaması sonraya bırakıldı.
 
 ### Kritik Eksikler ve Sıradaki Adımlar 🔴
-1) **Android İzinleri (Yüksek Öncelik)**
-   - android/app/src/main/AndroidManifest.xml'e INTERNET, CAMERA, ACCESS_FINE_LOCATION izinleri
-   - iOS için Info.plist kamera ve konum izin metinleri
-
-2) **Harita Entegrasyonu (Orta Öncelik)**
-   - google_maps_flutter paketi ekleme
-   - Android API key yapılandırması
-   - Rapor oluşturmada harita ile konum seçimi
-   - Rapor detayında konum gösterimi
-
-3) **Filtreleme ve Arama (Orta Öncelik)**
-   - Ana sayfada rapor filtreleme (durum, kategori, tarih)
-   - Arama özelliği (başlık, açıklama)
-   - Sıralama seçenekleri
-
-4) **Offline Support (Düşük Öncelik)**
-   - Hive/SQLite ile yerel veri saklama
-   - Ağ bağlantısı olmadığında cached veriler
-   - Senkronizasyon mekanizması
-
-5) **Native Splash (Yüksek Öncelik)**
-   - flutter_native_splash bağımlılığını ekle ve pubspec.yaml altında "flutter_native_splash" konfigüre et (background, image, dark theme desteği).
-   - PowerShell komutu ile oluştur: `dart run flutter_native_splash:create`.
-   - Android 12+ için adaptive icon/splash ayarlarını doğrula; iOS için LaunchScreen storyboard güncellemelerini kontrol et.
-   - Splash'tan sonra AutoRoute guard akışının (SplashView → LoginView/HomeView) sorunsuz çalıştığını doğrula.
+1) Android İzinleri (Yüksek Öncelik)
+   - Android 13+ için READ_MEDIA_IMAGES iznini ekle ve koşullu çalışma (SDK kontrolü) ile doğrula.
+   - Eski sürümler için READ_EXTERNAL_STORAGE gerekliyse (targetSdk < 33 senaryolarında) kontrol et.
+2) Harita Entegrasyonu (Orta Öncelik)
+   - google_maps_flutter paketi ve Android API key yapılandırması.
+   - Rapor oluştururken harita üzerinden konum seçimi ve detayda görüntüleme.
+3) Filtreleme ve Arama (Orta Öncelik)
+   - Ana sayfada durum/kategori/tarih filtreleri ve başlık/açıklama araması.
+4) Offline Destek (Düşük Öncelik)
+   - Hive/SQLite ile cache; çevrimdışı görüntüleme ve senkronizasyon stratejisi.
+5) Native Splash (Yüksek Öncelik)
+   - flutter_native_splash konfigürasyonu ve oluşturma.
+6) Profil ve Ayarlar Entegrasyonu (Yüksek Öncelik)
+   - ProfileView’i AuthService.getCurrentUser ile bağla, kullanıcı bilgilerini göster ve çıkış akışını doğrula.
+   - SettingsView’de tema kalıcılığı doğrulama, bildirim tercihlerinin yerel/uzak saklanması için altyapı.
+7) Admin Paneli (Yüksek Öncelik)
+   - AdminDashboardView içinden Users/Teams/Categories ekranlarını liste/ekle/düzenle/sil akışlarıyla uygula; AdminGuard ile erişim.
+8) Test ve Kalite (Sürekli)
+   - Flutter analyze temiz; birim/widget testleri ve entegrasyon testleri eklenmeli.
 
 ### Kritik Eksikler ve Sıradaki Adımlar 🔴
 1) **Android İzinleri (Yüksek Öncelik)**

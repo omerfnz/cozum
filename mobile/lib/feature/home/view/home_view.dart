@@ -8,6 +8,9 @@ import '../../../product/navigation/app_router.dart';
 import '../../../product/service/auth/auth_service.dart';
 import '../../feed/view/feed_view.dart';
 import '../../categories/view/categories_view.dart';
+import '../../tasks/view/tasks_view.dart';
+import '../../teams/view/teams_view.dart';
+import '../../profile/view/profile_view.dart';
 
 @RoutePage()
 class HomeView extends StatefulWidget {
@@ -147,11 +150,13 @@ class _HomeViewState extends State<HomeView> {
                   ),
               ],
             ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _goCreateReport,
-        icon: const Icon(Icons.add),
-        label: const Text('Yeni Bildirim'),
-      ),
+      floatingActionButton: tabs[_currentIndex].showFab
+          ? FloatingActionButton.extended(
+              onPressed: _goCreateReport,
+              icon: const Icon(Icons.add),
+              label: const Text('Yeni Bildirim'),
+            )
+          : null,
     );
   }
 
@@ -169,12 +174,13 @@ class _HomeViewState extends State<HomeView> {
         icon: Icons.dynamic_feed_outlined,
         selectedIcon: Icons.dynamic_feed,
         builder: (_) => const FeedView(),
+        showFab: true,
       ),
       _TabItem(
         label: 'Görevler',
         icon: Icons.task_alt_outlined,
         selectedIcon: Icons.task_alt,
-        builder: (_) => const _TasksTab(),
+        builder: (_) => const TasksView(),
         visible: isTeam || isOperator || isAdmin,
       ),
       _TabItem(
@@ -187,14 +193,14 @@ class _HomeViewState extends State<HomeView> {
         label: 'Ekipler',
         icon: Icons.groups_2_outlined,
         selectedIcon: Icons.groups_2,
-        builder: (_) => const _TeamsTab(),
+        builder: (_) => const TeamsView(),
         visible: isTeam || isOperator || isAdmin,
       ),
       _TabItem(
         label: 'Profil',
         icon: Icons.person_outline,
         selectedIcon: Icons.person,
-        builder: (_) => const _ProfileTab(),
+        builder: (_) => const ProfileView(),
       ),
     ];
 
@@ -213,79 +219,80 @@ class _TabItem {
     required this.builder,
     this.selectedIcon,
     this.visible = true,
+    this.showFab = false,
   });
 
   final String label;
   final IconData icon;
   final IconData? selectedIcon;
   final bool visible;
+  final bool showFab;
   final WidgetBuilder builder;
 }
 
-class _TasksTab extends StatelessWidget {
-  const _TasksTab();
-
-  @override
-  Widget build(BuildContext context) {
-    return ListView.separated(
-      padding: const EdgeInsets.all(16),
-      itemCount: 10,
-      separatorBuilder: (_, __) => const SizedBox(height: 8),
-      itemBuilder: (context, index) {
-        return Card(
-          child: ListTile(
-            leading: const Icon(Icons.check_circle_outline_rounded),
-            title: Text('Görev #${index + 1}'),
-            subtitle: const Text('Durum: Bekliyor'),
-            trailing: const Icon(Icons.chevron_right_rounded),
-            onTap: () {},
-          ),
-        );
-      },
-    );
-  }
-}
-
-class _TeamsTab extends StatelessWidget {
-  const _TeamsTab();
-
-  @override
-  Widget build(BuildContext context) {
-    return ListView.separated(
-      padding: const EdgeInsets.all(16),
-      itemCount: 8,
-      separatorBuilder: (_, __) => const SizedBox(height: 8),
-      itemBuilder: (context, index) {
-        return Card(
-          child: ListTile(
-            leading: const Icon(Icons.group_outlined),
-            title: Text('Ekip #${index + 1}'),
-            subtitle: const Text('Üye sayısı: 5'),
-            trailing: const Icon(Icons.chevron_right_rounded),
-            onTap: () {},
-          ),
-        );
-      },
-    );
-  }
-}
-
-class _ProfileTab extends StatelessWidget {
-  const _ProfileTab();
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const CircleAvatar(radius: 36, child: Icon(Icons.person, size: 36)),
-          const SizedBox(height: 12),
-          Text('Profil', style: Theme.of(context).textTheme.titleLarge),
-          const SizedBox(height: 8),
-          const Text('Profil bilgileri yakında burada olacak.'),
-        ],
-      ),
-    );
-  }
-}
+// Aşağıdaki geçici sekme widget'ları kaldırıldı:
+// class _TasksTab extends StatelessWidget {
+//   const _TasksTab();
+//
+//   @override
+//   Widget build(BuildContext context) {
+//     return ListView.separated(
+//       padding: const EdgeInsets.all(16),
+//       itemCount: 10,
+//       separatorBuilder: (_, __) => const SizedBox(height: 8),
+//       itemBuilder: (context, index) {
+//         return Card(
+//           child: ListTile(
+//             leading: const Icon(Icons.check_circle_outline_rounded),
+//             title: Text('Görev #${index + 1}'),
+//             subtitle: const Text('Durum: Bekliyor'),
+//             trailing: const Icon(Icons.chevron_right_rounded),
+//             onTap: () {},
+//           ),
+//         );
+//       },
+//     );
+//   }
+// }
+// class _TeamsTab extends StatelessWidget {
+//   const _TeamsTab();
+//
+//   @override
+//   Widget build(BuildContext context) {
+//     return ListView.separated(
+//       padding: const EdgeInsets.all(16),
+//       itemCount: 8,
+//       separatorBuilder: (_, __) => const SizedBox(height: 8),
+//       itemBuilder: (context, index) {
+//         return Card(
+//           child: ListTile(
+//             leading: const Icon(Icons.group_outlined),
+//             title: Text('Ekip #${index + 1}'),
+//             subtitle: const Text('Üye sayısı: 5'),
+//             trailing: const Icon(Icons.chevron_right_rounded),
+//             onTap: () {},
+//           ),
+//         );
+//       },
+//     );
+//   }
+// }
+// class _ProfileTab extends StatelessWidget {
+//   const _ProfileTab();
+//
+//   @override
+//   Widget build(BuildContext context) {
+//     return Center(
+//       child: Column(
+//         mainAxisAlignment: MainAxisAlignment.center,
+//         children: [
+//           const CircleAvatar(radius: 36, child: Icon(Icons.person, size: 36)),
+//           const SizedBox(height: 12),
+//           Text('Profil', style: Theme.of(context).textTheme.titleLarge),
+//           const SizedBox(height: 8),
+//           const Text('Profil bilgileri yakında burada olacak.'),
+//         ],
+//       ),
+//     );
+//   }
+// }

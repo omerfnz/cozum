@@ -7,6 +7,8 @@ import '../../../product/constants/api_endpoints.dart';
 import '../../../product/models/report.dart';
 import '../../../product/service/network/network_service.dart';
 import '../../../product/theme/theme_constants.dart';
+import '../../../product/service/auth/auth_service.dart';
+import '../../../product/models/user.dart' show Team; // Team modelini kullanmak için
 
 @RoutePage()
 class ReportDetailView extends StatefulWidget {
@@ -32,6 +34,8 @@ class _ReportDetailViewState extends State<ReportDetailView> {
   String? _error;
   final _commentCtrl = TextEditingController();
 
+  String? _myRole; // Mevcut kullanıcının rolü (UI yetkileri için)
+
   int? get _reportIdInt => int.tryParse(widget.reportId);
 
   @override
@@ -43,6 +47,20 @@ class _ReportDetailViewState extends State<ReportDetailView> {
       _loadingComments = false;
     } else {
       _fetchAll();
+      _loadMe();
+    }
+  }
+
+  Future<void> _loadMe() async {
+    try {
+      final auth = GetIt.I<IAuthService>();
+      final meRes = await auth.getCurrentUser();
+      if (!mounted) return;
+      setState(() {
+        _myRole = meRes.data?.role;
+      });
+    } catch (_) {
+      // rol alınamazsa, UI gizlenecek
     }
   }
 
@@ -138,6 +156,168 @@ class _ReportDetailViewState extends State<ReportDetailView> {
     }
   }
 
+  // Operatör/Admin eylemleri: durum ve atama güncelleme
+  bool get _canManage => _myRole == 'OPERATOR' || _myRole == 'ADMIN';
+
+  Future<List<Team>> _getTeams() async {
+    final res = await _net.request<List<Team>>(
+      path: ApiEndpoints.teams,
+      type: RequestType.get,
+      parser: (json) => (json as List<dynamic>)
+          .map((e) => Team.fromJson(e as Map<String, dynamic>))
+          .toList(),
+    );
+    return res.data ?? <Team>[];
+  }
+
+  Future<void> _openUpdateSheet() async {
+    final report = _report;
+    if (report == null || !_canManage) return;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (context) {
+        ReportStatus selectedStatus = report.status;
+        int? selectedTeamId = report.assignedTeam?.id;
+        bool saving = false;
+
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            Future<void> onSave() async {
+              if (saving) return;
+              setModalState(() => saving = true);
+              final ok = await _updateReport(status: selectedStatus, teamId: selectedTeamId);
+              if (!mounted) return;
+              try {
+                setModalState(() => saving = false);
+              } catch (_) {/* sheet kapanmış olabilir */}
+              if (ok) {
+                // State'in context'i ile guard edildi
+                if (Navigator.of(this.context).canPop()) {
+                  Navigator.of(this.context).pop();
+                }
+                ScaffoldMessenger.of(this.context).showSnackBar(
+                  const SnackBar(content: Text('Rapor güncellendi')),
+                );
+              }
+            }
+
+            return Padding(
+              padding: EdgeInsets.only(
+                left: 16,
+                right: 16,
+                bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+                top: 8,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Durum ve Atama', style: Theme.of(context).textTheme.titleLarge),
+                  const SizedBox(height: 12),
+
+                  // Durum seçimi
+                  Text('Durum', style: Theme.of(context).textTheme.labelLarge),
+                  const SizedBox(height: 6),
+                  DropdownButtonFormField<ReportStatus>(
+                    value: selectedStatus,
+                    decoration: const InputDecoration(border: OutlineInputBorder(), isDense: true),
+                    items: ReportStatus.values
+                        .map((s) => DropdownMenuItem(
+                              value: s,
+                              child: Text(s.displayName),
+                            ))
+                        .toList(),
+                    onChanged: (v) => setModalState(() => selectedStatus = v ?? selectedStatus),
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Atanan takım seçimi
+                  Text('Atanan Takım', style: Theme.of(context).textTheme.labelLarge),
+                  const SizedBox(height: 6),
+                  FutureBuilder<List<Team>>(
+                    future: _getTeams(),
+                    builder: (context, snapshot) {
+                      final loading = snapshot.connectionState == ConnectionState.waiting;
+                      final teams = snapshot.data ?? const <Team>[];
+                      return DropdownButtonFormField<int?>(
+                        value: selectedTeamId,
+                        isExpanded: true,
+                        decoration: const InputDecoration(border: OutlineInputBorder(), isDense: true),
+                        items: [
+                          const DropdownMenuItem<int?>(
+                            value: null,
+                            child: Text('— Atama Yok —'),
+                          ),
+                          ...teams.map((t) => DropdownMenuItem<int?>(
+                                value: t.id,
+                                child: Text(t.name),
+                              )),
+                        ],
+                        onChanged: loading ? null : (v) => setModalState(() => selectedTeamId = v),
+                      );
+                    },
+                  ),
+
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: saving ? null : () => Navigator.of(context).maybePop(),
+                          child: const Text('İptal'),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: FilledButton.icon(
+                          onPressed: saving ? null : onSave,
+                          icon: saving
+                              ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                              : const Icon(Icons.save_outlined),
+                          label: const Text('Kaydet'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<bool> _updateReport({required ReportStatus status, int? teamId}) async {
+    final id = _reportIdInt;
+    if (id == null) return false;
+    final res = await _net.request<Map<String, dynamic>>(
+      path: ApiEndpoints.reportById(id),
+      type: RequestType.patch,
+      data: {
+        'status': status.value,
+        'assigned_team': teamId,
+      },
+      parser: (json) => json as Map<String, dynamic>,
+    );
+
+    if (!mounted) return false;
+
+    if (res.isSuccess) {
+      // Güncel veriyi tekrar çek
+      await _fetchReport();
+      return true;
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(res.error ?? 'Güncelleme başarısız')),
+      );
+      return false;
+    }
+  }
+
   @override
   void dispose() {
     _commentCtrl.dispose();
@@ -154,6 +334,14 @@ class _ReportDetailViewState extends State<ReportDetailView> {
     return Scaffold(
       appBar: AppBar(
         title: Text(report?.title ?? 'Bildirim Detayı'),
+        actions: [
+          if (report != null && _canManage)
+            IconButton(
+              tooltip: 'Atama/Durum',
+              onPressed: _openUpdateSheet,
+              icon: const Icon(Icons.edit_outlined),
+            ),
+        ],
       ),
       body: _error != null
           ? _ErrorView(message: _error!, onRetry: _fetchAll)

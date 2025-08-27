@@ -1,5 +1,13 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:get_it/get_it.dart';
+import 'package:shimmer/shimmer.dart';
+
+import '../../../product/navigation/app_router.dart';
+import '../../../product/service/auth/auth_service.dart';
+import '../view_model/profile_cubit.dart';
+import '../view_model/profile_state.dart';
 
 @RoutePage()
 class ProfileView extends StatelessWidget {
@@ -7,9 +15,371 @@ class ProfileView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(
-        child: Text('Profile View - Will be implemented'),
+    return BlocProvider(
+      create: (_) => ProfileCubit(GetIt.I<IAuthService>())..load(),
+      child: const _ProfileViewBody(),
+    );
+  }
+}
+
+class _ProfileViewBody extends StatelessWidget {
+  const _ProfileViewBody();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Profil'),
+        automaticallyImplyLeading: false,
+      ),
+      body: SafeArea(
+        child: BlocBuilder<ProfileCubit, ProfileState>(
+          builder: (context, state) {
+            if (state is ProfileLoading) {
+              return const _ProfileShimmer();
+            }
+            if (state is ProfileError) {
+              return _ErrorView(
+                message: state.message,
+                onRetry: () => context.read<ProfileCubit>().load(),
+              );
+            }
+            final user = (state as ProfileLoaded).user;
+
+            return RefreshIndicator(
+              onRefresh: () => context.read<ProfileCubit>().load(),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final maxW = constraints.maxWidth;
+                  final avatarRadius = _avatarRadiusForWidth(maxW);
+
+                  return ListView(
+                    padding: const EdgeInsets.all(16),
+                    children: [
+                      Center(
+                        child: Column(
+                          children: [
+                            CircleAvatar(
+                              radius: avatarRadius,
+                              backgroundColor: Theme.of(context).colorScheme.primary,
+                              child: Text(
+                                _initials(user),
+                                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: (avatarRadius * 0.9).clamp(18, 42),
+                                    ),
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              _displayName(user),
+                              textAlign: TextAlign.center,
+                              style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              _roleDisplay(user.role),
+                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
+                            ),
+                            const SizedBox(height: 4),
+                            if (user.email.isNotEmpty)
+                              Text(
+                                user.email,
+                                style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey[600]),
+                              ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      _buildProfileMenuItem(
+                        context,
+                        icon: Icons.person_outline,
+                        title: 'Kişisel Bilgiler',
+                        onTap: () {
+                          context.router.push(const SettingsViewRoute());
+                        },
+                      ),
+                      _buildProfileMenuItem(
+                        context,
+                        icon: Icons.notifications_outlined,
+                        title: 'Bildirim Ayarları',
+                        onTap: () {
+                          context.router.push(const SettingsViewRoute());
+                        },
+                      ),
+                      _buildProfileMenuItem(
+                        context,
+                        icon: Icons.history,
+                        title: 'Geçmiş Bildiriler',
+                        onTap: () {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Yakında eklenecek.')),
+                          );
+                        },
+                      ),
+                      _buildProfileMenuItem(
+                        context,
+                        icon: Icons.help_outline,
+                        title: 'Yardım & Destek',
+                        onTap: () {
+                          showDialog(
+                            context: context,
+                            builder: (_) => const _HelpDialog(),
+                          );
+                        },
+                      ),
+                      _buildProfileMenuItem(
+                        context,
+                        icon: Icons.logout_rounded,
+                        title: 'Çıkış Yap',
+                        onTap: () => context.read<ProfileCubit>().logout(context.router),
+                      ),
+                      const SizedBox(height: 12),
+                      _InfoCard(user: user),
+                    ],
+                  );
+                },
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  double _avatarRadiusForWidth(double w) {
+    if (w >= 1000) return 70;
+    if (w >= 700) return 60;
+    if (w >= 400) return 50;
+    return 42;
+  }
+
+  String _initials(User u) {
+    final base = _displayName(u).trim().isEmpty ? u.username : _displayName(u);
+    final parts = base.trim().split(' ').where((e) => e.isNotEmpty).toList();
+    if (parts.isEmpty) return 'U';
+    if (parts.length == 1) return parts.first.substring(0, 1).toUpperCase();
+    return (parts.first.substring(0, 1) + parts.last.substring(0, 1)).toUpperCase();
+  }
+
+  String _displayName(User u) {
+    final hasName = (u.firstName?.isNotEmpty ?? false) || (u.lastName?.isNotEmpty ?? false);
+    if (hasName) {
+      final fn = u.firstName?.trim() ?? '';
+      final ln = u.lastName?.trim() ?? '';
+      return '$fn $ln'.trim();
+    }
+    return u.username;
+  }
+
+  String _roleDisplay(String role) {
+    switch (role) {
+      case 'ADMIN':
+        return 'Admin';
+      case 'OPERATOR':
+        return 'Operatör';
+      case 'EKIP':
+        return 'Saha Ekibi';
+      case 'VATANDAS':
+      default:
+        return 'Vatandaş';
+    }
+  }
+
+  Widget _buildProfileMenuItem(
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    required VoidCallback onTap,
+  }) {
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 4),
+      child: ListTile(
+        leading: Icon(icon),
+        title: Text(title),
+        trailing: const Icon(Icons.chevron_right),
+        onTap: onTap,
+      ),
+    );
+  }
+}
+
+class _InfoCard extends StatelessWidget {
+  const _InfoCard({required this.user});
+  final User user;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Hesap Bilgileri', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+            const SizedBox(height: 12),
+            _row(context, 'Kullanıcı Adı', user.username),
+            _row(context, 'E-posta', user.email),
+            _row(context, 'Rol', _roleDisplay(user.role)),
+            if (user.team != null) _row(context, 'Takım', (user.team?['name'] as String?) ?? '—'),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _row(BuildContext context, String label, String value) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 120,
+            child: Text(label, style: theme.textTheme.bodyMedium?.copyWith(color: Colors.grey[700])),
+          ),
+          const SizedBox(width: 8),
+          Expanded(child: Text(value, style: theme.textTheme.bodyMedium)),
+        ],
+      ),
+    );
+  }
+
+  String _roleDisplay(String role) {
+    switch (role) {
+      case 'ADMIN':
+        return 'Admin';
+      case 'OPERATOR':
+        return 'Operatör';
+      case 'EKIP':
+        return 'Saha Ekibi';
+      case 'VATANDAS':
+      default:
+        return 'Vatandaş';
+    }
+  }
+}
+
+class _HelpDialog extends StatelessWidget {
+  const _HelpDialog();
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Yardım & Destek'),
+      content: const Text('Destek için lütfen admin ile iletişime geçin veya uygulama mağazasındaki destek adresini kullanın.'),
+      actions: [
+        TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Kapat')),
+      ],
+    );
+  }
+}
+
+class _ErrorView extends StatelessWidget {
+  const _ErrorView({required this.message, required this.onRetry});
+  final String message;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.error_outline, size: 48, color: Theme.of(context).colorScheme.error),
+            const SizedBox(height: 12),
+            Text(message, textAlign: TextAlign.center),
+            const SizedBox(height: 12),
+            ElevatedButton.icon(
+              onPressed: onRetry,
+              icon: const Icon(Icons.refresh),
+              label: const Text('Tekrar Dene'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ProfileShimmer extends StatelessWidget {
+  const _ProfileShimmer();
+
+  @override
+  Widget build(BuildContext context) {
+    final base = Colors.grey.shade300;
+    final highlight = Colors.grey.shade100;
+
+    Widget line({double height = 14, double width = double.infinity, BorderRadius? radius}) =>
+        Container(height: height, width: width, decoration: BoxDecoration(color: base, borderRadius: radius ?? BorderRadius.circular(8)));
+
+    Widget menuTile() => Card(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Row(
+              children: [
+                Container(width: 24, height: 24, decoration: BoxDecoration(color: base, borderRadius: BorderRadius.circular(6))),
+                const SizedBox(width: 16),
+                Expanded(child: line(width: double.infinity)),
+                const SizedBox(width: 16),
+                Container(width: 20, height: 20, decoration: BoxDecoration(color: base, borderRadius: BorderRadius.circular(6))),
+              ],
+            ),
+          ),
+        );
+
+    return Shimmer.fromColors(
+      baseColor: base,
+      highlightColor: highlight,
+      child: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          Center(
+            child: Column(
+              children: [
+                Container(
+                  width: 100,
+                  height: 100,
+                  decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+                ),
+                const SizedBox(height: 16),
+                line(width: 180, height: 18),
+                const SizedBox(height: 8),
+                line(width: 120, height: 14),
+                const SizedBox(height: 6),
+                line(width: 160, height: 12),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+          menuTile(),
+          menuTile(),
+          menuTile(),
+          menuTile(),
+          const SizedBox(height: 12),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  line(width: 140, height: 16),
+                  const SizedBox(height: 12),
+                  line(width: double.infinity),
+                  const SizedBox(height: 10),
+                  line(width: double.infinity),
+                  const SizedBox(height: 10),
+                  line(width: double.infinity),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
