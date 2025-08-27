@@ -121,8 +121,12 @@ export interface Report {
   first_media_url?: string
 }
 
-export async function getReports(scope?: 'all' | 'mine' | 'assigned'): Promise<Report[]> {
-  const res = await api.get('/reports/', { params: scope ? { scope } : undefined })
+export async function getReports(scope?: 'all' | 'mine' | 'assigned', tasksOnly?: boolean): Promise<Report[]> {
+  const params: Record<string, string> = {}
+  if (scope) params.scope = scope
+  if (tasksOnly) params.tasks_only = 'true'
+  
+  const res = await api.get('/reports/', { params: Object.keys(params).length > 0 ? params : undefined })
   return res.data
 }
 

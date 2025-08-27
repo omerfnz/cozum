@@ -9,7 +9,9 @@ import '../../../product/constants/api_endpoints.dart';
 import '../../../product/models/report.dart';
 import '../../../product/navigation/navigation_guard.dart';
 import '../../../product/service/network/network_service.dart';
+import '../../../product/service/auth/auth_service.dart' as auth;
 import '../../../product/theme/theme_constants.dart';
+import '../../../product/widgets/snackbar.dart';
 
 class FeedView extends StatefulWidget {
   const FeedView({super.key});
@@ -20,6 +22,7 @@ class FeedView extends StatefulWidget {
 
 class _FeedViewState extends State<FeedView> {
   final _net = GetIt.I<INetworkService>();
+  final _auth = GetIt.I<auth.IAuthService>();
   final _scroll = ScrollController();
 
   List<Report> _all = [];
@@ -28,12 +31,21 @@ class _FeedViewState extends State<FeedView> {
   bool _loading = true;
   bool _loadingMore = false;
   String? _error;
+  auth.User? _currentUser;
 
   @override
   void initState() {
     super.initState();
-    _fetch();
+    _loadUserAndFetch();
     _scroll.addListener(_onScroll);
+  }
+
+  Future<void> _loadUserAndFetch() async {
+    final userRes = await _auth.getCurrentUser();
+    if (userRes.isSuccess && userRes.data != null) {
+      _currentUser = userRes.data;
+    }
+    await _fetch();
   }
 
   @override
@@ -100,7 +112,100 @@ class _FeedViewState extends State<FeedView> {
   }
 
   Future<void> _onRefresh() async {
-    await _fetch();
+    await _loadUserAndFetch();
+  }
+
+  bool _canDeleteReport(Report report) {
+    if (_currentUser == null) return false;
+    final user = _currentUser!;
+    
+    // OPERATOR ve ADMIN tüm bildirimleri silebilir
+    if (user.role == 'OPERATOR' || user.role == 'ADMIN') return true;
+    
+    // VATANDAS sadece kendi bildirilerini silebilir
+    if (user.role == 'VATANDAS' && report.reporter.id == user.id) return true;
+    
+    // EKIP silme yetkisi yok
+    return false;
+  }
+
+  Future<void> _deleteReport(Report report) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Bildirimi Sil'),
+        content: const Text('Bu bildirimi silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('İptal'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Sil'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    final res = await _net.request(
+      path: '${ApiEndpoints.reports}/${report.id}/',
+      type: RequestType.delete,
+    );
+
+    if (!mounted) return;
+
+    if (res.isSuccess) {
+      context.showSnack('Bildirim başarıyla silindi');
+      setState(() {
+        _all.removeWhere((r) => r.id == report.id);
+        _visibleCount = min(_visibleCount, _all.length);
+      });
+    } else {
+      context.showSnack('Bildirim silinirken hata oluştu: ${res.error}');
+    }
+  }
+
+  void _showReportActions(Report report) {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.visibility),
+              title: const Text('Detayları Görüntüle'),
+              onTap: () {
+                Navigator.of(context).pop();
+                _openDetail(report);
+              },
+            ),
+            if (_canDeleteReport(report))
+              ListTile(
+                leading: const Icon(Icons.delete, color: Colors.red),
+                title: const Text('Sil', style: TextStyle(color: Colors.red)),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _deleteReport(report);
+                },
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _openDetail(Report report) {
+    final id = report.id;
+    if (id == null) {
+      context.showSnack('Rapor ID bulunamadı');
+      return;
+    }
+    NavigationHelper.showReportDetail(context.router, id.toString());
   }
 
   @override
@@ -146,7 +251,11 @@ class _FeedViewState extends State<FeedView> {
             );
           }
           final r = visible[index];
-          return _FeedCard(report: r);
+          return _FeedCard(
+            report: r,
+            onTap: () => _openDetail(r),
+            onLongPress: () => _showReportActions(r),
+          );
         },
       ),
     );
@@ -154,20 +263,15 @@ class _FeedViewState extends State<FeedView> {
 }
 
 class _FeedCard extends StatelessWidget {
-  const _FeedCard({required this.report});
+  const _FeedCard({
+    required this.report,
+    required this.onTap,
+    required this.onLongPress,
+  });
 
   final Report report;
-
-  void _openDetail(BuildContext context) {
-    final id = report.id;
-    if (id == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Rapor ID bulunamadı')),
-      );
-      return;
-    }
-    NavigationHelper.showReportDetail(context.router, id.toString());
-  }
+  final VoidCallback onTap;
+  final VoidCallback onLongPress;
 
   @override
   Widget build(BuildContext context) {
@@ -177,7 +281,8 @@ class _FeedCard extends StatelessWidget {
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
-        onTap: () => _openDetail(context),
+        onTap: onTap,
+        onLongPress: onLongPress,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

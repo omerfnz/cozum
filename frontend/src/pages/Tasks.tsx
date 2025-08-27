@@ -16,7 +16,7 @@ export default function Tasks() {
       try {
         const user = await me()
         setRole(user?.role)
-        const [r, t] = await Promise.all([getReports(), getTeams()])
+        const [r, t] = await Promise.all([getReports(undefined, true), getTeams()])
         setReports(r)
         setTeams(t)
       } catch (e) {

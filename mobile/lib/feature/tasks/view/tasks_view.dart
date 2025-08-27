@@ -92,13 +92,16 @@ class _TasksViewState extends State<TasksView> {
     // - VATANDAS: scope=mine (kendi bildirimleri)
     // - EKIP: scope=assigned (takımına atananlar)
     // - OPERATOR/ADMIN: scope=all (tüm görevler)
+    // tasks_only=true: Sadece atanmış bildirimleri göster (görev sayfası için)
     try {
       final authService = GetIt.I<auth.IAuthService>();
       final meRes = await authService.getCurrentUser();
       final user = meRes.data;
       final String? role = user?.role;
 
-      final Map<String, dynamic> q = {};
+      final Map<String, dynamic> q = {
+        'tasks_only': 'true', // Görev sayfası için sadece atanmış bildirimleri getir
+      };
 
       // Rol bazlı scope parametresi
       switch (role) {
@@ -118,7 +121,10 @@ class _TasksViewState extends State<TasksView> {
 
       return q;
     } catch (_) {
-      return {'scope': 'mine'}; // Hata durumunda güvenli varsayılan
+      return {
+        'scope': 'mine', // Hata durumunda güvenli varsayılan
+        'tasks_only': 'true',
+      };
     }
   }
 

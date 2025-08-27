@@ -57,6 +57,12 @@ class ReportListCreateView(generics.ListCreateAPIView):
         user = self.request.user
         qs = Report.objects.select_related("reporter", "category", "assigned_team")
         scope = self.request.query_params.get("scope")
+        tasks_only = self.request.query_params.get("tasks_only", "false").lower() == "true"
+        
+        # Görevler için özel filtreleme - sadece atanmış bildirimleri göster
+        if tasks_only:
+            qs = qs.filter(assigned_team__isnull=False)
+        
         if scope == "all":
             return qs
         if scope == "mine":
