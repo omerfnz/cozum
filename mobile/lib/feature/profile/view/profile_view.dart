@@ -35,115 +35,125 @@ class _ProfileViewBody extends StatelessWidget {
       body: SafeArea(
         child: BlocBuilder<ProfileCubit, ProfileState>(
           builder: (context, state) {
-            if (state is ProfileLoading) {
-              return const _ProfileShimmer();
-            }
-            if (state is ProfileError) {
-              return _ErrorView(
-                message: state.message,
-                onRetry: () => context.read<ProfileCubit>().load(),
-              );
-            }
-            final user = (state as ProfileLoaded).user;
+            return switch (state) {
+              ProfileInitial() => const _ProfileShimmer(),
+              ProfileLoading() => const _ProfileShimmer(),
+              ProfileError(:final message) => _ErrorView(
+                  message: message,
+                  onRetry: () => context.read<ProfileCubit>().load(),
+                ),
+              ProfileLoaded(:final user) => _ProfileContent(user: user),
+              _ => const _ProfileShimmer(),
+            };
+          },
+        ),
+      ),
+    );
+  }
 
-            return RefreshIndicator(
-              onRefresh: () => context.read<ProfileCubit>().load(),
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  final maxW = constraints.maxWidth;
-                  final avatarRadius = _avatarRadiusForWidth(maxW);
+}
 
-                  return ListView(
-                    padding: const EdgeInsets.all(16),
-                    children: [
-                      Center(
-                        child: Column(
-                          children: [
-                            CircleAvatar(
-                              radius: avatarRadius,
-                              backgroundColor: Theme.of(context).colorScheme.primary,
-                              child: Text(
-                                _initials(user),
-                                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: (avatarRadius * 0.9).clamp(18, 42),
-                                    ),
-                              ),
+
+class _ProfileContent extends StatelessWidget {
+  const _ProfileContent({required this.user});
+  final User user;
+
+  @override
+  Widget build(BuildContext context) {
+    return RefreshIndicator(
+      onRefresh: () => context.read<ProfileCubit>().load(),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final maxW = constraints.maxWidth;
+          final avatarRadius = _avatarRadiusForWidth(maxW);
+
+          return ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              Center(
+                child: Column(
+                  children: [
+                    CircleAvatar(
+                      radius: avatarRadius,
+                      backgroundColor: Theme.of(context).colorScheme.primary,
+                      child: Text(
+                        _initials(user),
+                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: (avatarRadius * 0.9).clamp(18, 42),
                             ),
-                            const SizedBox(height: 16),
-                            Text(
-                              _displayName(user),
-                              textAlign: TextAlign.center,
-                              style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
-                            ),
-                            const SizedBox(height: 6),
-                            Text(
-                              _roleDisplay(user.role),
-                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
-                            ),
-                            const SizedBox(height: 4),
-                            if (user.email.isNotEmpty)
-                              Text(
-                                user.email,
-                                style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey[600]),
-                              ),
-                          ],
-                        ),
                       ),
-                      const SizedBox(height: 24),
-                      _buildProfileMenuItem(
-                        context,
-                        icon: Icons.person_outline,
-                        title: 'Kişisel Bilgiler',
-                        onTap: () {
-                          context.router.push(const SettingsViewRoute());
-                        },
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      _displayName(user),
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      _roleDisplay(user.role),
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
+                    ),
+                    const SizedBox(height: 4),
+                    if (user.email.isNotEmpty)
+                      Text(
+                        user.email,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey[600]),
                       ),
-                      _buildProfileMenuItem(
-                        context,
-                        icon: Icons.notifications_outlined,
-                        title: 'Bildirim Ayarları',
-                        onTap: () {
-                          context.router.push(const SettingsViewRoute());
-                        },
-                      ),
-                      _buildProfileMenuItem(
-                        context,
-                        icon: Icons.history,
-                        title: 'Geçmiş Bildiriler',
-                        onTap: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Yakında eklenecek.')),
-                          );
-                        },
-                      ),
-                      _buildProfileMenuItem(
-                        context,
-                        icon: Icons.help_outline,
-                        title: 'Yardım & Destek',
-                        onTap: () {
-                          showDialog(
-                            context: context,
-                            builder: (_) => const _HelpDialog(),
-                          );
-                        },
-                      ),
-                      _buildProfileMenuItem(
-                        context,
-                        icon: Icons.logout_rounded,
-                        title: 'Çıkış Yap',
-                        onTap: () => context.read<ProfileCubit>().logout(context.router),
-                      ),
-                      const SizedBox(height: 12),
-                      _InfoCard(user: user),
-                    ],
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+              _buildProfileMenuItem(
+                context,
+                icon: Icons.person_outline,
+                title: 'Kişisel Bilgiler',
+                onTap: () {
+                  context.router.push(const SettingsViewRoute());
+                },
+              ),
+              _buildProfileMenuItem(
+                context,
+                icon: Icons.notifications_outlined,
+                title: 'Bildirim Ayarları',
+                onTap: () {
+                  context.router.push(const SettingsViewRoute());
+                },
+              ),
+              _buildProfileMenuItem(
+                context,
+                icon: Icons.history,
+                title: 'Geçmiş Bildiriler',
+                onTap: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Yakında eklenecek.')),
                   );
                 },
               ),
-            );
-          },
-        ),
+              _buildProfileMenuItem(
+                context,
+                icon: Icons.help_outline,
+                title: 'Yardım & Destek',
+                onTap: () {
+                  showDialog(
+                    context: context,
+                    builder: (_) => const _HelpDialog(),
+                  );
+                },
+              ),
+              _buildProfileMenuItem(
+                context,
+                icon: Icons.logout_rounded,
+                title: 'Çıkış Yap',
+                onTap: () => context.read<ProfileCubit>().logout(context.router),
+              ),
+              const SizedBox(height: 12),
+              _InfoCard(user: user),
+            ],
+          );
+        },
       ),
     );
   }

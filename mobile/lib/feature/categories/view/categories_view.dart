@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
-import 'package:shimmer/shimmer.dart';
 
 import '../../../product/constants/api_endpoints.dart';
 import '../../../product/models/report.dart';
 import '../../../product/service/network/network_service.dart';
 import '../../../product/service/auth/auth_service.dart';
+import '../widget/categories_shimmer.dart';
+import '../widget/category_form_sheet.dart';
+import '../widget/category_card.dart';
+import '../widget/categories_error_view.dart';
+import '../widget/categories_empty_view.dart';
 
 class CategoriesView extends StatefulWidget {
   const CategoriesView({super.key});
@@ -131,145 +135,18 @@ class _CategoriesViewState extends State<CategoriesView> {
     }
   }
 
-  Future<void> _openCategoryForm({Category? initial}) async {
-    final formKey = GlobalKey<FormState>();
-    String name = initial?.name ?? '';
-    String? description = initial?.description;
-    bool isActive = initial?.isActive ?? true;
-
-    await showModalBottomSheet<void>(
+  void _openCategoryForm({Category? initial}) {
+    showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      useSafeArea: true,
       builder: (sheetContext) {
-        return Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(sheetContext).viewInsets.bottom + 16,
-            left: 16,
-            right: 16,
-            top: 16,
-          ),
-          child: Form(
-            key: formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(initial == null ? 'Yeni Kategori' : 'Kategoriyi Düzenle', style: Theme.of(sheetContext).textTheme.titleLarge),
-                const SizedBox(height: 12),
-                TextFormField(
-                  initialValue: name,
-                  decoration: const InputDecoration(
-                    labelText: 'Ad',
-                    border: OutlineInputBorder(),
-                    isDense: true,
-                  ),
-                  validator: (v) {
-                    if (v == null || v.trim().isEmpty) return 'Ad zorunludur';
-                    return null;
-                  },
-                  onSaved: (v) => name = v!.trim(),
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  initialValue: description,
-                  minLines: 2,
-                  maxLines: 4,
-                  decoration: const InputDecoration(
-                    labelText: 'Açıklama (opsiyonel)',
-                    border: OutlineInputBorder(),
-                    isDense: true,
-                  ),
-                  onSaved: (v) => description = (v?.trim().isEmpty ?? true) ? null : v?.trim(),
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Switch(
-                      value: isActive,
-                      onChanged: (val) {
-                        isActive = val;
-                        // setState kullanmadan local state değişimi yeterli (Form alanları bağımsız)
-                      },
-                    ),
-                    const SizedBox(width: 8),
-                    const Text('Aktif')
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    TextButton(
-                      onPressed: () => Navigator.of(sheetContext).pop(),
-                      child: const Text('Kapat'),
-                    ),
-                    const SizedBox(width: 8),
-                    FilledButton.icon(
-                      onPressed: () async {
-                        final currentState = formKey.currentState;
-                        if (currentState == null || !currentState.validate()) return;
-                        currentState.save();
-
-                        final body = <String, dynamic>{
-                          'name': name,
-                          if (description != null) 'description': description,
-                          'is_active': isActive,
-                        };
-
-                        final isEdit = (initial?.id) != null;
-                        final categoryId = initial?.id;
-                        final path = categoryId != null
-                            ? ApiEndpoints.categoryById(categoryId)
-                            : ApiEndpoints.categories;
-                        final reqType = isEdit ? RequestType.patch : RequestType.post;
-
-                        final res = await _net.request<Category>(
-                          path: path,
-                          type: reqType,
-                          data: body,
-                          parser: (json) => Category.fromJson(json as Map<String, dynamic>),
-                        );
-
-                        if (!mounted) return;
-                        if (!sheetContext.mounted) return;
-
-                        if (res.isSuccess) {
-                          final updated = res.data;
-                          setState(() {
-                            if (isEdit) {
-                              final idx = _items.indexWhere((c) => c.id == categoryId);
-                              if (idx != -1 && updated != null) {
-                                _items[idx] = updated;
-                              }
-                            } else {
-                              if (updated != null) {
-                                _items.insert(0, updated);
-                              } else {
-                                // fallback: baştan yükle
-                                _fetch();
-                              }
-                            }
-                          });
-                          ScaffoldMessenger.of(sheetContext).showSnackBar(
-                            SnackBar(content: Text(isEdit ? 'Kategori güncellendi.' : 'Kategori oluşturuldu.')),
-                          );
-                          Navigator.of(sheetContext).pop();
-                        } else {
-                        if (!sheetContext.mounted) return;
-                          ScaffoldMessenger.of(sheetContext).showSnackBar(
-                            SnackBar(content: Text(res.error ?? 'İşlem başarısız.')),
-                          );
-                        }
-                      },
-                      icon: const Icon(Icons.save_outlined),
-                      label: Text(initial == null ? 'Oluştur' : 'Kaydet'),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
+        return CategoryFormSheet(
+          initial: initial,
+          onSuccess: () {
+            setState(() {
+              _fetch();
+            });
+          },
         );
       },
     );
@@ -278,44 +155,20 @@ class _CategoriesViewState extends State<CategoriesView> {
   @override
   Widget build(BuildContext context) {
     if (_loading) {
-      return const _CategoriesShimmer();
+      return const CategoriesShimmer();
     }
 
     if (_error != null) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.error_outline, size: 36),
-            const SizedBox(height: 8),
-            Text(_error!),
-            const SizedBox(height: 16),
-            FilledButton.icon(
-              onPressed: _fetch,
-              icon: const Icon(Icons.refresh),
-              label: const Text('Tekrar dene'),
-            ),
-          ],
-        ),
+      return CategoriesErrorView(
+        error: _error!,
+        onRetry: _fetch,
       );
     }
 
     if (_items.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text('Henüz kategori bulunmuyor.'),
-            if (_canManage) ...[
-              const SizedBox(height: 12),
-              FilledButton.icon(
-                onPressed: _openCreate,
-                icon: const Icon(Icons.add),
-                label: const Text('Yeni Kategori'),
-              ),
-            ]
-          ],
-        ),
+      return CategoriesEmptyView(
+        canManage: _canManage,
+        onCreateNew: _openCreate,
       );
     }
 
@@ -329,72 +182,11 @@ class _CategoriesViewState extends State<CategoriesView> {
             separatorBuilder: (_, __) => const SizedBox(height: 8),
             itemBuilder: (context, index) {
               final c = _items[index];
-              return Card(
-                child: ListTile(
-                  leading: CircleAvatar(
-                    child: Text(c.name.isNotEmpty ? c.name.characters.first : '?'),
-                  ),
-                  title: Text(c.name),
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (c.description != null && c.description!.isNotEmpty)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 4.0),
-                          child: Text(
-                            c.description!,
-                            style: Theme.of(context).textTheme.bodySmall,
-                          ),
-                        ),
-                      const SizedBox(height: 6),
-                      Row(
-                        children: [
-                          Icon(
-                            c.isActive ? Icons.check_circle : Icons.cancel,
-                            size: 16,
-                            color: c.isActive
-                                ? Colors.green.shade600
-                                : Colors.red.shade600,
-                          ),
-                          const SizedBox(width: 6),
-                          Text(c.isActive ? 'Aktif' : 'Pasif',
-                              style: Theme.of(context).textTheme.bodySmall),
-                        ],
-                      )
-                    ],
-                  ),
-                  onTap: _canManage ? () => _openEdit(c) : null,
-                  trailing: _canManage
-                      ? PopupMenuButton<String>(
-                          onSelected: (v) {
-                            if (v == 'edit') _openEdit(c);
-                            if (v == 'delete') _deleteCategory(c);
-                          },
-                          itemBuilder: (ctx) => [
-                            const PopupMenuItem(
-                              value: 'edit',
-                              child: Row(
-                                children: [
-                                  Icon(Icons.edit_outlined),
-                                  SizedBox(width: 8),
-                                  Text('Düzenle'),
-                                ],
-                              ),
-                            ),
-                            const PopupMenuItem(
-                              value: 'delete',
-                              child: Row(
-                                children: [
-                                  Icon(Icons.delete_outline),
-                                  SizedBox(width: 8),
-                                  Text('Sil'),
-                                ],
-                              ),
-                            ),
-                          ],
-                        )
-                      : null,
-                ),
+              return CategoryCard(
+                category: c,
+                canManage: _canManage,
+                onEdit: () => _openEdit(c),
+                onDelete: () => _deleteCategory(c),
               );
             },
           ),
@@ -410,75 +202,6 @@ class _CategoriesViewState extends State<CategoriesView> {
             ),
           ),
       ],
-    );
-  }
-}
-
-class _CategoriesShimmer extends StatelessWidget {
-  const _CategoriesShimmer();
-
-  @override
-  Widget build(BuildContext context) {
-    return ListView.separated(
-      padding: const EdgeInsets.all(16),
-      itemCount: 6,
-      separatorBuilder: (_, __) => const SizedBox(height: 8),
-      itemBuilder: (context, index) {
-        return Shimmer.fromColors(
-          baseColor: Colors.grey.shade300,
-          highlightColor: Colors.grey.shade100,
-          child: Card(
-            child: ListTile(
-              leading: const CircleAvatar(backgroundColor: Colors.white),
-              title: Container(
-                height: 14,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(4),
-                ),
-              ),
-              subtitle: Padding(
-                padding: const EdgeInsets.only(top: 8.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      height: 12,
-                      width: 200,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Container(
-                          height: 10,
-                          width: 60,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Container(
-                          height: 10,
-                          width: 40,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        );
-      },
     );
   }
 }
