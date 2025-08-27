@@ -50,41 +50,59 @@ class LocationPickerSection extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         const Text(
-          'Haritadan konum seçmek için aşağıdaki haritaya dokunun',
+          'Haritadan konum seçmek için aşağıdaki haritaya dokunun veya "Haritadan Seç" butonuna tıklayın',
           style: TextStyle(color: Colors.grey),
         ),
         const SizedBox(height: 8),
-        Material(
-          color: Colors.transparent,
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: InkWell(
-              onTap: onSelectFromMap,
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: onSelectFromMap,
+                icon: const Icon(Icons.map),
+                label: const Text('Haritadan Seç'),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        if (latitude != null && longitude != null)
+          Material(
+            color: Colors.transparent,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(8),
               child: SizedBox(
-                height: 200,
-                child: AbsorbPointer(
-                  absorbing: true,
-                  child: FlutterMap(
-                    mapController: previewMapController,
-                    options: MapOptions(
-                      initialCenter: latitude != null && longitude != null
-                          ? LatLng(latitude!, longitude!)
-                          : LatLng(41.015137, 28.979530),
-                      initialZoom: 13,
-                    ),
-                    children: [
-                      TileLayer(
-                        urlTemplate: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-                        subdomains: ['a', 'b', 'c'],
-                        userAgentPackageName: 'cozum.mobile',
+                height: 150,
+                child: Stack(
+                  children: [
+                    AbsorbPointer(
+                      absorbing: true,
+                      child: FlutterMap(
+                        mapController: previewMapController,
+                        options: MapOptions(
+                          initialCenter: LatLng(latitude!, longitude!),
+                          initialZoom: 15,
+                        ),
+                        children: [
+                          TileLayer(
+                            urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                            userAgentPackageName: 'cozum.mobile',
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
+                    ),
+                    const Center(
+                      child: Icon(
+                        Icons.location_pin,
+                        color: Colors.red,
+                        size: 30,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
           ),
-        ),
         const SizedBox(height: 8),
         TextFormField(
           controller: locationController,

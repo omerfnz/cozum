@@ -215,9 +215,14 @@ N) Mobil (Flutter)
 8) Çalıştırma
    - [x] flutter run --dart-define=API_BASE_URL=http://localhost:8000/api
 
-9) Harita (opsiyonel)
-   - [ ] google_maps_flutter ekleme ve Android API key tanımı
+9) Harita
+   - [x] flutter_map ve OpenStreetMap entegrasyonu (google_maps_flutter yerine)
    - [x] geolocator ile konum alma (CreateReportView'da kullanılıyor)
+   - [x] Harita konum seçici (MapLocationPickerView) - otomatik konum, sabit marker pin
+   - [x] Nominatim API ile otomatik adres doldurma
+   - [x] Harita hareket ettiğinde konum güncelleme (onPositionChanged)
+   - [x] Mevcut konuma gitme butonu ve konum yükleme göstergesi
+   - [x] Debounce optimizasyonu: Harita hareket ettikçe sürekli adres sorgusu yerine 1.5 saniye gecikme ile optimize edildi
 
 ### Mobil Mevcut Durum ve Entegrasyon Özeti (Güncel)
 - ✅ **Profil (ProfileView)**: Backend entegrasyonu tamamlandı, gerçek kullanıcı verisi gösteriliyor
@@ -241,6 +246,13 @@ N) Mobil (Flutter)
 - ✅ **Feed Sistemi**: Ana sayfa rol bazlı rapor listesi
 - ✅ **Bildirim Sistemi**: Rapor oluşturma ve detay görüntüleme
 - ✅ **Yorum Sistemi**: Rapor detayında yorum listeleme ve ekleme
+- ✅ **Harita Entegrasyonu**: flutter_map ile OpenStreetMap tabanlı konum seçimi
+- ✅ **Konum Özellikleri**: Otomatik konum alma, sabit marker pin, hareket ile güncelleme
+- ✅ **Adres Doldurma**: Nominatim API ile otomatik adres çözümleme
+- [x] Debounce optimizasyonu: Timer ile 1.5 saniye gecikme, RAM kullanımı ve API limit optimizasyonu
+- [x] Adres yükleme sorunu düzeltildi: Loading state ve hata yönetimi iyileştirildi
+- [x] API timeout sorunu çözüldü: 30 saniye timeout, kullanıcı dostu hata mesajları
+- ✅ **İzin Yönetimi**: Kamera ve konum izinleri düzeltildi (AndroidManifest.xml)
 - AutoRoute v9 uyumluluğu: AppRouter artık RootStackRouter'ı extend eder; MaterialApp.router içinde routerConfig: appRouter.config() kullanılır.
 - Rota sınıf adlandırması: @AutoRouterConfig içinde replaceInRouteName: 'View,Page,Screen,Dialog,Widget=Route' uygulanmıştır; örn. LoginViewRoute, HomeViewRoute, SplashViewRoute.
 - Guard'lar (AuthGuard, AdminGuard, GuestGuard): pushReplacement yerine replace/replaceAll kullanıldı ve const yapıcılar eklendi; yanlış rota sınıf adları güncellendi.
@@ -296,15 +308,16 @@ N) Mobil (Flutter)
    - Entegrasyon testleri
 
 ### Kritik Eksikler ve Sıradaki Adımlar 🔴
-1) **Android İzinleri (Yüksek Öncelik)**
-   - android/app/src/main/AndroidManifest.xml'e INTERNET, CAMERA, ACCESS_FINE_LOCATION izinleri
-   - iOS için Info.plist kamera ve konum izin metinleri
+1) **Android İzinleri (✅ TAMAMLANDI)**
+   - ✅ android/app/src/main/AndroidManifest.xml'e INTERNET, CAMERA, ACCESS_FINE_LOCATION izinleri eklendi
+   - ✅ iOS için Info.plist kamera ve konum izin metinleri eklendi
 
-2) **Harita Entegrasyonu (Orta Öncelik)**
-   - google_maps_flutter paketi ekleme
-   - Android API key yapılandırması
-   - Rapor oluşturmada harita ile konum seçimi
-   - Rapor detayında konum gösterimi
+2) **Harita Entegrasyonu (✅ TAMAMLANDI)**
+   - ✅ flutter_map paketi ile OpenStreetMap entegrasyonu (google_maps_flutter yerine)
+   - ✅ Rapor oluşturmada harita ile konum seçimi (MapLocationPickerView)
+   - ✅ Otomatik konum alma ve mevcut konuma gitme
+   - ✅ Sabit marker pin ve hareket ile konum güncelleme
+   - ✅ Nominatim API ile otomatik adres doldurma
 
 3) **Filtreleme ve Arama (Orta Öncelik)**
    - Ana sayfada rapor filtreleme (durum, kategori, tarih)

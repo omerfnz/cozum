@@ -1,8 +1,11 @@
+import 'dart:async';
 import 'package:auto_route/auto_route.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 @RoutePage()
 class MapLocationPickerView extends StatefulWidget {
@@ -24,6 +27,8 @@ class _MapLocationPickerViewState extends State<MapLocationPickerView> {
   late LatLng _selectedLocation;
   String? _address;
   bool _loadingAddress = false;
+  bool _loadingCurrentLocation = false;
+  Timer? _debounceTimer;
 
   @override
   void initState() {
@@ -34,9 +39,34 @@ class _MapLocationPickerViewState extends State<MapLocationPickerView> {
       widget.initialLongitude ?? 28.979530,
     );
     _loadAddress();
+    // Otomatik olarak mevcut konuma git
+    _getCurrentLocation();
+  }
+
+  @override
+  void dispose() {
+    _debounceTimer?.cancel();
+    super.dispose();
+  }
+
+  void _loadAddressWithDebounce() {
+    print('⏰ Debounce başlatıldı');
+    // Önceki timer'ı iptal et
+    _debounceTimer?.cancel();
+    print('⏰ Önceki timer iptal edildi');
+    
+    // Yeni timer başlat (1.5 saniye gecikme)
+    _debounceTimer = Timer(const Duration(milliseconds: 1500), () {
+      print('⏰ Timer tetiklendi, _loadAddress çağrılıyor');
+      _loadAddress();
+    });
+    print('⏰ Yeni timer başlatıldı (1.5s)');
   }
 
   Future<void> _loadAddress() async {
+    if (!mounted) return;
+    
+    print('🗺️ _loadAddress başlatıldı: ${_selectedLocation.latitude}, ${_selectedLocation.longitude}');
     setState(() => _loadingAddress = true);
     
     try {
@@ -45,8 +75,13 @@ class _MapLocationPickerViewState extends State<MapLocationPickerView> {
           headers: {
             'User-Agent': 'cozum-mobile/1.0 (+https://example.com)'
           },
+          connectTimeout: const Duration(seconds: 30),
+          receiveTimeout: const Duration(seconds: 30),
+          sendTimeout: const Duration(seconds: 30),
         ),
       );
+      
+      print('🌐 API çağrısı yapılıyor...');
       final res = await dio.get(
         'https://nominatim.openstreetmap.org/reverse',
         queryParameters: {
@@ -56,26 +91,123 @@ class _MapLocationPickerViewState extends State<MapLocationPickerView> {
         },
       );
       
+      print('📡 API yanıtı alındı: ${res.statusCode}');
+      
       if (res.statusCode == 200 && res.data is Map) {
         final data = res.data as Map;
         final displayName = data['display_name'] as String?;
+        print('📍 Adres bulundu: $displayName');
+        
         if (displayName != null && mounted) {
-          setState(() => _address = displayName);
+          setState(() {
+            _address = displayName;
+            _loadingAddress = false;
+          });
+          print('✅ Adres güncellendi');
+        } else {
+          print('❌ Display name null');
+          if (mounted) {
+            setState(() {
+              _address = 'Adres bulunamadı';
+              _loadingAddress = false;
+            });
+          }
+        }
+      } else {
+        print('❌ API yanıtı başarısız: ${res.statusCode}');
+        if (mounted) {
+          setState(() {
+            _address = 'Adres alınamadı (${res.statusCode})';
+            _loadingAddress = false;
+          });
         }
       }
-    } catch (_) {
-      // Hata durumunda sessizce geç
+    } catch (e) {
+      print('💥 API hatası: $e');
       if (mounted) {
-        setState(() => _address = 'Adres alınamadı');
+        String errorMessage = 'Adres alınamadı';
+        if (e.toString().contains('connection timeout')) {
+          errorMessage = 'İnternet bağlantısı yavaş, tekrar deneyin';
+        } else if (e.toString().contains('SocketException')) {
+          errorMessage = 'İnternet bağlantısı yok';
+        }
+        setState(() {
+          _address = errorMessage;
+          _loadingAddress = false;
+        });
       }
-    } finally {
-      if (mounted) setState(() => _loadingAddress = false);
     }
   }
 
   void _onMapTap(TapPosition tapPosition, LatLng point) {
+    print('👆 Harita tıklandı: $point');
+    // Harita merkezini tıklanan noktaya taşı
+    _mapController.move(point, _mapController.camera.zoom);
     setState(() => _selectedLocation = point);
-    _loadAddress();
+    print('👆 Konum güncellendi: ${_selectedLocation.latitude}, ${_selectedLocation.longitude}');
+    _loadAddressWithDebounce();
+  }
+
+  Future<void> _getCurrentLocation() async {
+    setState(() => _loadingCurrentLocation = true);
+    
+    try {
+      // Konum servisinin açık olup olmadığını kontrol et
+      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Konum servisi kapalı. Lütfen etkinleştirin.')),
+          );
+        }
+        return;
+      }
+
+      // İzin kontrolü
+      var permission = await Permission.locationWhenInUse.status;
+      if (!permission.isGranted) {
+        permission = await Permission.locationWhenInUse.request();
+        if (!permission.isGranted) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Konum izni gerekli')),
+            );
+          }
+          return;
+        }
+      }
+
+      // Mevcut konumu al
+      final position = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+        ),
+      );
+      
+      final currentLocation = LatLng(position.latitude, position.longitude);
+      
+      if (mounted) {
+        setState(() {
+          _selectedLocation = currentLocation;
+        });
+        
+        // Haritayı mevcut konuma taşı
+        _mapController.move(currentLocation, 15);
+        
+        // Adresi yükle
+        _loadAddress();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Konum alınamadı: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _loadingCurrentLocation = false);
+      }
+    }
   }
 
   void _confirmLocation() {
@@ -92,6 +224,21 @@ class _MapLocationPickerViewState extends State<MapLocationPickerView> {
       appBar: AppBar(
         title: const Text('Konum Seçin'),
         actions: [
+          if (_loadingCurrentLocation)
+            const Padding(
+              padding: EdgeInsets.all(16),
+              child: SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            )
+          else
+            IconButton(
+              onPressed: _getCurrentLocation,
+              icon: const Icon(Icons.my_location),
+              tooltip: 'Mevcut Konuma Git',
+            ),
           TextButton(
             onPressed: _confirmLocation,
             child: const Text('Seç'),
@@ -144,33 +291,69 @@ class _MapLocationPickerViewState extends State<MapLocationPickerView> {
           
           // Harita
           Expanded(
-            child: FlutterMap(
-              mapController: _mapController,
-              options: MapOptions(
-                initialCenter: _selectedLocation,
-                initialZoom: 15,
-                onTap: _onMapTap,
-              ),
+            child: Stack(
               children: [
-                TileLayer(
-                  urlTemplate: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-                  subdomains: const ['a', 'b', 'c'],
-                  userAgentPackageName: 'cozum.mobile',
-                ),
-                MarkerLayer(
-                  markers: [
-                    Marker(
-                      point: _selectedLocation,
-                      width: 40,
-                      height: 40,
-                      child: const Icon(
-                        Icons.location_pin,
-                        color: Colors.red,
-                        size: 40,
-                      ),
+                FlutterMap(
+                  mapController: _mapController,
+                  options: MapOptions(
+                    initialCenter: _selectedLocation,
+                    initialZoom: 15,
+                    onTap: _onMapTap,
+                    onPositionChanged: (position, hasGesture) {
+                      print('🗺️ onPositionChanged: hasGesture=$hasGesture, center=${position.center}');
+                      if (hasGesture) {
+                        // Harita hareket ettirildiğinde merkez konumu güncelle
+                        setState(() {
+                          _selectedLocation = position.center;
+                        });
+                        print('🗺️ Konum güncellendi: ${_selectedLocation.latitude}, ${_selectedLocation.longitude}');
+                        // Adresi debounce ile güncelle
+                        _loadAddressWithDebounce();
+                      }
+                    },
+                  ),
+                  children: [
+                    TileLayer(
+                      urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                      userAgentPackageName: 'cozum.mobile',
                     ),
                   ],
                 ),
+                // Merkez marker (sabit)
+                const Center(
+                  child: Icon(
+                    Icons.location_pin,
+                    color: Colors.red,
+                    size: 50,
+                    shadows: [
+                      Shadow(
+                        color: Colors.black26,
+                        offset: Offset(2, 2),
+                        blurRadius: 4,
+                      ),
+                    ],
+                  ),
+                ),
+                // Konum yükleme göstergesi
+                if (_loadingCurrentLocation)
+                  Container(
+                    color: Colors.black12,
+                    child: const Center(
+                      child: Card(
+                        child: Padding(
+                          padding: EdgeInsets.all(16),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              CircularProgressIndicator(),
+                              SizedBox(height: 8),
+                              Text('Konum alınıyor...'),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
               ],
             ),
           ),

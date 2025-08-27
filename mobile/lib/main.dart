@@ -12,6 +12,7 @@ import 'product/theme/app_theme.dart';
 
 Future<void> main() async {
   await ApplicationInitialize().make();
+  
   runApp(
     LocalizationInitialize(
       child: const StateInitialize(
