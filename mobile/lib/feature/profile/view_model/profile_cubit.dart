@@ -27,6 +27,8 @@ class ProfileCubit extends Cubit<ProfileState> {
   Future<void> logout(StackRouter router) async {
     try {
       await _auth.logout();
+      // UI'nin güncellenmesi için kısa bir bekleme
+      await Future.delayed(const Duration(milliseconds: 100));
     } catch (_) {}
     router.replaceAll([const LoginViewRoute()]);
   }

@@ -191,8 +191,8 @@ final class AuthService implements IAuthService {
   
   @override
   Future<void> logout() async {
-    await _storageService.delete(StorageKeys.accessToken);
-    await _storageService.delete(StorageKeys.refreshToken);
+    // Use clearTokens method to ensure cache is also cleared
+    await _storageService.clearTokens();
     await _storageService.delete(StorageKeys.userProfile);
   }
   

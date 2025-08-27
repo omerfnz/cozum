@@ -63,9 +63,19 @@ class _HomeViewState extends State<HomeView> {
   }
 
   Future<void> _logout() async {
-    await _authService.logout();
-    if (mounted) {
-      context.router.replaceAll([const LoginViewRoute()]);
+    try {
+      await _authService.logout();
+      if (mounted) {
+        // UI'nin güncellenmesi için kısa bir bekleme
+        await Future.delayed(const Duration(milliseconds: 100));
+        if (mounted) {
+          context.router.replaceAll([const LoginViewRoute()]);
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        context.router.replaceAll([const LoginViewRoute()]);
+      }
     }
   }
 

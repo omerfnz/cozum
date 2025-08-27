@@ -156,8 +156,8 @@ class _ReportDetailViewState extends State<ReportDetailView> {
     }
   }
 
-  // Operatör/Admin eylemleri: durum ve atama güncelleme
-  bool get _canManage => _myRole == 'OPERATOR' || _myRole == 'ADMIN';
+  // Operatör/Admin/Ekip eylemleri: durum ve atama güncelleme
+  bool get _canManage => _myRole == 'OPERATOR' || _myRole == 'ADMIN' || _myRole == 'EKIP';
 
   Future<List<Team>> _getTeams() async {
     final res = await _net.request<List<Team>>(

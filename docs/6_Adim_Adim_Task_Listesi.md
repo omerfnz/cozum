@@ -194,6 +194,13 @@ N) Mobil (Flutter)
    - [x] Profil sayfası: Kullanıcı bilgileri ve çıkış (ProfileView)
    - [x] Ayarlar: Tema değiştirme (SettingsView)
    - [x] Admin paneli: Takım, kullanıcı, kategori yönetimi (AdminTeamsView, AdminUsersView, AdminCategoriesView)
+   - [ ] **Görevler Sayfası (TasksView)**: Rol bazlı görev listesi ve yönetimi
+     - [ ] EKIP: Sadece kendi takımına atanan görevleri görür
+     - [ ] OPERATOR/ADMIN: Tüm görevleri görür
+     - [ ] Görev durumu değiştirme (EKIP: sadece durum, ADMIN/OPERATOR: tüm alanlar)
+     - [ ] Görev silme (sadece ADMIN/OPERATOR)
+     - [ ] Görev detayına gitme ve yorum ekleme
+     - [ ] Yenileme (pull-to-refresh) özelliği
 
 6) Medya
    - [x] image_picker ile fotoğraf seçimi, dio FormData ile yükleme

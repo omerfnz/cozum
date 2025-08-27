@@ -89,13 +89,13 @@ class ReportListCreateView(generics.ListCreateAPIView):
         serializer.save(reporter=self.request.user)
 
 
-class ReportRetrieveUpdateView(generics.RetrieveUpdateAPIView):
+class ReportRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Report.objects.select_related("reporter", "category", "assigned_team")
     lookup_url_kwarg = "report_id"
 
     def get_serializer_context(self):
         ctx = super().get_serializer_context()
-        # API tarafında yetki kontrolü view’da yapılacağından serializer’daki izin validasyonunu atla
+        # API tarafında yetki kontrolü view'da yapılacağından serializer'daki izin validasyonunu atla
         ctx["skip_permission_validation"] = True
         return ctx
 
@@ -114,6 +114,19 @@ class ReportRetrieveUpdateView(generics.RetrieveUpdateAPIView):
         if user.role == "EKIP" and report.assigned_team != user.team:
             raise PermissionDenied("Bu bildirimi güncelleme yetkiniz yok.")
         serializer.save()
+
+    def perform_destroy(self, instance):
+        user = self.request.user
+        # Vatandaşlar sadece kendi raporlarını silebilir
+        if user.role == "VATANDAS" and instance.reporter != user:
+            raise PermissionDenied("Bu bildirimi silme yetkiniz yok.")
+        # EKIP silme yetkisi yok
+        if user.role == "EKIP":
+            raise PermissionDenied("Görev silme yetkiniz yok.")
+        # OPERATOR/ADMIN tüm raporları silebilir
+        if user.role not in ["OPERATOR", "ADMIN"] and not user.is_staff:
+            raise PermissionDenied("Bu bildirimi silme yetkiniz yok.")
+        instance.delete()
 
 
 class ReportCommentsListCreateView(generics.ListCreateAPIView):

@@ -1,8 +1,10 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:get_it/get_it.dart';
+import 'package:logger/logger.dart';
 
 import 'service_locator.dart';
+import '../service/error/global_error_handler.dart';
 
 /// Application initialization class
 final class ApplicationInitialize {
@@ -16,20 +18,8 @@ final class ApplicationInitialize {
     // Setup dependency injection
     await setupServiceLocator();
     
-    // Setup error handling
-    if (kDebugMode) {
-      // Development error handling
-      FlutterError.onError = (FlutterErrorDetails details) {
-        FlutterError.presentError(details);
-        debugPrint('Flutter Error: ${details.exception}');
-        debugPrint('Stack trace: ${details.stack}');
-      };
-    } else {
-      // Production error handling
-      FlutterError.onError = (FlutterErrorDetails details) {
-        // Log to crash analytics in production
-        debugPrint('Production Flutter Error: ${details.exception}');
-      };
-    }
+    // Setup global error handling
+    final logger = GetIt.I<Logger>();
+    GlobalErrorHandler.instance.initialize(logger);
   }
 }

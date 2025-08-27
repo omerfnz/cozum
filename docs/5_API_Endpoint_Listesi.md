@@ -94,15 +94,16 @@ DELETE /api/categories/{id}/    (staff; soft delete)
 - Mobil: Admin ekranları için planlı (henüz kullanılmıyor).
 - Mobil (Güncel): CategoriesView CRUD formları bottom sheet içinde; use_build_context_synchronously uyarıları giderildi; analiz temiz.
 
-## 6) Bildirimler (Reports)
+## 6) Bildirimler/Görevler (Reports)
 GET /api/reports/?scope=all|mine|assigned
 - İzin: IsAuthenticated
 - Davranış: scope parametresi opsiyoneldir. Sağlanmazsa rol bazlı varsayılan uygulanır:
-  - VATANDAS → sadece kendi raporları
-  - EKIP → kendi takımına atanmış raporlar
-  - OPERATOR veya staff → tüm raporlar
+  - VATANDAS → sadece kendi raporları (bildirimlerim)
+  - EKIP → kendi takımına atanmış raporlar (görevlerim)
+  - OPERATOR/ADMIN → tüm raporlar (tüm görevler)
 - Yanıt: ReportListSerializer dizisi. Alanlar: id, title, status, priority, reporter, category, assigned_team, location, created_at, updated_at, media_count, comment_count, first_media_url
-- Mobil: Home/Feed listesinde ve TasksView’da kullanılıyor (kullanılıyor).
+- Mobil: Home/Feed listesinde ve TasksView'da kullanılıyor (kullanılıyor).
+- **Görevler Sayfası**: TasksView bu endpoint'i kullanarak rol bazlı görev listesi gösterir.
 
 GET /api/reports/{id}/
 - Yanıt: ReportDetailSerializer (description, latitude/longitude float, media_files[], comments[] dâhil)
@@ -120,9 +121,19 @@ PATCH /api/reports/{id}/  (PUT de desteklenir)
 - Alanlar: status (BEKLEMEDE|INCELENIYOR|COZULDU|REDDEDILDI), priority (DUSUK|ORTA|YUKSEK|ACIL), assigned_team (int, team id)
 - Yetki:
   - VATANDAS: güncelleme yetkisi yok
-  - EKIP: sadece kendi takımına atanmış raporları güncelleyebilir
-  - OPERATOR/staff: tüm raporları güncelleyebilir
-- Mobil: Operatör/Saha Ekibi ekranları için planlı (henüz kullanılmıyor).
+  - EKIP: sadece kendi takımına atanmış görevlerin durumunu güncelleyebilir (status)
+  - OPERATOR/ADMIN: tüm görevleri güncelleyebilir (status, priority, assigned_team)
+- Mobil: ReportDetailView'da görev atama ve durum güncelleme için kullanılıyor.
+- **Görevler Sayfası**: Görev durumu değiştirme ve ekip atama işlemleri için kullanılır.
+
+DELETE /api/reports/{id}/
+- İzin: IsAuthenticated + rol kontrolü
+- Yetki:
+  - VATANDAS: kendi oluşturduğu raporları silebilir
+  - EKIP: silme yetkisi yok
+  - OPERATOR/ADMIN: tüm raporları silebilir
+- Yanıt: 204 No Content (başarılı silme)
+- **Görevler Sayfası**: Admin/Operator için görev silme özelliği.
 
 ## 7) Yorumlar
 GET /api/reports/{id}/comments/
@@ -131,8 +142,12 @@ GET /api/reports/{id}/comments/
 
 POST /api/reports/{id}/comments/
 - Gövde (JSON): {"content":"..."}
-- Yetki: VATANDAS sadece kendi oluşturduğu raporlara yorum ekleyebilir
-- Mobil: ReportDetailView’da kullanılıyor (kullanılıyor).
+- Yetki: 
+  - VATANDAS: sadece kendi oluşturduğu raporlara yorum ekleyebilir
+  - EKIP: kendi takımına atanmış görevlere yorum ekleyebilir
+  - OPERATOR/ADMIN: tüm görevlere yorum ekleyebilir
+- Mobil: ReportDetailView'da kullanılıyor (kullanılıyor).
+- **Görevler Sayfası**: Görev detayında yorum ekleme için kullanılır.
 
 GET /api/comments/{id}/
 PATCH /api/comments/{id}/

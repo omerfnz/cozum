@@ -5,7 +5,7 @@ from .views import (
     CategoryRetrieveUpdateDestroyView,
     ReportCommentsListCreateView,
     ReportListCreateView,
-    ReportRetrieveUpdateView,
+    ReportRetrieveUpdateDestroyView,
     CommentRetrieveUpdateDestroyView,
 )
 
@@ -15,8 +15,8 @@ urlpatterns = [
     path("reports/", ReportListCreateView.as_view(), name="report-list-create"),
     path(
         "reports/<int:report_id>/",
-        ReportRetrieveUpdateView.as_view(),
-        name="report-detail-update",
+        ReportRetrieveUpdateDestroyView.as_view(),
+        name="report-detail-update-destroy",
     ),
     path(
         "reports/<int:report_id>/comments/",
