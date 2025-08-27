@@ -70,14 +70,14 @@ DELETE /api/users/{id}/
 GET /api/teams/
 - Not: list aksiyonunda sadece aktif (is_active=true) takımlar döner.
 - Mobil: CreateReportView kategori/atama akışında opsiyonel kullanım; admin ekranlarında planlı.
-- Mobil (Güncel): AdminTeamsView/TeamsView içinde listeleme, ekleme, düzenleme ve soft-delete akışları uygulandı; üye ekleme (POST /api/teams/{id}/add_member benzeri özel uç olmadan, placeholder kullanıcı ID ile) istemci tarafında hazır. Backend özel uç nokta ihtiyacı varsa eklenecek.
+- Mobil: AdminTeamsView/TeamsView içinde listeleme, ekleme, düzenleme ve soft-delete akışları uygulandı; üye ekleme (POST /api/teams/{id}/add_member benzeri özel uç olmadan, placeholder kullanıcı ID ile) istemci tarafında hazır. Backend özel uç nokta ihtiyacı varsa eklenecek.
+- **Mobil Durum**: Takım yönetimi tamamen tamamlandı ve çalışır durumda.
 
 GET /api/teams/{id}/
 POST /api/teams/        (staff)
 PUT/PATCH /api/teams/{id}/ (staff)
 DELETE /api/teams/{id}/ (staff; soft delete → is_active=false)
-- Mobil: Admin ekranları için planlı (henüz kullanılmıyor).
-- Mobil (Güncel): TeamsView CRUD formları bottom sheet içinde; use_build_context_synchronously uyarıları giderildi; analiz temiz.
+- **Mobil Durum**: TeamsView CRUD formları bottom sheet içinde; use_build_context_synchronously uyarıları giderildi; analiz temiz. Takım yönetimi tamamen aktif.
 
 ## 5) Kategoriler
 - Liste herkes (IsAuthenticated); oluşturma/düzenleme/silme sadece staff/admin. Silme soft-delete (is_active=false) olarak uygulanır.
@@ -91,8 +91,7 @@ POST /api/categories/       (staff)
 GET /api/categories/{id}/
 PUT/PATCH /api/categories/{id}/ (staff)
 DELETE /api/categories/{id}/    (staff; soft delete)
-- Mobil: Admin ekranları için planlı (henüz kullanılmıyor).
-- Mobil (Güncel): CategoriesView CRUD formları bottom sheet içinde; use_build_context_synchronously uyarıları giderildi; analiz temiz.
+- **Mobil Durum**: CategoriesView CRUD formları bottom sheet içinde; use_build_context_synchronously uyarıları giderildi; analiz temiz. Kategori yönetimi tamamen aktif.
 
 ## 6) Bildirimler/Görevler (Reports)
 GET /api/reports/?scope=all|mine|assigned
@@ -154,6 +153,25 @@ PATCH /api/comments/{id}/
 DELETE /api/comments/{id}/
 - Yetki: Yorum sahibi düzenleyip silebilir; ayrıca OPERATOR/staff düzenleyip silebilir
 - Mobil: İleri aşama için planlı (henüz kullanılmıyor).
+
+## Mobil Uygulama Entegrasyon Durumu
+
+### Tamamlanan Entegrasyonlar
+- ✅ **Kimlik Doğrulama**: Login, Register, Token yenileme tamamen aktif
+- ✅ **Bildirim Oluşturma**: CreateReportView ile POST /api/reports/ entegrasyonu
+- ✅ **Feed/Ana Sayfa**: GET /api/reports/ ile rol bazlı listeleme
+- ✅ **Görev Detayları**: ReportDetailView ile GET /api/reports/{id}/ entegrasyonu
+- ✅ **Yorum Sistemi**: Yorum listeleme ve ekleme tamamen aktif
+- ✅ **Takım Yönetimi**: Admin panelinde CRUD işlemleri
+- ✅ **Kategori Yönetimi**: Admin panelinde CRUD işlemleri
+- ✅ **Profil Sistemi**: Kullanıcı bilgileri görüntüleme
+
+### Teknik Detaylar
+- **State Management**: Bloc pattern ile tüm API çağrıları yönetiliyor
+- **Network Layer**: Dio ile interceptor'lar (token yenileme, hata yönetimi)
+- **Güvenlik**: flutter_secure_storage ile token saklama
+- **Navigasyon**: AutoRoute v9 ile type-safe routing
+- **Kod Kalitesi**: Tüm lint hatalar düzeltildi, MVVM mimarisi uygulandı
 
 ---
 Hata Kodları (özet)

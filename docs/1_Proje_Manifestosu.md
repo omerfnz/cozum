@@ -20,8 +20,9 @@
 İlk 100 vatandaş bildiriminin sistem üzerinden başarılı bir şekilde alınıp ilgili ekiplere atanarak çözüme kavuşturulması.
 
 ### Bugüne Kadar Neler Yaptık? (Özet)
-- Backend: Kullanıcı, Takım, Kategori, Bildirim, Medya ve Yorum modelleri tamamlandı. JWT tabanlı kimlik doğrulama ve rol bazlı yetkilendirme hayatta. Tüm API uç noktaları aktif.
-- Frontend: React+Vite+Tailwind yapılandırıldı. Giriş/Kayıt sayfaları, korumalı rotalar ve router yapısı tamam. Users ve Teams yönetim ekranları devrede (listeleme, arama, ekip oluşturma/düzenleme, soft-delete; kullanıcı rol ve takım ataması). API entegrasyonu, token yönetimi, toast bildirimleri ve lint/typecheck temiz. Profil sayfası eklendi. Sidebar’dan 'Ayarlar' menüsü kaldırıldı.
+- **Backend:** Kullanıcı, Takım, Kategori, Bildirim, Medya ve Yorum modelleri tamamlandı. JWT tabanlı kimlik doğrulama ve rol bazlı yetkilendirme hayatta. Tüm API uç noktaları aktif.
+- **Frontend:** React+Vite+Tailwind yapılandırıldı. Giriş/Kayıt sayfaları, korumalı rotalar ve router yapısı tamam. Users ve Teams yönetim ekranları devrede (listeleme, arama, ekip oluşturma/düzenleme, soft-delete; kullanıcı rol ve takım ataması). API entegrasyonu, token yönetimi, toast bildirimleri ve lint/typecheck temiz. Profil sayfası eklendi. Sidebar'dan 'Ayarlar' menüsü kaldırıldı.
+- **Mobile:** Flutter uygulaması tamamlandı. MVVM mimarisi ile temiz kod yapısı kuruldu. Bildirim sistemi (CreateReportView, FeedView), görev yönetimi (TasksView), kullanıcı profili ve kimlik doğrulama ekranları hazır. Tüm lint hataları düzeltildi ve kod kalitesi optimize edildi. Bloc pattern ile state management, GetIt ile dependency injection ve auto_route ile navigation entegrasyonu tamamlandı.
 
 ### Sıradaki Adımlar
 - Vatandaş akışları: Bildirim oluşturma ve “Bildirimlerim” sayfası.

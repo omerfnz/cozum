@@ -1,374 +1,43 @@
 import 'dart:io';
 
 import 'package:auto_route/auto_route.dart';
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
-import 'package:get_it/get_it.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:geolocator/geolocator.dart' as geo;
-import 'package:permission_handler/permission_handler.dart' as ph;
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'map_location_picker_view.dart';
 
-import '../../../product/constants/api_endpoints.dart';
-import '../../../product/models/report.dart';
-import '../../../product/service/network/network_service.dart';
 import '../../../product/navigation/app_router.dart';
+import '../view_model/create_report_cubit.dart';
+import '../view_model/create_report_state.dart';
 
 @RoutePage()
-class CreateReportView extends StatefulWidget {
+class CreateReportView extends StatelessWidget {
   const CreateReportView({super.key});
 
   @override
-  State<CreateReportView> createState() => _CreateReportViewState();
+  Widget build(BuildContext context) {
+    return BlocProvider(
+      create: (context) => CreateReportCubit()..loadCategories(),
+      child: const _CreateReportViewBody(),
+    );
+  }
 }
 
+class _CreateReportViewBody extends StatefulWidget {
+  const _CreateReportViewBody();
 
-class _CreateReportViewState extends State<CreateReportView> {
-  final _net = GetIt.I<INetworkService>();
+  @override
+  State<_CreateReportViewBody> createState() => _CreateReportViewBodyState();
+}
+
+class _CreateReportViewBodyState extends State<_CreateReportViewBody> {
   final _formKey = GlobalKey<FormState>();
-
-  bool _loadingCats = true;
-  String? _loadError;
-  List<Category> _categories = [];
-  int? _selectedCategoryId;
-
   final _titleCtrl = TextEditingController();
   final _descCtrl = TextEditingController();
   final _locationCtrl = TextEditingController();
-
-  double? _latitude;
-  double? _longitude;
   final MapController _previewMapController = MapController();
-
-  XFile? _image;
-  bool _submitting = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _fetchCategories();
-  }
-
-  Future<void> _fetchCategories() async {
-    setState(() {
-      _loadingCats = true;
-      _loadError = null;
-    });
-
-    final res = await _net.request<List<Category>>(
-      path: ApiEndpoints.categories,
-      type: RequestType.get,
-      parser: (json) {
-        if (json is List) {
-          return json
-              .map((e) => Category.fromJson(e as Map<String, dynamic>))
-              .toList();
-        }
-        if (json is Map && json['results'] is List) {
-          return (json['results'] as List)
-              .map((e) => Category.fromJson(e as Map<String, dynamic>))
-              .toList();
-        }
-        return <Category>[];
-      },
-    );
-
-    if (!mounted) return;
-
-    if (res.isSuccess) {
-      setState(() {
-        _categories = res.data ?? [];
-        _selectedCategoryId = _categories.isNotEmpty ? _categories.first.id : null;
-        _loadingCats = false;
-      });
-    } else {
-      setState(() {
-        _loadError = res.error ?? 'Kategoriler yüklenemedi';
-        _loadingCats = false;
-      });
-    }
-  }
-
-  Future<bool> _ensureLocationPermission() async {
-    // Önce servis açık mı kontrol edelim
-    final serviceEnabled = await geo.Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Konum servisi kapalı. Lütfen etkinleştirin.')),
-        );
-      }
-      return false;
-    }
-
-    // permission_handler ile kontrol
-    var status = await ph.Permission.locationWhenInUse.status;
-    if (status.isGranted) return true;
-
-    status = await ph.Permission.locationWhenInUse.request();
-    if (status.isGranted) return true;
-
-    if (status.isPermanentlyDenied) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Konum izni kalıcı olarak reddedildi. Ayarlardan izin veriniz.'),
-            action: SnackBarAction(
-              label: 'Aç',
-              onPressed: () => ph.openAppSettings(),
-            ),
-          ),
-        );
-      }
-      return false;
-    }
-
-    return false;
-  }
-
-  Future<bool> _ensureCameraPermission() async {
-    var status = await ph.Permission.camera.status;
-    if (status.isGranted) return true;
-
-    status = await ph.Permission.camera.request();
-    if (status.isGranted) return true;
-
-    if (status.isPermanentlyDenied && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Kamera izni kalıcı olarak reddedildi. Ayarlardan izin veriniz.'),
-          action: SnackBarAction(
-            label: 'Aç',
-            onPressed: () => ph.openAppSettings(),
-          ),
-        ),
-      );
-    }
-    return false;
-  }
-
-  Future<bool> _ensurePhotosPermissionIfNeeded() async {
-    // iOS için fotoğraf izni
-    if (Platform.isIOS) {
-      var status = await ph.Permission.photos.status;
-      if (status.isGranted) return true;
-      status = await ph.Permission.photos.request();
-      if (status.isGranted) return true;
-      if (status.isPermanentlyDenied && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Fotoğraflara erişim izni kalıcı olarak reddedildi. Ayarlardan izin veriniz.'),
-            action: SnackBarAction(
-              label: 'Aç',
-              onPressed: () => ph.openAppSettings(),
-            ),
-          ),
-        );
-      }
-      return false;
-    }
-    // Android 13+ için READ_MEDIA_IMAGES otomatik yönetilir, genelde gerekmez.
-    return true;
-  }
-
-  Future<void> _useCurrentLocation() async {
-    final ok = await _ensureLocationPermission();
-    if (!ok) return;
-
-    try {
-      final position = await geo.Geolocator.getCurrentPosition();
-      setState(() {
-        _latitude = position.latitude;
-        _longitude = position.longitude;
-      });
-      // Koordinatlar alındıktan sonra adresi otomatik doldur
-      await _fillAddressFromCoordinates();
-      // Küçük haritayı mevcut konuma kaydır
-      if (_latitude != null && _longitude != null) {
-        try {
-          _previewMapController.move(LatLng(_latitude!, _longitude!), 13);
-        } catch (_) {}
-      }
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Konum alındı: ${_latitude?.toStringAsFixed(5)}, ${_longitude?.toStringAsFixed(5)}')),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Konum alınamadı: $e')),
-        );
-      }
-    }
-  }
-
-  Future<void> _selectFromMap() async {
-    final result = await showModalBottomSheet<Map<String, dynamic>?>(
-      context: context,
-      useSafeArea: true,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (ctx) => FractionallySizedBox(
-        heightFactor: 0.9,
-        child: MapLocationPickerView(
-          initialLatitude: _latitude,
-          initialLongitude: _longitude,
-        ),
-      ),
-    );
-
-    if (result != null) {
-      setState(() {
-        _latitude = result['latitude'] as double?;
-        _longitude = result['longitude'] as double?;
-      });
-      final address = result['address'] as String?;
-      if (address != null) {
-        setState(() => _locationCtrl.text = address);
-      } else {
-        await _fillAddressFromCoordinates();
-      }
-      // Küçük haritayı seçilen konuma taşı
-      if (_latitude != null && _longitude != null) {
-        try {
-          _previewMapController.move(LatLng(_latitude!, _longitude!), 13);
-        } catch (_) {}
-      }
-    }
-  }
-
-  Future<void> _fillAddressFromCoordinates() async {
-    if (_latitude == null || _longitude == null) return;
-    try {
-      final dio = Dio(
-        BaseOptions(
-          headers: {
-            'User-Agent': 'cozum-mobile/1.0 (+https://example.com)'
-          },
-        ),
-      );
-      final res = await dio.get(
-        'https://nominatim.openstreetmap.org/reverse',
-        queryParameters: {
-          'format': 'jsonv2',
-          'lat': _latitude,
-          'lon': _longitude,
-        },
-      );
-      if (res.statusCode == 200 && res.data is Map) {
-        final data = res.data as Map;
-        final displayName = data['display_name'] as String?;
-        if (displayName != null && mounted) {
-          setState(() {
-            _locationCtrl.text = displayName;
-          });
-        }
-      }
-    } catch (_) {
-      // Sessizce geç, adres doldurma isteğe bağlı
-    }
-  }
-
-  Future<void> _pickFromCamera() async {
-    final ok = await _ensureCameraPermission();
-    if (!ok) return;
-
-    final picker = ImagePicker();
-    final file = await picker.pickImage(source: ImageSource.camera, imageQuality: 85);
-    if (file != null) {
-      setState(() => _image = file);
-    }
-  }
-
-  Future<void> _pickFromGallery() async {
-    final ok = await _ensurePhotosPermissionIfNeeded();
-    if (!ok) return;
-
-    final picker = ImagePicker();
-    final file = await picker.pickImage(source: ImageSource.gallery, imageQuality: 85);
-    if (file != null) {
-      setState(() => _image = file);
-    }
-  }
-
-  Future<void> _submit() async {
-    if (_submitting) return;
-    if (!_formKey.currentState!.validate()) return;
-    if (_selectedCategoryId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Lütfen bir kategori seçiniz.')),
-      );
-      return;
-    }
-    if (_image == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Lütfen en az bir fotoğraf ekleyiniz.')),
-      );
-      return;
-    }
-
-    setState(() => _submitting = true);
-
-    try {
-      final form = FormData.fromMap({
-        'title': _titleCtrl.text.trim(),
-        'description': _descCtrl.text.trim(),
-        'category': _selectedCategoryId,
-        if (_locationCtrl.text.trim().isNotEmpty) 'location': _locationCtrl.text.trim(),
-        if (_latitude != null) 'latitude': _latitude,
-        if (_longitude != null) 'longitude': _longitude,
-      });
-
-      final file = await MultipartFile.fromFile(
-        _image!.path,
-        filename: _image!.name,
-      );
-      form.files.add(MapEntry('media_files', file));
-
-      final res = await _net.uploadFile<Report>(
-        path: ApiEndpoints.reports,
-        formData: form,
-        parser: (json) => Report.fromJson(json as Map<String, dynamic>),
-        onSendProgress: (sent, total) {
-          // Opsiyonel: ilerleme gösterebilirsiniz
-        },
-      );
-
-      if (!mounted) return;
-
-      if (res.isSuccess && res.data != null) {
-        final created = res.data!;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Bildirim oluşturuldu.')),
-        );
-        // Detay sayfasına geç
-        final id = created.id;
-        if (id != null) {
-          context.router.replace(ReportDetailViewRoute(reportId: id.toString()));
-        } else {
-          context.router.maybePop();
-        }
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(res.error ?? 'Bildirim oluşturulamadı')),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Hata: $e')),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _submitting = false);
-    }
-  }
 
   @override
   void dispose() {
@@ -384,185 +53,292 @@ class _CreateReportViewState extends State<CreateReportView> {
       appBar: AppBar(
         title: const Text('Bildirim Oluştur'),
       ),
-      body: _loadingCats
-          ? const _CreateReportShimmer()
-          : _loadError != null
-              ? _ErrorView(message: _loadError!, onRetry: _fetchCategories)
-              : SafeArea(
-                  child: Form(
-                    key: _formKey,
-                    child: ListView(
-                      padding: const EdgeInsets.all(16),
-                      children: [
-                        TextFormField(
-                          controller: _titleCtrl,
-                          decoration: const InputDecoration(
-                            labelText: 'Başlık',
-                            border: OutlineInputBorder(),
-                          ),
-                          validator: (v) => (v == null || v.trim().isEmpty)
-                              ? 'Başlık gereklidir'
-                              : null,
+      body: BlocConsumer<CreateReportCubit, CreateReportState>(
+        listener: (context, state) {
+          if (state is CreateReportLocationUpdated) {
+            if (state.address != null) {
+              _locationCtrl.text = state.address!;
+            }
+            // Haritayı güncelle
+            try {
+              _previewMapController.move(LatLng(state.latitude, state.longitude), 13);
+            } catch (_) {}
+            
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Konum alındı: ${state.latitude.toStringAsFixed(5)}, ${state.longitude.toStringAsFixed(5)}'),
+              ),
+            );
+          } else if (state is CreateReportSuccess) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Bildirim oluşturuldu.')),
+            );
+            // Detay sayfasına geç
+            final id = state.report.id;
+            if (id != null) {
+              context.router.replace(ReportDetailViewRoute(reportId: id.toString()));
+            } else {
+              context.router.maybePop();
+            }
+          } else if (state is CreateReportError) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(state.message)),
+            );
+          }
+        },
+        builder: (context, state) {
+          if (state is CreateReportLoading) {
+            return const _CreateReportShimmer();
+          }
+          
+          if (state is CreateReportError && state.message.contains('Kategoriler')) {
+            return _ErrorView(
+              message: state.message,
+              onRetry: () => context.read<CreateReportCubit>().loadCategories(),
+            );
+          }
+
+          final cubit = context.read<CreateReportCubit>();
+          final categories = cubit.categories;
+          final selectedCategoryId = cubit.selectedCategoryId;
+          final image = cubit.selectedImage;
+          final latitude = cubit.latitude;
+          final longitude = cubit.longitude;
+          final isSubmitting = state is CreateReportSubmitting;
+
+          return SafeArea(
+            child: Form(
+              key: _formKey,
+              child: ListView(
+                padding: const EdgeInsets.all(16),
+                children: [
+                  TextFormField(
+                    controller: _titleCtrl,
+                    decoration: const InputDecoration(
+                      labelText: 'Başlık',
+                      border: OutlineInputBorder(),
+                    ),
+                    validator: (v) => (v == null || v.trim().isEmpty)
+                        ? 'Başlık gereklidir'
+                        : null,
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: _descCtrl,
+                    maxLines: 4,
+                    decoration: const InputDecoration(
+                      labelText: 'Açıklama',
+                      border: OutlineInputBorder(),
+                    ),
+                    validator: (v) => (v == null || v.trim().isEmpty)
+                        ? 'Açıklama gereklidir'
+                        : null,
+                  ),
+                  const SizedBox(height: 12),
+                  InputDecorator(
+                    decoration: const InputDecoration(
+                      labelText: 'Kategori',
+                      border: OutlineInputBorder(),
+                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<int>(
+                        isExpanded: true,
+                        value: selectedCategoryId,
+                        items: categories
+                            .map((c) => DropdownMenuItem<int>(
+                                  value: c.id,
+                                  child: Text(c.name),
+                                ))
+                            .toList(),
+                        onChanged: (v) {
+                          if (v != null) {
+                            cubit.selectCategory(v);
+                          }
+                        },
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text('Fotoğraf', style: Theme.of(context).textTheme.titleMedium),
+                  const SizedBox(height: 8),
+                  if (image != null)
+                    AspectRatio(
+                      aspectRatio: 16 / 9,
+                      child: Image.file(
+                        File(image.path),
+                        fit: BoxFit.cover,
+                      ),
+                    )
+                  else
+                    Container(
+                      height: 180,
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey.shade300),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Center(
+                        child: Text('Henüz fotoğraf seçilmedi'),
+                      ),
+                    ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () => cubit.pickImageFromCamera(),
+                          icon: const Icon(Icons.photo_camera_outlined),
+                          label: const Text('Kamera'),
                         ),
-                        const SizedBox(height: 12),
-                        TextFormField(
-                          controller: _descCtrl,
-                          maxLines: 4,
-                          decoration: const InputDecoration(
-                            labelText: 'Açıklama',
-                            border: OutlineInputBorder(),
-                          ),
-                          validator: (v) => (v == null || v.trim().isEmpty)
-                              ? 'Açıklama gereklidir'
-                              : null,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () => cubit.pickImageFromGallery(),
+                          icon: const Icon(Icons.photo_library_outlined),
+                          label: const Text('Galeri'),
                         ),
-                        const SizedBox(height: 12),
-                        InputDecorator(
-                          decoration: const InputDecoration(
-                            labelText: 'Kategori',
-                            border: OutlineInputBorder(),
-                            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                          ),
-                          child: DropdownButtonHideUnderline(
-                            child: DropdownButton<int>(
-                              isExpanded: true,
-                              value: _selectedCategoryId,
-                              items: _categories
-                                  .map((c) => DropdownMenuItem<int>(
-                                        value: c.id,
-                                        child: Text(c.name),
-                                      ))
-                                  .toList(),
-                              onChanged: (v) => setState(() => _selectedCategoryId = v),
-                            ),
-                          ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Text('Konum (opsiyonel)', style: Theme.of(context).textTheme.titleMedium),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          latitude != null && longitude != null
+                              ? 'Lat: ${latitude.toStringAsFixed(5)}, Lng: ${longitude.toStringAsFixed(5)}'
+                              : 'Konum seçilmedi',
                         ),
-                        const SizedBox(height: 16),
-                        Text('Fotoğraf', style: Theme.of(context).textTheme.titleMedium),
-                        const SizedBox(height: 8),
-                        if (_image != null)
-                          AspectRatio(
-                            aspectRatio: 16 / 9,
-                            child: Image.file(
-                              File(_image!.path),
-                              fit: BoxFit.cover,
-                            ),
-                          )
-                        else
-                          Container(
-                            height: 180,
-                            decoration: BoxDecoration(
-                              border: Border.all(color: Colors.grey.shade300),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: const Center(
-                              child: Text('Henüz fotoğraf seçilmedi'),
-                            ),
-                          ),
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: OutlinedButton.icon(
-                                onPressed: _pickFromCamera,
-                                icon: const Icon(Icons.photo_camera_outlined),
-                                label: const Text('Kamera'),
+                      ),
+                      const SizedBox(width: 8),
+                      Tooltip(
+                        message: 'Mevcut konumunuzu alır. Aşağıdaki haritaya dokunarak noktayı değiştirebilirsiniz.',
+                        child: OutlinedButton.icon(
+                          onPressed: () => cubit.useCurrentLocation(),
+                          icon: const Icon(Icons.my_location),
+                          label: const Text('Mevcut Konumu Al'),
+                        ),
+                      )
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Haritadan konum seçmek için aşağıdaki haritaya dokunun',
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                  const SizedBox(height: 8),
+                  Material(
+                    color: Colors.transparent,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: InkWell(
+                        onTap: () => _selectFromMap(cubit),
+                        child: SizedBox(
+                          height: 200,
+                          child: AbsorbPointer(
+                            absorbing: true,
+                            child: FlutterMap(
+                              mapController: _previewMapController,
+                              options: MapOptions(
+                                initialCenter: latitude != null && longitude != null
+                                    ? LatLng(latitude, longitude)
+                                    : LatLng(41.015137, 28.979530),
+                                initialZoom: 13,
                               ),
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: OutlinedButton.icon(
-                                onPressed: _pickFromGallery,
-                                icon: const Icon(Icons.photo_library_outlined),
-                                label: const Text('Galeri'),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                        Text('Konum (opsiyonel)', style: Theme.of(context).textTheme.titleMedium),
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                _latitude != null && _longitude != null
-                                    ? 'Lat: ${_latitude!.toStringAsFixed(5)}, Lng: ${_longitude!.toStringAsFixed(5)}'
-                                    : 'Konum seçilmedi',
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Tooltip(
-                              message: 'Mevcut konumunuzu alır. Aşağıdaki haritaya dokunarak noktayı değiştirebilirsiniz.',
-                              child: OutlinedButton.icon(
-                                onPressed: _useCurrentLocation,
-                                icon: const Icon(Icons.my_location),
-                                label: const Text('Mevcut Konumu Al'),
-                              ),
-                            )
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        const Text(
-                          'Haritadan konum seçmek için aşağıdaki haritaya dokunun',
-                          style: TextStyle(color: Colors.grey),
-                        ),
-                        const SizedBox(height: 8),
-                        Material(
-                          color: Colors.transparent,
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
-                            child: InkWell(
-                              onTap: _selectFromMap,
-                              child: SizedBox(
-                              height: 200,
-                              child: AbsorbPointer(
-                                absorbing: true,
-                                child: FlutterMap(
-                                  mapController: _previewMapController,
-                                  options: MapOptions(
-                                    initialCenter: _latitude != null && _longitude != null
-                                        ? LatLng(_latitude!, _longitude!)
-                                        : LatLng(41.015137, 28.979530),
-                                    initialZoom: 13,
-                                  ),
-                                  children: [
-                                    TileLayer(
-                                      urlTemplate: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-                                      subdomains: ['a', 'b', 'c'],
-                                      userAgentPackageName: 'cozum.mobile',
-                                    ),
-                                  ],
+                              children: [
+                                TileLayer(
+                                  urlTemplate: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+                                  subdomains: ['a', 'b', 'c'],
+                                  userAgentPackageName: 'cozum.mobile',
                                 ),
-                              ),
+                              ],
                             ),
                           ),
                         ),
                       ),
-                        const SizedBox(height: 8),
-                        TextFormField(
-                          controller: _locationCtrl,
-                          decoration: const InputDecoration(
-                            labelText: 'Adres/konum açıklaması (opsiyonel)',
-                            border: OutlineInputBorder(),
-                          ),
-                        ),
-                        const SizedBox(height: 24),
-                        FilledButton.icon(
-                          onPressed: _submitting ? null : _submit,
-                          icon: _submitting
-                              ? const SizedBox(
-                                  width: 16,
-                                  height: 16,
-                                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                                )
-                              : const Icon(Icons.send_rounded),
-                          label: const Text('Gönder'),
-                        ),
-                      ],
                     ),
                   ),
-                ),
+                  const SizedBox(height: 8),
+                  TextFormField(
+                    controller: _locationCtrl,
+                    decoration: const InputDecoration(
+                      labelText: 'Adres/konum açıklaması (opsiyonel)',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  FilledButton.icon(
+                    onPressed: isSubmitting ? null : () => _submit(cubit),
+                    icon: isSubmitting
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                          )
+                        : const Icon(Icons.send_rounded),
+                    label: const Text('Gönder'),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Future<void> _selectFromMap(CreateReportCubit cubit) async {
+    final result = await showModalBottomSheet<Map<String, dynamic>?>(
+      context: context,
+      useSafeArea: true,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) => FractionallySizedBox(
+        heightFactor: 0.9,
+        child: MapLocationPickerView(
+          initialLatitude: cubit.latitude,
+          initialLongitude: cubit.longitude,
+        ),
+      ),
+    );
+
+    if (result != null) {
+      final latitude = result['latitude'] as double?;
+      final longitude = result['longitude'] as double?;
+      final address = result['address'] as String?;
+      
+      if (latitude != null && longitude != null) {
+        cubit.updateLocation(latitude, longitude, address);
+      }
+    }
+  }
+
+  void _submit(CreateReportCubit cubit) {
+    if (!_formKey.currentState!.validate()) return;
+    
+    if (cubit.selectedCategoryId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Lütfen bir kategori seçiniz.')),
+      );
+      return;
+    }
+    
+    if (cubit.selectedImage == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Lütfen en az bir fotoğraf ekleyiniz.')),
+      );
+      return;
+    }
+
+    cubit.submitReport(
+      title: _titleCtrl.text.trim(),
+      description: _descCtrl.text.trim(),
+      location: _locationCtrl.text.trim().isNotEmpty ? _locationCtrl.text.trim() : null,
     );
   }
 }
@@ -571,7 +347,7 @@ class _ErrorView extends StatelessWidget {
   const _ErrorView({required this.message, required this.onRetry});
 
   final String message;
-  final Future<void> Function() onRetry;
+  final VoidCallback onRetry;
 
   @override
   Widget build(BuildContext context) {

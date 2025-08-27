@@ -1,161 +1,37 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
-import 'package:get_it/get_it.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shimmer/shimmer.dart';
 
-import '../../../product/constants/api_endpoints.dart';
 import '../../../product/models/report.dart';
-
-import '../../../product/service/auth/auth_service.dart' as auth;
 import '../../../product/navigation/navigation_guard.dart';
-import '../../../product/service/network/network_service.dart';
 import '../../../product/widgets/snackbar.dart';
+import '../view_model/tasks_cubit.dart';
+import '../view_model/tasks_state.dart';
 
 @RoutePage()
-class TasksView extends StatefulWidget {
+class TasksView extends StatelessWidget {
   const TasksView({super.key});
 
   @override
-  State<TasksView> createState() => _TasksViewState();
+  Widget build(BuildContext context) {
+    return BlocProvider(
+      create: (context) => TasksCubit()..fetchTasks(),
+      child: const _TasksViewBody(),
+    );
+  }
 }
 
-class _TasksViewState extends State<TasksView> {
-  final _net = GetIt.I<INetworkService>();
-  final _auth = GetIt.I<auth.IAuthService>();
-
-  bool _loading = true;
-  String? _error;
-  List<Report> _items = [];
-  auth.User? _currentUser;
+class _TasksViewBody extends StatefulWidget {
+  const _TasksViewBody();
 
   @override
-  void initState() {
-    super.initState();
-    _loadUserAndFetch();
-  }
+  State<_TasksViewBody> createState() => _TasksViewBodyState();
+}
 
-  Future<void> _loadUserAndFetch() async {
-    try {
-      final userRes = await _auth.getCurrentUser();
-      if (mounted) {
-        setState(() {
-          _currentUser = userRes.data;
-        });
-      }
-    } catch (_) {
-      // Kullanıcı bilgisi yüklenemedi, devam et
-    }
-    await _fetch();
-  }
-
-  Future<void> _fetch() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-
-    // Görevler backend’de raporlar olarak tutuluyor. Rol/ekip filtreleri query param ile gönderilir.
-    final res = await _net.request<List<Report>>(
-      path: ApiEndpoints.reports,
-      type: RequestType.get,
-      queryParameters: await _defaultFilters(),
-      parser: (json) {
-        if (json is List) {
-          return json.map((e) => Report.fromJson(e as Map<String, dynamic>)).toList();
-        }
-        if (json is Map && json['results'] is List) {
-          return (json['results'] as List)
-              .map((e) => Report.fromJson(e as Map<String, dynamic>))
-              .toList();
-        }
-        return <Report>[];
-      },
-    );
-
-    if (!mounted) return;
-
-    if (res.isSuccess) {
-      setState(() {
-        _items = res.data ?? [];
-        _loading = false;
-      });
-    } else {
-      setState(() {
-        _error = res.error ?? 'Görevler yüklenemedi';
-        _loading = false;
-      });
-    }
-  }
-
-  Future<Map<String, dynamic>> _defaultFilters() async {
-    // Backend'deki scope parametresi ile rol bazlı filtreleme:
-    // - VATANDAS: scope=mine (kendi bildirimleri)
-    // - EKIP: scope=assigned (takımına atananlar)
-    // - OPERATOR/ADMIN: scope=all (tüm görevler)
-    // tasks_only=true: Sadece atanmış bildirimleri göster (görev sayfası için)
-    try {
-      final authService = GetIt.I<auth.IAuthService>();
-      final meRes = await authService.getCurrentUser();
-      final user = meRes.data;
-      final String? role = user?.role;
-
-      final Map<String, dynamic> q = {
-        'tasks_only': 'true', // Görev sayfası için sadece atanmış bildirimleri getir
-      };
-
-      // Rol bazlı scope parametresi
-      switch (role) {
-        case 'VATANDAS':
-          q['scope'] = 'mine';
-          break;
-        case 'EKIP':
-          q['scope'] = 'assigned';
-          break;
-        case 'OPERATOR':
-        case 'ADMIN':
-          q['scope'] = 'all';
-          break;
-        default:
-          q['scope'] = 'mine'; // Güvenlik için varsayılan
-      }
-
-      return q;
-    } catch (_) {
-      return {
-        'scope': 'mine', // Hata durumunda güvenli varsayılan
-        'tasks_only': 'true',
-      };
-    }
-  }
-
+class _TasksViewBodyState extends State<_TasksViewBody> {
   Future<void> _onRefresh() async {
-    await _loadUserAndFetch();
-  }
-
-  bool _canDeleteTask(Report report) {
-    final role = _currentUser?.role;
-    // OPERATOR/ADMIN tüm görevleri silebilir
-    if (role == 'OPERATOR' || role == 'ADMIN') {
-      return true;
-    }
-    // VATANDAS sadece kendi raporlarını silebilir
-    if (role == 'VATANDAS' && report.reporter.id == _currentUser?.id) {
-      return true;
-    }
-    return false;
-  }
-
-  bool _canManageTask(Report report) {
-    final role = _currentUser?.role;
-    // OPERATOR/ADMIN tüm görevleri yönetebilir
-    if (role == 'OPERATOR' || role == 'ADMIN') {
-      return true;
-    }
-    // EKIP sadece kendi takımına atananları yönetebilir
-    if (role == 'EKIP' && report.assignedTeam?.id == _currentUser?.team?['id']) {
-      return true;
-    }
-    return false;
+    await context.read<TasksCubit>().fetchTasks();
   }
 
   Future<void> _deleteTask(Report report) async {
@@ -177,41 +53,17 @@ class _TasksViewState extends State<TasksView> {
       ),
     );
 
-    if (confirmed != true) return;
-
-    final res = await _net.request(
-      path: '${ApiEndpoints.reports}/${report.id}/',
-      type: RequestType.delete,
-    );
-
-    if (!mounted) return;
-
-    if (res.isSuccess) {
-      context.showSnack('Görev başarıyla silindi', type: SnackbarType.success);
-      await _fetch();
-    } else {
-      context.showSnack(res.error ?? 'Görev silinemedi', type: SnackbarType.error);
+    if (confirmed == true && mounted) {
+      context.read<TasksCubit>().deleteTask(report);
     }
   }
 
   Future<void> _updateTaskStatus(Report report, ReportStatus newStatus) async {
-    final res = await _net.request(
-      path: '${ApiEndpoints.reports}/${report.id}/',
-      type: RequestType.patch,
-      data: {'status': newStatus.value},
-    );
-
-    if (!mounted) return;
-
-    if (res.isSuccess) {
-      context.showSnack('Görev durumu güncellendi', type: SnackbarType.success);
-      await _fetch();
-    } else {
-      context.showSnack(res.error ?? 'Durum güncellenemedi', type: SnackbarType.error);
-    }
+    context.read<TasksCubit>().updateTaskStatus(report, newStatus);
   }
 
   void _showTaskActions(Report report) {
+    final cubit = context.read<TasksCubit>();
     showModalBottomSheet(
       context: context,
       builder: (context) => SafeArea(
@@ -226,7 +78,7 @@ class _TasksViewState extends State<TasksView> {
                 NavigationHelper.showReportDetail(context.router, report.id!.toString());
               },
             ),
-            if (_canManageTask(report)) ...[
+            if (cubit.canManageTask(report)) ...[
               ListTile(
                 leading: const Icon(Icons.edit),
                 title: const Text('Durumu Değiştir'),
@@ -236,7 +88,7 @@ class _TasksViewState extends State<TasksView> {
                 },
               ),
             ],
-            if (_canDeleteTask(report))
+            if (cubit.canDeleteTask(report))
               ListTile(
                 leading: const Icon(Icons.delete, color: Colors.red),
                 title: const Text('Sil', style: TextStyle(color: Colors.red)),
@@ -284,114 +136,132 @@ class _TasksViewState extends State<TasksView> {
 
   @override
   Widget build(BuildContext context) {
-    if (_loading) {
-      return const _TasksShimmer();
-    }
+    return BlocConsumer<TasksCubit, TasksState>(
+      listener: (context, state) {
+        if (state is TasksTaskDeleted) {
+          context.showSnack('Görev başarıyla silindi', type: SnackbarType.success);
+        } else if (state is TasksTaskUpdated) {
+          context.showSnack('Görev durumu güncellendi', type: SnackbarType.success);
+        } else if (state is TasksError) {
+          context.showSnack('Hata: ${state.message}', type: SnackbarType.error);
+        }
+      },
+      builder: (context, state) {
+        if (state is TasksLoading) {
+          return const _TasksShimmer();
+        }
 
-    if (_error != null) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.error_outline, size: 36),
-            const SizedBox(height: 8),
-            Text(_error!),
-            const SizedBox(height: 16),
-            FilledButton.icon(
-              onPressed: _fetch,
-              icon: const Icon(Icons.refresh),
-              label: const Text('Tekrar dene'),
-            ),
-          ],
-        ),
-      );
-    }
-
-    if (_items.isEmpty) {
-      return const Center(child: Text('Henüz görev bulunmuyor.'));
-    }
-
-    return RefreshIndicator(
-      onRefresh: _onRefresh,
-      child: ListView.separated(
-        padding: const EdgeInsets.all(16),
-        itemCount: _items.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 8),
-        itemBuilder: (context, index) {
-          final r = _items[index];
-          return Card(
-            child: ListTile(
-              leading: CircleAvatar(
-                backgroundColor: _statusColor(r.status),
-                child: Text(r.priority.displayName.substring(0, 1)),
-              ),
-              title: Text(r.title),
-              isThreeLine: true,
-              subtitle: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(r.category.name, style: Theme.of(context).textTheme.bodySmall),
-                  const SizedBox(height: 4),
-                  Row(children: [
-                    const Icon(Icons.group_outlined, size: 14),
-                    const SizedBox(width: 4),
-                    Expanded(
-                      child: Text(
-                        r.assignedTeam?.name ?? 'Takım atanmamış',
-                        style: Theme.of(context).textTheme.bodySmall,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    const Icon(Icons.schedule, size: 14),
-                    const SizedBox(width: 4),
-                    Text(
-                      _statusLabel(r.status),
-                      style: Theme.of(context).textTheme.bodySmall,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ]),
-                ],
-              ),
-              trailing: PopupMenuButton<String>(
-                onSelected: (value) {
-                  switch (value) {
-                    case 'view':
-                      NavigationHelper.showReportDetail(context.router, r.id!.toString());
-                      break;
-                    case 'actions':
-                      _showTaskActions(r);
-                      break;
-                  }
-                },
-                itemBuilder: (context) => [
-                  const PopupMenuItem(
-                    value: 'view',
-                    child: ListTile(
-                      leading: Icon(Icons.visibility),
-                      title: Text('Detayları Görüntüle'),
-                      contentPadding: EdgeInsets.zero,
-                    ),
-                  ),
-                  if (_canManageTask(r) || _canDeleteTask(r))
-                    const PopupMenuItem(
-                      value: 'actions',
-                      child: ListTile(
-                        leading: Icon(Icons.more_horiz),
-                        title: Text('Diğer İşlemler'),
-                        contentPadding: EdgeInsets.zero,
-                      ),
-                    ),
-                ],
-              ),
-              onTap: () => NavigationHelper.showReportDetail(context.router, r.id!.toString()),
+        if (state is TasksError) {
+          return Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.error_outline, size: 36),
+                const SizedBox(height: 8),
+                Text(state.message),
+                const SizedBox(height: 16),
+                FilledButton.icon(
+                  onPressed: () => context.read<TasksCubit>().fetchTasks(),
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('Tekrar dene'),
+                ),
+              ],
             ),
           );
-        },
-      ),
+        }
+
+        if (state is TasksLoaded) {
+          if (state.tasks.isEmpty) {
+            return const Center(child: Text('Henüz görev bulunmuyor.'));
+          }
+
+          final cubit = context.read<TasksCubit>();
+          return RefreshIndicator(
+            onRefresh: _onRefresh,
+            child: ListView.separated(
+              padding: const EdgeInsets.all(16),
+              itemCount: state.tasks.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 8),
+              itemBuilder: (context, index) {
+                final r = state.tasks[index];
+                return Card(
+                  child: ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: _statusColor(r.status),
+                      child: Text(r.priority.displayName.substring(0, 1)),
+                    ),
+                    title: Text(r.title),
+                    isThreeLine: true,
+                    subtitle: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(r.category.name, style: Theme.of(context).textTheme.bodySmall),
+                        const SizedBox(height: 4),
+                        Row(children: [
+                          const Icon(Icons.group_outlined, size: 14),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: Text(
+                              r.assignedTeam?.name ?? 'Takım atanmamış',
+                              style: Theme.of(context).textTheme.bodySmall,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          const Icon(Icons.schedule, size: 14),
+                          const SizedBox(width: 4),
+                          Text(
+                            _statusLabel(r.status),
+                            style: Theme.of(context).textTheme.bodySmall,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ]),
+                      ],
+                    ),
+                    trailing: PopupMenuButton<String>(
+                      onSelected: (value) {
+                        switch (value) {
+                          case 'view':
+                            NavigationHelper.showReportDetail(context.router, r.id!.toString());
+                            break;
+                          case 'actions':
+                            _showTaskActions(r);
+                            break;
+                        }
+                      },
+                      itemBuilder: (context) => [
+                        const PopupMenuItem(
+                          value: 'view',
+                          child: ListTile(
+                            leading: Icon(Icons.visibility),
+                            title: Text('Detayları Görüntüle'),
+                            contentPadding: EdgeInsets.zero,
+                          ),
+                        ),
+                        if (cubit.canManageTask(r) || cubit.canDeleteTask(r))
+                          const PopupMenuItem(
+                            value: 'actions',
+                            child: ListTile(
+                              leading: Icon(Icons.more_horiz),
+                              title: Text('Diğer İşlemler'),
+                              contentPadding: EdgeInsets.zero,
+                            ),
+                          ),
+                      ],
+                    ),
+                    onTap: () => NavigationHelper.showReportDetail(context.router, r.id!.toString()),
+                  ),
+                );
+              },
+            ),
+          );
+        }
+
+        return const SizedBox.shrink();
+      },
     );
   }
 

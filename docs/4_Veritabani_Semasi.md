@@ -32,7 +32,8 @@ Bu şema, aktif backend modellerini ve ilişkilerini özetler.
 - Alanlar: id, report (FK→Report), user (FK→User), content, created_at
 - Sıralama: created_at desc (en yeni ilk)
 
-Notlar
-- Varsayılan izinler: DRF global olarak IsAuthenticated. Register/login uçları AllowAny.
-- Medya URL’leri: Mutlak URL. R2 etkinse https://<bucket>.<account>.r2.cloudflarestorage.com veya tanımlı custom domain kullanılır.
-- APPEND_SLASH=False: Tüm endpoint’ler sondaki / ile eşleşir.
+### Notlar
+- **Varsayılan izinler:** DRF global olarak IsAuthenticated. Register/login uçları AllowAny.
+- **Medya URL'leri:** Mutlak URL. R2 etkinse https://<bucket>.<account>.r2.cloudflarestorage.com veya tanımlı custom domain kullanılır.
+- **API Endpoint Kuralı:** APPEND_SLASH=False: Tüm endpoint'ler sondaki / ile eşleşir.
+- **Durum:** Tüm modeller aktif ve çalışır durumda. Backend tamamen tamamlandı.

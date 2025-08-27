@@ -1,51 +1,41 @@
-import 'dart:math';
-
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
-import 'package:get_it/get_it.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shimmer/shimmer.dart';
 
-import '../../../product/constants/api_endpoints.dart';
 import '../../../product/models/report.dart';
 import '../../../product/navigation/navigation_guard.dart';
-import '../../../product/service/network/network_service.dart';
-import '../../../product/service/auth/auth_service.dart' as auth;
 import '../../../product/theme/theme_constants.dart';
 import '../../../product/widgets/snackbar.dart';
+import '../view_model/feed_cubit.dart';
+import '../view_model/feed_state.dart';
 
-class FeedView extends StatefulWidget {
+class FeedView extends StatelessWidget {
   const FeedView({super.key});
 
   @override
-  State<FeedView> createState() => _FeedViewState();
+  Widget build(BuildContext context) {
+    return BlocProvider(
+      create: (context) => FeedCubit()..fetchReports(),
+      child: const _FeedViewBody(),
+    );
+  }
 }
 
-class _FeedViewState extends State<FeedView> {
-  final _net = GetIt.I<INetworkService>();
-  final _auth = GetIt.I<auth.IAuthService>();
-  final _scroll = ScrollController();
+class _FeedViewBody extends StatefulWidget {
+  const _FeedViewBody();
 
-  List<Report> _all = [];
-  int _visibleCount = 0;
-  static const int _pageSize = 8;
-  bool _loading = true;
-  bool _loadingMore = false;
-  String? _error;
-  auth.User? _currentUser;
+  @override
+  State<_FeedViewBody> createState() => _FeedViewBodyState();
+}
+
+class _FeedViewBodyState extends State<_FeedViewBody> {
+  final _scroll = ScrollController();
 
   @override
   void initState() {
     super.initState();
-    _loadUserAndFetch();
     _scroll.addListener(_onScroll);
-  }
-
-  Future<void> _loadUserAndFetch() async {
-    final userRes = await _auth.getCurrentUser();
-    if (userRes.isSuccess && userRes.data != null) {
-      _currentUser = userRes.data;
-    }
-    await _fetch();
   }
 
   @override
@@ -55,78 +45,18 @@ class _FeedViewState extends State<FeedView> {
     super.dispose();
   }
 
-  Future<void> _fetch() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-    final res = await _net.request<List<Report>>(
-      path: ApiEndpoints.reports,
-      type: RequestType.get,
-      parser: (json) {
-        final list = (json as List<dynamic>)
-            .map((e) => Report.fromJson(e as Map<String, dynamic>))
-            .toList();
-        // En yeni ilk
-        list.sort((a, b) => (b.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0))
-            .compareTo(a.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0)));
-        return list;
-      },
-    );
-
-    if (!mounted) return;
-    if (res.isSuccess && res.data != null) {
-      setState(() {
-        _all = res.data!;
-        _visibleCount = min(_pageSize, _all.length);
-        _loading = false;
-      });
-    } else {
-      setState(() {
-        _error = res.error ?? 'Akış yüklenemedi';
-        _loading = false;
-      });
-    }
-  }
-
   void _onScroll() {
-    if (_loadingMore || _loading) return;
+    final cubit = context.read<FeedCubit>();
     if (!_scroll.hasClients) return;
     final maxScroll = _scroll.position.maxScrollExtent;
     final current = _scroll.position.pixels;
     if (current > maxScroll - 200) {
-      _loadMore();
+      cubit.loadMoreReports();
     }
   }
 
-  void _loadMore() {
-    if (_visibleCount >= _all.length) return;
-    setState(() => _loadingMore = true);
-    Future.delayed(const Duration(milliseconds: 200), () {
-      if (!mounted) return;
-      setState(() {
-        _visibleCount = min(_visibleCount + _pageSize, _all.length);
-        _loadingMore = false;
-      });
-    });
-  }
-
   Future<void> _onRefresh() async {
-    await _loadUserAndFetch();
-  }
-
-  bool _canDeleteReport(Report report) {
-    if (_currentUser == null) return false;
-    final user = _currentUser!;
-    
-    // OPERATOR ve ADMIN tüm bildirimleri silebilir
-    if (user.role == 'OPERATOR' || user.role == 'ADMIN') return true;
-    
-    // VATANDAS sadece kendi bildirilerini silebilir
-    if (user.role == 'VATANDAS' && report.reporter.id == user.id) return true;
-    
-    // EKIP silme yetkisi yok
-    return false;
+    await context.read<FeedCubit>().fetchReports();
   }
 
   Future<void> _deleteReport(Report report) async {
@@ -149,27 +79,13 @@ class _FeedViewState extends State<FeedView> {
       ),
     );
 
-    if (confirmed != true || !mounted) return;
-
-    final res = await _net.request(
-      path: '${ApiEndpoints.reports}/${report.id}/',
-      type: RequestType.delete,
-    );
-
-    if (!mounted) return;
-
-    if (res.isSuccess) {
-      context.showSnack('Bildirim başarıyla silindi');
-      setState(() {
-        _all.removeWhere((r) => r.id == report.id);
-        _visibleCount = min(_visibleCount, _all.length);
-      });
-    } else {
-      context.showSnack('Bildirim silinirken hata oluştu: ${res.error}');
+    if (confirmed == true && mounted) {
+      context.read<FeedCubit>().deleteReport(report);
     }
   }
 
   void _showReportActions(Report report) {
+    final cubit = context.read<FeedCubit>();
     showModalBottomSheet(
       context: context,
       builder: (context) => SafeArea(
@@ -184,7 +100,7 @@ class _FeedViewState extends State<FeedView> {
                 _openDetail(report);
               },
             ),
-            if (_canDeleteReport(report))
+            if (cubit.canDeleteReport(report))
               ListTile(
                 leading: const Icon(Icons.delete, color: Colors.red),
                 title: const Text('Sil', style: TextStyle(color: Colors.red)),
@@ -210,54 +126,70 @@ class _FeedViewState extends State<FeedView> {
 
   @override
   Widget build(BuildContext context) {
-    if (_loading) {
-      // Shimmer iskelet listesi
-      return ListView.separated(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        itemCount: 6,
-        separatorBuilder: (_, __) => const SizedBox(height: 0),
-        itemBuilder: (context, index) => const _FeedCardShimmer(),
-      );
-    }
-    if (_error != null) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(_error!, style: Theme.of(context).textTheme.bodyMedium),
-            const SizedBox(height: 8),
-            FilledButton(onPressed: _fetch, child: const Text('Tekrar Dene')),
-          ],
-        ),
-      );
-    }
-
-    final visible = _all.take(_visibleCount).toList();
-
-    return RefreshIndicator(
-      onRefresh: _onRefresh,
-      child: ListView.builder(
-        controller: _scroll,
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        itemCount: visible.length + 1,
-        itemBuilder: (context, index) {
-          if (index == visible.length) {
-            if (_visibleCount >= _all.length) {
-              return const SizedBox(height: 80);
-            }
-            return const Padding(
-              padding: EdgeInsets.symmetric(vertical: 16),
-              child: _LoadingMoreShimmer(),
-            );
-          }
-          final r = visible[index];
-          return _FeedCard(
-            report: r,
-            onTap: () => _openDetail(r),
-            onLongPress: () => _showReportActions(r),
+    return BlocConsumer<FeedCubit, FeedState>(
+      listener: (context, state) {
+        if (state is FeedReportDeleted) {
+          context.showSnack('Bildirim başarıyla silindi');
+        } else if (state is FeedError) {
+          context.showSnack('Hata: ${state.message}');
+        }
+      },
+      builder: (context, state) {
+        if (state is FeedLoading) {
+          return ListView.separated(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            itemCount: 6,
+            separatorBuilder: (_, __) => const SizedBox(height: 0),
+            itemBuilder: (context, index) => const _FeedCardShimmer(),
           );
-        },
-      ),
+        }
+        
+        if (state is FeedError) {
+          return Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(state.message, style: Theme.of(context).textTheme.bodyMedium),
+                const SizedBox(height: 8),
+                FilledButton(
+                  onPressed: () => context.read<FeedCubit>().fetchReports(),
+                  child: const Text('Tekrar Dene'),
+                ),
+              ],
+            ),
+          );
+        }
+        
+        if (state is FeedLoaded) {
+          return RefreshIndicator(
+            onRefresh: _onRefresh,
+            child: ListView.builder(
+              controller: _scroll,
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              itemCount: state.visibleReports.length + 1,
+              itemBuilder: (context, index) {
+                if (index == state.visibleReports.length) {
+                  if (state.hasMoreToLoad) {
+                    return const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 16),
+                      child: _LoadingMoreShimmer(),
+                    );
+                  }
+                  return const SizedBox(height: 80);
+                }
+                final r = state.visibleReports[index];
+                return _FeedCard(
+                  report: r,
+                  onTap: () => _openDetail(r),
+                  onLongPress: () => _showReportActions(r),
+                );
+              },
+            ),
+          );
+        }
+        
+        return const SizedBox.shrink();
+      },
     );
   }
 }
