@@ -451,15 +451,26 @@ class _TeamsViewState extends State<TeamsView> {
                             size: 16,
                             color: t.isActive ? Colors.green.shade600 : Colors.red.shade600,
                           ),
-                          const SizedBox(width: 6),
-                          Text(
-                            t.isActive ? 'Aktif' : 'Pasif',
-                            style: Theme.of(context).textTheme.bodySmall,
-                          ),
-                          const SizedBox(width: 12),
-                          const Icon(Icons.group_outlined, size: 16),
                           const SizedBox(width: 4),
-                          Text('${t.memberCount} üye', style: Theme.of(context).textTheme.bodySmall),
+                          Expanded(
+                            flex: 2,
+                            child: Text(
+                              t.isActive ? 'Aktif' : 'Pasif',
+                              style: Theme.of(context).textTheme.bodySmall,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          const Icon(Icons.group_outlined, size: 16),
+                          const SizedBox(width: 2),
+                          Expanded(
+                            flex: 3,
+                            child: Text(
+                              '${t.memberCount} üye',
+                              style: Theme.of(context).textTheme.bodySmall,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
                         ],
                       ),
                     ],
@@ -576,30 +587,36 @@ class _TeamsShimmer extends StatelessWidget {
                     const SizedBox(height: 8),
                     Row(
                       children: [
-                        Container(
-                          height: 10,
-                          width: 80,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(4),
+                        Expanded(
+                          flex: 2,
+                          child: Container(
+                            height: 10,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
                           ),
                         ),
-                        const SizedBox(width: 8),
-                        Container(
-                          height: 10,
-                          width: 60,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(4),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          flex: 2,
+                          child: Container(
+                            height: 10,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
                           ),
                         ),
-                        const SizedBox(width: 8),
-                        Container(
-                          height: 10,
-                          width: 40,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(4),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          flex: 1,
+                          child: Container(
+                            height: 10,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
                           ),
                         ),
                       ],

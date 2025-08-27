@@ -16,11 +16,11 @@ class AuthGuard extends AutoRouteGuard {
         resolver.next();
       } else {
         // User is not authenticated, redirect to login
-        resolver.redirect(const LoginViewRoute());
+        resolver.redirectUntil(const LoginViewRoute());
       }
     } catch (e) {
       // Error checking authentication, redirect to login for safety
-      resolver.redirect(const LoginViewRoute());
+      resolver.redirectUntil(const LoginViewRoute());
     }
   }
 }
@@ -35,7 +35,7 @@ class AdminGuard extends AutoRouteGuard {
       
       if (!isLoggedIn) {
         // User is not authenticated, redirect to login
-        resolver.redirect(const LoginViewRoute());
+        resolver.redirectUntil(const LoginViewRoute());
         return;
       }
       
@@ -48,15 +48,15 @@ class AdminGuard extends AutoRouteGuard {
           resolver.next();
         } else {
           // User doesn't have admin privileges, redirect to home
-          resolver.redirect(const HomeViewRoute());
+          resolver.redirectUntil(const HomeViewRoute());
         }
       } else {
         // Error getting user data, redirect to login
-        resolver.redirect(const LoginViewRoute());
+        resolver.redirectUntil(const LoginViewRoute());
       }
     } catch (e) {
       // Error checking authorization, redirect to login for safety
-      resolver.redirect(const LoginViewRoute());
+      resolver.redirectUntil(const LoginViewRoute());
     }
   }
 }
@@ -74,7 +74,7 @@ class GuestGuard extends AutoRouteGuard {
         resolver.next();
       } else {
         // User is already authenticated, redirect to home
-        resolver.redirect(const HomeViewRoute());
+        resolver.redirectUntil(const HomeViewRoute());
       }
     } catch (e) {
       // Error checking authentication, allow navigation for safety

@@ -16,7 +16,7 @@ class FeedView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (context) => FeedCubit()..fetchReports(),
+      create: (context) => FeedCubit()..loadUserAndFetch(),
       child: const _FeedViewBody(),
     );
   }
@@ -56,7 +56,7 @@ class _FeedViewBodyState extends State<_FeedViewBody> {
   }
 
   Future<void> _onRefresh() async {
-    await context.read<FeedCubit>().fetchReports();
+    await context.read<FeedCubit>().loadUserAndFetch();
   }
 
   Future<void> _deleteReport(Report report) async {
@@ -152,7 +152,7 @@ class _FeedViewBodyState extends State<_FeedViewBody> {
                 Text(state.message, style: Theme.of(context).textTheme.bodyMedium),
                 const SizedBox(height: 8),
                 FilledButton(
-                  onPressed: () => context.read<FeedCubit>().fetchReports(),
+                  onPressed: () => context.read<FeedCubit>().loadUserAndFetch(),
                   child: const Text('Tekrar Dene'),
                 ),
               ],
