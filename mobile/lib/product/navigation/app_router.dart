@@ -7,6 +7,7 @@ import '../../feature/auth/view/register_view.dart';
 import '../../feature/home/view/home_view.dart';
 import '../../feature/report/view/report_detail_view.dart';
 import '../../feature/report/view/create_report_view.dart';
+import '../../feature/report/view/map_location_picker_view.dart';
 import '../../feature/profile/view/profile_view.dart';
 import '../../feature/profile/view/settings_view.dart';
 import '../../feature/profile/view/admin_dashboard_view.dart';
@@ -61,6 +62,11 @@ class AppRouter extends RootStackRouter {
     AutoRoute(
       page: CreateReportViewRoute.page,
       path: '/create-report',
+      guards: [AuthGuard()],
+    ),
+    AutoRoute(
+      page: MapLocationPickerViewRoute.page,
+      path: '/map-picker',
       guards: [AuthGuard()],
     ),
 

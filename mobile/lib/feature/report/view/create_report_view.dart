@@ -10,6 +10,7 @@ import 'package:permission_handler/permission_handler.dart' as ph;
 import 'package:shimmer/shimmer.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import 'map_location_picker_view.dart';
 
 import '../../../product/constants/api_endpoints.dart';
 import '../../../product/models/report.dart';
@@ -40,6 +41,7 @@ class _CreateReportViewState extends State<CreateReportView> {
 
   double? _latitude;
   double? _longitude;
+  final MapController _previewMapController = MapController();
 
   XFile? _image;
   bool _submitting = false;
@@ -184,6 +186,12 @@ class _CreateReportViewState extends State<CreateReportView> {
       });
       // Koordinatlar alındıktan sonra adresi otomatik doldur
       await _fillAddressFromCoordinates();
+      // Küçük haritayı mevcut konuma kaydır
+      if (_latitude != null && _longitude != null) {
+        try {
+          _previewMapController.move(LatLng(_latitude!, _longitude!), 13);
+        } catch (_) {}
+      }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Konum alındı: ${_latitude?.toStringAsFixed(5)}, ${_longitude?.toStringAsFixed(5)}')),
@@ -194,6 +202,43 @@ class _CreateReportViewState extends State<CreateReportView> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Konum alınamadı: $e')),
         );
+      }
+    }
+  }
+
+  Future<void> _selectFromMap() async {
+    final result = await showModalBottomSheet<Map<String, dynamic>?>(
+      context: context,
+      useSafeArea: true,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) => FractionallySizedBox(
+        heightFactor: 0.9,
+        child: MapLocationPickerView(
+          initialLatitude: _latitude,
+          initialLongitude: _longitude,
+        ),
+      ),
+    );
+
+    if (result != null) {
+      setState(() {
+        _latitude = result['latitude'] as double?;
+        _longitude = result['longitude'] as double?;
+      });
+      final address = result['address'] as String?;
+      if (address != null) {
+        setState(() => _locationCtrl.text = address);
+      } else {
+        await _fillAddressFromCoordinates();
+      }
+      // Küçük haritayı seçilen konuma taşı
+      if (_latitude != null && _longitude != null) {
+        try {
+          _previewMapController.move(LatLng(_latitude!, _longitude!), 13);
+        } catch (_) {}
       }
     }
   }
@@ -447,35 +492,53 @@ class _CreateReportViewState extends State<CreateReportView> {
                               ),
                             ),
                             const SizedBox(width: 8),
-                            OutlinedButton.icon(
-                              onPressed: _useCurrentLocation,
-                              icon: const Icon(Icons.my_location),
-                              label: const Text('Konumu Kullan'),
+                            Tooltip(
+                              message: 'Mevcut konumunuzu alır. Aşağıdaki haritaya dokunarak noktayı değiştirebilirsiniz.',
+                              child: OutlinedButton.icon(
+                                onPressed: _useCurrentLocation,
+                                icon: const Icon(Icons.my_location),
+                                label: const Text('Mevcut Konumu Al'),
+                              ),
                             )
                           ],
                         ),
                         const SizedBox(height: 8),
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: SizedBox(
-                            height: 200,
-                            child: FlutterMap(
-                              options: MapOptions(
-                                initialCenter: _latitude != null && _longitude != null
-                                    ? LatLng(_latitude!, _longitude!)
-                                    : LatLng(41.015137, 28.979530),
-                                initialZoom: 13,
-                              ),
-                              children: [
-                                TileLayer(
-                                  urlTemplate: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-                                  subdomains: ['a', 'b', 'c'],
-                                  userAgentPackageName: 'cozum.mobile',
+                        const Text(
+                          'Haritadan konum seçmek için aşağıdaki haritaya dokunun',
+                          style: TextStyle(color: Colors.grey),
+                        ),
+                        const SizedBox(height: 8),
+                        Material(
+                          color: Colors.transparent,
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: InkWell(
+                              onTap: _selectFromMap,
+                              child: SizedBox(
+                              height: 200,
+                              child: AbsorbPointer(
+                                absorbing: true,
+                                child: FlutterMap(
+                                  mapController: _previewMapController,
+                                  options: MapOptions(
+                                    initialCenter: _latitude != null && _longitude != null
+                                        ? LatLng(_latitude!, _longitude!)
+                                        : LatLng(41.015137, 28.979530),
+                                    initialZoom: 13,
+                                  ),
+                                  children: [
+                                    TileLayer(
+                                      urlTemplate: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+                                      subdomains: ['a', 'b', 'c'],
+                                      userAgentPackageName: 'cozum.mobile',
+                                    ),
+                                  ],
                                 ),
-                              ],
+                              ),
                             ),
                           ),
                         ),
+                      ),
                         const SizedBox(height: 8),
                         TextFormField(
                           controller: _locationCtrl,

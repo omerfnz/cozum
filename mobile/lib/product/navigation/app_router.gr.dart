@@ -86,6 +86,60 @@ class LoginViewRoute extends PageRouteInfo<void> {
 }
 
 /// generated route for
+/// [MapLocationPickerView]
+class MapLocationPickerViewRoute
+    extends PageRouteInfo<MapLocationPickerViewRouteArgs> {
+  MapLocationPickerViewRoute({
+    Key? key,
+    double? initialLatitude,
+    double? initialLongitude,
+    List<PageRouteInfo>? children,
+  }) : super(
+          MapLocationPickerViewRoute.name,
+          args: MapLocationPickerViewRouteArgs(
+            key: key,
+            initialLatitude: initialLatitude,
+            initialLongitude: initialLongitude,
+          ),
+          initialChildren: children,
+        );
+
+  static const String name = 'MapLocationPickerViewRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      final args = data.argsAs<MapLocationPickerViewRouteArgs>(
+          orElse: () => const MapLocationPickerViewRouteArgs());
+      return MapLocationPickerView(
+        key: args.key,
+        initialLatitude: args.initialLatitude,
+        initialLongitude: args.initialLongitude,
+      );
+    },
+  );
+}
+
+class MapLocationPickerViewRouteArgs {
+  const MapLocationPickerViewRouteArgs({
+    this.key,
+    this.initialLatitude,
+    this.initialLongitude,
+  });
+
+  final Key? key;
+
+  final double? initialLatitude;
+
+  final double? initialLongitude;
+
+  @override
+  String toString() {
+    return 'MapLocationPickerViewRouteArgs{key: $key, initialLatitude: $initialLatitude, initialLongitude: $initialLongitude}';
+  }
+}
+
+/// generated route for
 /// [ProfileView]
 class ProfileViewRoute extends PageRouteInfo<void> {
   const ProfileViewRoute({List<PageRouteInfo>? children})

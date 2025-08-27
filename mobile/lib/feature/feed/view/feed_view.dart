@@ -355,7 +355,7 @@ class _FeedCardShimmer extends StatelessWidget {
                   SizedBox(width: 8),
                   _SkeletonChip(width: 70),
                   Spacer(),
-                  _SkeletonLine(widthFactor: 0.1),
+                  _SkeletonLine(width: 40),
                 ],
               ),
             ),
@@ -367,14 +367,19 @@ class _FeedCardShimmer extends StatelessWidget {
 }
 
 class _SkeletonLine extends StatelessWidget {
-  const _SkeletonLine({required this.widthFactor});
-  final double widthFactor;
+  const _SkeletonLine({this.widthFactor, this.width});
+  final double? widthFactor;
+  final double? width;
   @override
   Widget build(BuildContext context) {
-    return FractionallySizedBox(
-      widthFactor: widthFactor,
-      child: Container(height: 12, color: Colors.white),
-    );
+    final line = Container(height: 12, color: Colors.white);
+    if (width != null) {
+      return SizedBox(width: width, child: line);
+    }
+    if (widthFactor != null) {
+      return FractionallySizedBox(widthFactor: widthFactor!, child: line);
+    }
+    return line;
   }
 }
 

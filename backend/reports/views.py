@@ -1,6 +1,8 @@
 from rest_framework import generics, permissions
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.parsers import MultiPartParser
+from rest_framework.response import Response
+from rest_framework import status
 
 from .models import Category, Comment, Report
 from .serializers import (
@@ -72,6 +74,16 @@ class ReportListCreateView(generics.ListCreateAPIView):
         if self.request.method == "POST":
             return ReportCreateSerializer
         return ReportListSerializer
+
+    def create(self, request, *args, **kwargs):
+        """Oluşturma sonrası detay serileştirici ile yanıt dön (mobil ile uyum)"""
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        instance = serializer.instance
+        output_serializer = ReportDetailSerializer(instance, context=self.get_serializer_context())
+        headers = self.get_success_headers(output_serializer.data)
+        return Response(output_serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
     def perform_create(self, serializer):
         serializer.save(reporter=self.request.user)

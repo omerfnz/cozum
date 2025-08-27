@@ -1,6 +1,7 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'dart:async';
+import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../../product/init/service_locator.dart';
 import '../../../product/service/auth/auth_service.dart';
@@ -13,14 +14,29 @@ class SplashView extends StatefulWidget {
   State<SplashView> createState() => _SplashViewState();
 }
 
-class _SplashViewState extends State<SplashView> {
+class _SplashViewState extends State<SplashView>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _fade;
+
   @override
   void initState() {
     super.initState();
-    // İlk frame’den sonra yönlendirme kararını verelim
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    )..forward();
+    _fade = CurvedAnimation(parent: _controller, curve: Curves.easeInOut);
+
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await _decideNavigation();
     });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
   }
 
   Future<void> _decideNavigation() async {
@@ -31,7 +47,6 @@ class _SplashViewState extends State<SplashView> {
       isLoggedIn = await authService.isLoggedIn();
 
       if (isLoggedIn) {
-        // Token var, sunucudan kullanıcıyı doğrula
         final me = await authService
             .getCurrentUser()
             .timeout(const Duration(seconds: 12));
@@ -40,7 +55,6 @@ class _SplashViewState extends State<SplashView> {
           router.replaceAll([const HomeViewRoute()]);
           return;
         } else {
-          // Token geçersiz, temizle ve login’e yönlendir
           await authService.logout();
           if (!mounted) return;
           router.replaceAll([const LoginViewRoute()]);
@@ -48,7 +62,6 @@ class _SplashViewState extends State<SplashView> {
         }
       }
     } on TimeoutException {
-      // Başlangıçta uzun beklemelerde kullanıcıyı login'e al
       if (!mounted) return;
       final authService = serviceLocator<IAuthService>();
       await authService.logout();
@@ -58,37 +71,58 @@ class _SplashViewState extends State<SplashView> {
       isLoggedIn = false;
     }
 
-     if (!mounted) return;
+    if (!mounted) return;
 
-     if (isLoggedIn) {
-       router.replaceAll([const HomeViewRoute()]);
-     } else {
-       router.replaceAll([const LoginViewRoute()]);
-     }
-   }
+    if (isLoggedIn) {
+      router.replaceAll([const HomeViewRoute()]);
+    } else {
+      router.replaceAll([const LoginViewRoute()]);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.construction, size: 64, color: Colors.orange),
-            SizedBox(height: 16),
-            Text(
-              'Çözüm Var',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-              ),
+    final theme = Theme.of(context);
+    return Scaffold(
+      backgroundColor: const Color(0xFF1976D2),
+      body: SafeArea(
+        child: Center(
+          child: FadeTransition(
+            opacity: _fade,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  width: 100,
+                  height: 100,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.12),
+                    shape: BoxShape.circle,
+                  ),
+                  child: SvgPicture.asset(
+                    'asset/icons/logo.svg',
+                    colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  'Çözüm Var',
+                  style: theme.textTheme.headlineSmall?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Yükleniyor...',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: Colors.white.withValues(alpha: 0.9),
+                  ),
+                ),
+              ],
             ),
-            SizedBox(height: 8),
-            Text(
-              'MVVM Architecture Loading...',
-              style: TextStyle(fontSize: 16),
-            ),
-          ],
+          ),
         ),
       ),
     );
