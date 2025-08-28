@@ -46,34 +46,38 @@ class _MapLocationPickerViewState extends State<MapLocationPickerView> {
   @override
   void dispose() {
     _debounceTimer?.cancel();
+    _mapController.dispose();
     super.dispose();
   }
 
   void _loadAddressWithDebounce() {
-    print('⏰ Debounce başlatıldı');
     // Önceki timer'ı iptal et
     _debounceTimer?.cancel();
-    print('⏰ Önceki timer iptal edildi');
+    
+    // Loading durumunu hemen göster
+    if (mounted) {
+      setState(() {
+        _loadingAddress = true;
+        _address = null; // Eski adresi temizle
+      });
+    }
     
     // Yeni timer başlat (1.5 saniye gecikme)
     _debounceTimer = Timer(const Duration(milliseconds: 1500), () {
-      print('⏰ Timer tetiklendi, _loadAddress çağrılıyor');
       _loadAddress();
     });
-    print('⏰ Yeni timer başlatıldı (1.5s)');
   }
 
   Future<void> _loadAddress() async {
     if (!mounted) return;
     
-    print('🗺️ _loadAddress başlatıldı: ${_selectedLocation.latitude}, ${_selectedLocation.longitude}');
     setState(() => _loadingAddress = true);
     
     try {
       final dio = Dio(
         BaseOptions(
           headers: {
-            'User-Agent': 'cozum-mobile/1.0 (+https://example.com)'
+            'User-Agent': 'cozum-mobile/1.0.0 (contact: info@cozum.com)'
           },
           connectTimeout: const Duration(seconds: 30),
           receiveTimeout: const Duration(seconds: 30),
@@ -81,7 +85,6 @@ class _MapLocationPickerViewState extends State<MapLocationPickerView> {
         ),
       );
       
-      print('🌐 API çağrısı yapılıyor...');
       final res = await dio.get(
         'https://nominatim.openstreetmap.org/reverse',
         queryParameters: {
@@ -91,21 +94,16 @@ class _MapLocationPickerViewState extends State<MapLocationPickerView> {
         },
       );
       
-      print('📡 API yanıtı alındı: ${res.statusCode}');
-      
       if (res.statusCode == 200 && res.data is Map) {
         final data = res.data as Map;
         final displayName = data['display_name'] as String?;
-        print('📍 Adres bulundu: $displayName');
         
         if (displayName != null && mounted) {
           setState(() {
             _address = displayName;
             _loadingAddress = false;
           });
-          print('✅ Adres güncellendi');
         } else {
-          print('❌ Display name null');
           if (mounted) {
             setState(() {
               _address = 'Adres bulunamadı';
@@ -114,7 +112,6 @@ class _MapLocationPickerViewState extends State<MapLocationPickerView> {
           }
         }
       } else {
-        print('❌ API yanıtı başarısız: ${res.statusCode}');
         if (mounted) {
           setState(() {
             _address = 'Adres alınamadı (${res.statusCode})';
@@ -123,7 +120,6 @@ class _MapLocationPickerViewState extends State<MapLocationPickerView> {
         }
       }
     } catch (e) {
-      print('💥 API hatası: $e');
       if (mounted) {
         String errorMessage = 'Adres alınamadı';
         if (e.toString().contains('connection timeout')) {
@@ -140,11 +136,9 @@ class _MapLocationPickerViewState extends State<MapLocationPickerView> {
   }
 
   void _onMapTap(TapPosition tapPosition, LatLng point) {
-    print('👆 Harita tıklandı: $point');
     // Harita merkezini tıklanan noktaya taşı
     _mapController.move(point, _mapController.camera.zoom);
     setState(() => _selectedLocation = point);
-    print('👆 Konum güncellendi: ${_selectedLocation.latitude}, ${_selectedLocation.longitude}');
     _loadAddressWithDebounce();
   }
 
@@ -298,24 +292,41 @@ class _MapLocationPickerViewState extends State<MapLocationPickerView> {
                   options: MapOptions(
                     initialCenter: _selectedLocation,
                     initialZoom: 15,
+                    minZoom: 3,
+                    maxZoom: 18,
+                    interactionOptions: const InteractionOptions(
+                      flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
+                    ),
                     onTap: _onMapTap,
                     onPositionChanged: (position, hasGesture) {
-                      print('🗺️ onPositionChanged: hasGesture=$hasGesture, center=${position.center}');
-                      if (hasGesture) {
+                      if (hasGesture && mounted) {
                         // Harita hareket ettirildiğinde merkez konumu güncelle
-                        setState(() {
-                          _selectedLocation = position.center;
-                        });
-                        print('🗺️ Konum güncellendi: ${_selectedLocation.latitude}, ${_selectedLocation.longitude}');
-                        // Adresi debounce ile güncelle
-                        _loadAddressWithDebounce();
+                        final newLocation = LatLng(
+                          double.parse(position.center.latitude.toStringAsFixed(6)),
+                          double.parse(position.center.longitude.toStringAsFixed(6)),
+                        );
+                        
+                        // Konum değişikliği varsa güncelle
+                        if (_selectedLocation.latitude != newLocation.latitude ||
+                            _selectedLocation.longitude != newLocation.longitude) {
+                          setState(() {
+                            _selectedLocation = newLocation;
+                          });
+                          // Adresi debounce ile güncelle
+                          _loadAddressWithDebounce();
+                        }
                       }
                     },
                   ),
                   children: [
                     TileLayer(
                       urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                      userAgentPackageName: 'cozum.mobile',
+                      userAgentPackageName: 'com.cozum.mobile',
+                      maxZoom: 18,
+                      minZoom: 3,
+                      maxNativeZoom: 19,
+                      tileDimension: 256,
+                      retinaMode: false,
                     ),
                   ],
                 ),
