@@ -65,6 +65,7 @@ dependencies:
   json_annotation: ^4.9.0
   shimmer: ^3.0.0
   flutter_svg: ^2.0.9
+  flutter_native_splash: ^2.4.0
 
 dev_dependencies:
   flutter_test:
@@ -78,7 +79,6 @@ dev_dependencies:
   bloc_test: ^10.0.0
   device_preview: ^1.1.0
   flutter_lints: ^6.0.0
-  flutter_native_splash: ^2.4.0
 
 flutter:
   uses-material-design: true
@@ -90,14 +90,29 @@ flutter:
   
 
 flutter_native_splash:
-  color: "#1976D2"
-  color_dark: "#0D47A1"
+  # Tema uyumlu renkler (AppColors.surface)
+  color: "#FFFBFE"  # Light theme background
+  color_dark: "#1C1B1F"  # Dark theme background
+  
+  # Görsel kullanmıyoruz; Android 12+ için launcher ikonu kullanılacak
+  # image: asset/images/app_name.png
+  # image_dark: asset/images/app_name_dark.png
+  
+  # Android 12+ desteği
   android_12:
-    color: "#1976D2"
-    color_dark: "#0D47A1"
-  # Xiaomi MIUI için ek ayarlar
+    color: "#FFFBFE"
+    color_dark: "#1C1B1F"
+    # image: asset/images/app_name.png
+    # image_dark: asset/images/app_name_dark.png
+    icon_background_color: "#FFFBFE"
+    icon_background_color_dark: "#1C1B1F"
+  
+  # Xiaomi MIUI ve diğer cihazlar için optimizasyonlar
   android_gravity: center
   ios_content_mode: center
   fullscreen: true
-  # MIUI uyumluluğu için
-  android_disable_fullscreen: false
+  
+  # Platform desteği
+  web: false
+  android: true
+  ios: true
