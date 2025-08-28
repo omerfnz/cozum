@@ -6,8 +6,9 @@ class CreateReportShimmer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final base = Colors.grey.shade300;
-    final highlight = Colors.grey.shade100;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final base = isDark ? Colors.grey.shade800 : Colors.grey.shade300;
+    final highlight = isDark ? Colors.grey.shade700 : Colors.grey.shade100;
 
     Widget box({double height = 16, double width = double.infinity, BorderRadius? radius}) {
       return Shimmer.fromColors(

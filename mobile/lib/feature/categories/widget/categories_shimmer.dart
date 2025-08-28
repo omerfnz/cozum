@@ -12,8 +12,12 @@ class CategoriesShimmer extends StatelessWidget {
       separatorBuilder: (_, __) => const SizedBox(height: 8),
       itemBuilder: (context, index) {
         return Shimmer.fromColors(
-          baseColor: Colors.grey.shade300,
-          highlightColor: Colors.grey.shade100,
+          baseColor: Theme.of(context).brightness == Brightness.dark
+              ? Colors.grey.shade700
+              : Colors.grey.shade300,
+          highlightColor: Theme.of(context).brightness == Brightness.dark
+              ? Colors.grey.shade600
+              : Colors.grey.shade100,
           child: Card(
             child: ListTile(
               leading: const CircleAvatar(backgroundColor: Colors.white),

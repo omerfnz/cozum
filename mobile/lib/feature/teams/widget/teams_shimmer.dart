@@ -6,14 +6,18 @@ class TeamsShimmer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final baseColor = isDark ? Colors.grey.shade800 : Colors.grey.shade300;
+    final highlightColor = isDark ? Colors.grey.shade700 : Colors.grey.shade100;
+    
     return ListView.separated(
       padding: const EdgeInsets.all(16),
       itemCount: 6,
       separatorBuilder: (_, __) => const SizedBox(height: 8),
       itemBuilder: (context, index) {
         return Shimmer.fromColors(
-          baseColor: Colors.grey.shade300,
-          highlightColor: Colors.grey.shade100,
+          baseColor: baseColor,
+          highlightColor: highlightColor,
           child: Card(
             child: ListTile(
               leading: const CircleAvatar(backgroundColor: Colors.white),

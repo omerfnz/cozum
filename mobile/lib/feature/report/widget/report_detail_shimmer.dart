@@ -8,8 +8,9 @@ class ReportDetailShimmer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final baseColor = Colors.grey.shade300;
-    final highlightColor = Colors.grey.shade100;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final baseColor = isDark ? Colors.grey.shade800 : Colors.grey.shade300;
+    final highlightColor = isDark ? Colors.grey.shade700 : Colors.grey.shade100;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       child: Column(
@@ -69,8 +70,9 @@ class CommentsShimmer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final baseColor = Colors.grey.shade300;
-    final highlightColor = Colors.grey.shade100;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final baseColor = isDark ? Colors.grey.shade800 : Colors.grey.shade300;
+    final highlightColor = isDark ? Colors.grey.shade700 : Colors.grey.shade100;
     return ListView.separated(
       padding: const EdgeInsets.symmetric(horizontal: 8),
       physics: const NeverScrollableScrollPhysics(),
