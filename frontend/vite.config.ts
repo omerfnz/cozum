@@ -7,12 +7,14 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/api': {
-        target: 'http://3.126.55.85:3000',
+        target: 'https://api.ntek.com.tr',
         changeOrigin: true,
+        secure: true,
       },
       '/auth': {
-        target: 'http://3.126.55.85:3000',
+        target: 'https://api.ntek.com.tr',
         changeOrigin: true,
+        secure: true,
       },
     },
   },
