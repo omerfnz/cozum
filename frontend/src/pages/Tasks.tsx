@@ -1,185 +1,119 @@
 import { useEffect, useMemo, useState } from 'react'
-import { getReports, getTeams, updateReport, type Report, type Team, me } from '../lib/api'
+import { getTasks, updateTaskStatus, type Task } from '../lib/api'
+import toast from 'react-hot-toast'
 
 export default function Tasks() {
-  const [reports, setReports] = useState<Report[]>([])
-  const [teams, setTeams] = useState<Team[]>([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [tasks, setTasks] = useState<Task[]>([])
   const [query, setQuery] = useState('')
-  const [role, setRole] = useState<'VATANDAS' | 'OPERATOR' | 'EKIP' | 'ADMIN' | undefined>()
+
+  const fetchTasks = async () => {
+    try {
+      setLoading(true)
+      const data = await getTasks()
+      setTasks(data)
+    } catch (e) {
+      const err = e as { response?: { data?: { detail?: string } } }
+      toast.error(err?.response?.data?.detail || 'Görevler yüklenemedi')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   useEffect(() => {
-    const load = async () => {
-      setLoading(true)
-      setError(null)
-      try {
-        const user = await me()
-        setRole(user?.role)
-        const [r, t] = await Promise.all([getReports(undefined, true), getTeams()])
-        setReports(r)
-        setTeams(t)
-      } catch (e) {
-        console.error(e)
-        setError('Görevler yüklenemedi')
-      } finally {
-        setLoading(false)
-      }
-    }
-    load()
+    fetchTasks()
   }, [])
 
   const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase()
-    if (!q) return reports
-    return reports.filter(r =>
-      r.title.toLowerCase().includes(q) ||
-      (r.category?.name || '').toLowerCase().includes(q) ||
-      (r.reporter?.username || r.reporter?.email || '').toLowerCase().includes(q)
+    const q = query.toLowerCase().trim()
+    if (!q) return tasks
+    return tasks.filter(t =>
+      t.report_title.toLowerCase().includes(q) ||
+      (t.assigned_team_name || '').toLowerCase().includes(q) ||
+      t.status.toLowerCase().includes(q)
     )
-  }, [reports, query])
+  }, [tasks, query])
 
-  const statusOptions: Report['status'][] = ['BEKLEMEDE', 'INCELENIYOR', 'COZULDU', 'REDDEDILDI']
-
-  const handleStatusChange = async (id: number, status: Report['status']) => {
+  const updateStatus = async (t: Task, status: Task['status']) => {
     try {
-      const updated = await updateReport(id, { status })
-      setReports(prev => prev.map(r => (r.id === id ? { ...r, status: updated.status } : r)))
-    } catch {
-      alert('Durum güncellenemedi')
+      const updated = await updateTaskStatus(t.id, status)
+      setTasks(prev => prev.map(x => (x.id === t.id ? updated : x)))
+      toast.success('Durum güncellendi')
+    } catch (e) {
+      const err = e as { response?: { data?: { detail?: string } } }
+      toast.error(err?.response?.data?.detail || 'Durum güncellenemedi')
     }
   }
-
-  const handleAssignTeam = async (id: number, teamId: number | null) => {
-    try {
-      const updated = await updateReport(id, { assigned_team: teamId })
-      setReports(prev => prev.map(r => (r.id === id ? { ...r, assigned_team: updated.assigned_team } : r)))
-    } catch {
-      alert('Ekip ataması yapılamadı')
-    }
-  }
-
-  const handleMarkResolved = async (id: number) => {
-    await handleStatusChange(id, 'COZULDU')
-  }
-
-  const canOperate = role === 'OPERATOR' || role === 'ADMIN'
-  const isTeamMember = role === 'EKIP'
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="p-6">
+      <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-xl font-semibold text-slate-900">Görevler</h1>
-          <p className="text-sm text-slate-600">Ekip atamaları ve durum güncellemeleri</p>
+          <h1 className="text-2xl font-bold text-slate-900">Görevler</h1>
+          <p className="text-slate-500 text-sm">Rapor atamaları ve durum yönetimi</p>
         </div>
-      </div>
-
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
-        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+        <div className="w-72">
           <input
-            type="text"
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Ara: başlık, kategori, kullanıcı"
-            className="w-full sm:max-w-xs rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            onChange={e => setQuery(e.target.value)}
+            placeholder="Ara: rapor, takım, durum..."
+            className="w-full px-3 py-2 rounded-md border border-gray-200 focus:ring-2 focus:ring-blue-500 outline-none"
           />
-          <div className="text-sm text-slate-600 sm:ml-auto">Toplam: {filtered.length}</div>
         </div>
       </div>
 
-      {loading ? (
-        <div className="min-h-[30vh] grid place-items-center">
-          <div className="text-slate-600">Yükleniyor...</div>
-        </div>
-      ) : error ? (
-        <div className="min-h-[20vh] grid place-items-center">
-          <div className="text-rose-600">{error}</div>
-        </div>
-      ) : (
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-sm">
-              <thead className="bg-slate-50 border-b border-gray-200">
-                <tr>
-                  <th className="text-left font-medium text-slate-600 px-4 py-3">Başlık</th>
-                  <th className="text-left font-medium text-slate-600 px-4 py-3">Kategori</th>
-                  <th className="text-left font-medium text-slate-600 px-4 py-3">Durum</th>
-                  <th className="text-left font-medium text-slate-600 px-4 py-3">Atanan Ekip</th>
-                  {canOperate && <th className="text-left font-medium text-slate-600 px-4 py-3">İşlemler</th>}
-                  {isTeamMember && <th className="text-left font-medium text-slate-600 px-4 py-3">Aksiyon</th>}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {filtered.map((r) => (
-                  <tr key={r.id} className="hover:bg-slate-50/60">
-                    <td className="px-4 py-3">
-                      <div className="font-medium text-slate-900">{r.title}</div>
-                      <div className="text-xs text-slate-500">{r.reporter?.username || r.reporter?.email}</div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="text-slate-700">{r.category?.name}</span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <select
-                        className="border border-gray-300 rounded-lg px-2 py-1 text-sm"
-                        value={r.status}
-                        onChange={(e) => handleStatusChange(r.id, e.target.value as Report['status'])}
-                        disabled={!canOperate}
-                      >
-                        {statusOptions.map(s => (
-                          <option key={s} value={s}>{s}</option>
-                        ))}
-                      </select>
-                    </td>
-                    <td className="px-4 py-3">
-                      <select
-                        className="border border-gray-300 rounded-lg px-2 py-1 text-sm"
-                        value={r.assigned_team?.id || ''}
-                        onChange={(e) => handleAssignTeam(r.id, e.target.value ? Number(e.target.value) : null)}
-                        disabled={!canOperate}
-                      >
-                        <option value="">Seçilmedi</option>
-                        {teams.map(t => (
-                          <option key={t.id} value={t.id}>{t.name}</option>
-                        ))}
-                      </select>
-                    </td>
-                    {canOperate && (
-                      <td className="px-4 py-3">
-                        <button
-                          onClick={() => handleAssignTeam(r.id, null)}
-                          className="text-xs px-3 py-1 rounded-md border border-gray-300 hover:bg-gray-50"
-                        >
-                          Atamayı Kaldır
-                        </button>
-                      </td>
-                    )}
-                    {isTeamMember && (
-                      <td className="px-4 py-3">
-                        <button
-                          onClick={() => handleMarkResolved(r.id)}
-                          className="text-xs px-3 py-1 rounded-md bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50"
-                          disabled={r.status === 'COZULDU'}
-                        >
-                          Çözüldü İşaretle
-                        </button>
-                      </td>
-                    )}
+      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden shadow-sm">
+        <table className="min-w-full">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="text-left px-4 py-3 text-slate-600 text-sm">Rapor</th>
+              <th className="text-left px-4 py-3 text-slate-600 text-sm">Takım</th>
+              <th className="text-left px-4 py-3 text-slate-600 text-sm">Durum</th>
+              <th className="text-right px-4 py-3 text-slate-600 text-sm">İşlemler</th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? (
+              <>
+                {Array.from({ length: 8 }).map((_, i) => (
+                  <tr key={i} className="border-t border-gray-100 animate-pulse">
+                    <td className="px-4 py-3"><div className="h-4 w-64 bg-slate-200 rounded" /></td>
+                    <td className="px-4 py-3"><div className="h-4 w-48 bg-slate-200 rounded" /></td>
+                    <td className="px-4 py-3"><div className="h-8 w-28 bg-slate-200 rounded" /></td>
+                    <td className="px-4 py-3 text-right"><div className="h-8 w-24 bg-slate-200 rounded ml-auto" /></td>
                   </tr>
                 ))}
-                {filtered.length === 0 && (
-                  <tr>
-                    <td colSpan={5} className="px-4 py-12 text-center text-slate-500">
-                      Kayıt bulunamadı
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
+              </>
+            ) : filtered.length === 0 ? (
+              <tr>
+                <td colSpan={4} className="px-4 py-8 text-center text-slate-500">Kayıt bulunamadı</td>
+              </tr>
+            ) : (
+              filtered.map(t => (
+                <tr key={t.id} className="border-t border-gray-100 hover:bg-gray-50">
+                  <td className="px-4 py-3 text-sm text-slate-800">{t.report_title}</td>
+                  <td className="px-4 py-3 text-sm text-slate-800">{t.assigned_team_name || '—'}</td>
+                  <td className="px-4 py-3 text-sm">
+                    <select
+                      value={t.status}
+                      onChange={e => updateStatus(t, e.target.value as Task['status'])}
+                      className="px-2 py-1 border border-gray-200 rounded-md text-sm"
+                    >
+                      <option value="ATANDI">Atandı</option>
+                      <option value="DEVAM_EDIYOR">Devam Ediyor</option>
+                      <option value="TAMAMLANDI">Tamamlandı</option>
+                      <option value="IPTAL">İptal</option>
+                    </select>
+                  </td>
+                  <td className="px-4 py-3 text-sm text-right">
+                    <button className="px-3 py-1.5 bg-blue-50 text-blue-600 rounded-md hover:bg-blue-100">Detay</button>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
   )
 }

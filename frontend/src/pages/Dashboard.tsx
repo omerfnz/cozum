@@ -168,11 +168,94 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-[40vh] flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Yükleniyor...</p>
-        </div>
+      <div className="space-y-6 animate-pulse">
+        <section className="h-28 rounded-2xl bg-slate-100 border border-slate-200" />
+        <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 rounded-lg bg-slate-200" />
+                <div className="flex-1 space-y-2">
+                  <div className="h-3 w-24 bg-slate-200 rounded" />
+                  <div className="h-4 w-16 bg-slate-200 rounded" />
+                </div>
+              </div>
+            </div>
+          ))}
+        </section>
+        <section className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+          <div className="h-3 w-full bg-slate-200 rounded" />
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="h-3 bg-slate-200 rounded" />
+            ))}
+          </div>
+        </section>
+        <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 rounded-lg bg-slate-200" />
+                <div className="flex-1 space-y-2">
+                  <div className="h-3 w-24 bg-slate-200 rounded" />
+                  <div className="h-4 w-16 bg-slate-200 rounded" />
+                </div>
+              </div>
+            </div>
+          ))}
+        </section>
+        <section className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+          <div className="h-5 w-40 bg-slate-200 rounded mb-4" />
+          <div className="w-full h-20 bg-slate-100 rounded" />
+          <div className="flex items-center justify-between mt-3 text-xs">
+            <div className="h-3 w-24 bg-slate-200 rounded" />
+            <div className="h-3 w-16 bg-slate-200 rounded" />
+          </div>
+        </section>
+        <section className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+          <div className="space-y-3">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="">
+                <div className="flex items-center justify-between">
+                  <div className="h-4 w-40 bg-slate-200 rounded" />
+                  <div className="h-4 w-10 bg-slate-200 rounded" />
+                </div>
+                <div className="mt-2 h-2 bg-slate-100 rounded" />
+              </div>
+            ))}
+          </div>
+        </section>
+        <section>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-lg bg-slate-200" />
+                  <div className="flex-1 space-y-2">
+                    <div className="h-4 w-24 bg-slate-200 rounded" />
+                    <div className="h-3 w-32 bg-slate-200 rounded" />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+        <section className="bg-white rounded-xl border border-gray-200 shadow-sm">
+          <ul className="divide-y divide-gray-100">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <li key={i} className="flex items-center justify-between px-6 py-4">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-10 h-10 bg-slate-200 rounded" />
+                  <div className="min-w-0 space-y-2">
+                    <div className="h-4 w-40 bg-slate-200 rounded" />
+                    <div className="h-3 w-24 bg-slate-200 rounded" />
+                  </div>
+                </div>
+                <div className="h-8 w-20 bg-slate-200 rounded" />
+              </li>
+            ))}
+          </ul>
+        </section>
       </div>
     )
   }

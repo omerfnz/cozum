@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import { createReport, getCategories, type Category } from '../lib/api'
+import { getCategories, createReport, type Category } from '../lib/api'
 import { isAxiosError } from 'axios'
 // Harita için ek importlar
 import { MapContainer, TileLayer, Marker, useMap, useMapEvents } from 'react-leaflet'
@@ -63,6 +63,49 @@ export default function ReportsCreate() {
   const [longitude, setLongitude] = useState<number | undefined>(undefined)
   const [mapCenter, setMapCenter] = useState<LatLngExpression>([39.92077, 32.85411]) // Ankara varsayılan
 
+  // Dosya doğrulama sabitleri ve yardımcılar
+  const MAX_IMAGE_SIZE = 10 * 1024 * 1024 // 10 MB
+  const ALLOWED_MIME = new Set([
+    'image/jpeg',
+    'image/png',
+    'image/webp',
+    'image/heic',
+    'image/heif',
+  ])
+  const ALLOWED_EXT = new Set(['jpg', 'jpeg', 'png', 'webp', 'heic', 'heif'])
+  const formatBytes = (bytes: number) => {
+    const sizes = ['B', 'KB', 'MB', 'GB']
+    if (bytes === 0) return '0 B'
+    const i = Math.floor(Math.log(bytes) / Math.log(1024))
+    return `${(bytes / Math.pow(1024, i)).toFixed(1)} ${sizes[i]}`
+  }
+  const validateImage = (file: File): string | null => {
+    if (file.size > MAX_IMAGE_SIZE) {
+      return `Dosya çok büyük: ${formatBytes(file.size)}. En fazla ${formatBytes(MAX_IMAGE_SIZE)} yükleyebilirsiniz.`
+    }
+    // MIME tipi veya uzantı ile kontrol
+    if (file.type && ALLOWED_MIME.has(file.type)) return null
+    const ext = file.name.split('.').pop()?.toLowerCase() || ''
+    if (ALLOWED_EXT.has(ext)) return null
+    return 'Desteklenmeyen dosya türü. İzin verilen türler: JPG, JPEG, PNG, WEBP, HEIC, HEIF.'
+  }
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0] || null
+    if (!f) {
+      setImage(null)
+      return
+    }
+    const err = validateImage(f)
+    if (err) {
+      toast.error(err)
+      setImage(null)
+      // input temizle
+      e.currentTarget.value = ''
+      return
+    }
+    setImage(f)
+  }
+
   useEffect(() => {
     const load = async () => {
       try {
@@ -110,6 +153,12 @@ export default function ReportsCreate() {
       toast.error('Lütfen bir fotoğraf seçin (MVP gereği).')
       return
     }
+    // Ek güvenlik: seçili dosyayı tekrar doğrula
+    const err = validateImage(image)
+    if (err) {
+      toast.error(err)
+      return
+    }
     if (latitude === undefined || longitude === undefined) {
       toast.error('Lütfen haritadan bir konum seçin veya "Konumumu Kullan" butonuna tıklayın.')
       return
@@ -143,8 +192,40 @@ export default function ReportsCreate() {
 
   if (initialLoading) {
     return (
-      <div className="min-h-[40vh] grid place-items-center">
-        <div className="text-slate-600">Yükleniyor...</div>
+      <div className="max-w-2xl mx-auto">
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+          <div className="animate-pulse space-y-5">
+            <div className="h-6 w-40 bg-slate-200 rounded" />
+            <div className="space-y-3">
+              <div className="h-4 w-24 bg-slate-200 rounded" />
+              <div className="h-10 w-full bg-slate-200 rounded" />
+            </div>
+            <div className="space-y-3">
+              <div className="h-4 w-28 bg-slate-200 rounded" />
+              <div className="h-24 w-full bg-slate-200 rounded" />
+            </div>
+            <div className="space-y-3">
+              <div className="h-4 w-24 bg-slate-200 rounded" />
+              <div className="h-10 w-full bg-slate-200 rounded" />
+            </div>
+            <div className="space-y-3">
+              <div className="h-4 w-32 bg-slate-200 rounded" />
+              <div className="h-10 w-full bg-slate-200 rounded" />
+            </div>
+            <div className="space-y-3">
+              <div className="h-4 w-20 bg-slate-200 rounded" />
+              <div className="h-72 w-full bg-slate-200 rounded" />
+            </div>
+            <div className="space-y-3">
+              <div className="h-4 w-24 bg-slate-200 rounded" />
+              <div className="h-10 w-2/3 bg-slate-200 rounded" />
+            </div>
+            <div className="flex items-center gap-2 pt-2">
+              <div className="h-10 w-28 bg-slate-200 rounded" />
+              <div className="h-10 w-24 bg-slate-200 rounded" />
+            </div>
+          </div>
+        </div>
       </div>
     )
   }
@@ -200,7 +281,7 @@ export default function ReportsCreate() {
               placeholder="Örn. Atatürk Bulvarı No:1, Çankaya/Ankara"
             />
           </div>
-
+          
           <div>
             <label className="block text-sm font-medium text-slate-700">Konum</label>
             <div className="flex items-center gap-2 mb-2 text-sm text-slate-600">
@@ -221,13 +302,14 @@ export default function ReportsCreate() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700">Fotoğraf (tek)</label>
+            <label className="block text-sm font-medium text-slate-700">Fotoğraf</label>
             <input
               type="file"
               accept="image/*"
               className="mt-1 block w-full text-sm text-slate-700 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-              onChange={(e) => setImage(e.target.files?.[0] || null)}
+              onChange={handleFileChange}
             />
+            <p className="mt-1 text-xs text-slate-500">İzin verilen türler: JPG, JPEG, PNG, WEBP, HEIC, HEIF. Maksimum boyut: {formatBytes(MAX_IMAGE_SIZE)}.</p>
           </div>
 
           <div className="pt-2">

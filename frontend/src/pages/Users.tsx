@@ -102,9 +102,17 @@ export default function Users() {
           </thead>
           <tbody>
             {loading ? (
-              <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-slate-500">Yükleniyor...</td>
-              </tr>
+              <>
+                {Array.from({ length: 8 }).map((_, i) => (
+                  <tr key={i} className="border-t border-gray-100 animate-pulse">
+                    <td className="px-4 py-3"><div className="h-4 w-48 bg-slate-200 rounded" /></td>
+                    <td className="px-4 py-3"><div className="h-4 w-32 bg-slate-200 rounded" /></td>
+                    <td className="px-4 py-3"><div className="h-8 w-28 bg-slate-200 rounded" /></td>
+                    <td className="px-4 py-3"><div className="h-8 w-40 bg-slate-200 rounded" /></td>
+                    <td className="px-4 py-3 text-right"><div className="h-8 w-16 bg-slate-200 rounded ml-auto" /></td>
+                  </tr>
+                ))}
+              </>
             ) : filtered.length === 0 ? (
               <tr>
                 <td colSpan={5} className="px-4 py-8 text-center text-slate-500">Kayıt bulunamadı</td>

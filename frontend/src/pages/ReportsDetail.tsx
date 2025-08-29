@@ -79,8 +79,10 @@ export default function ReportsDetail() {
     }
   }, [report])
 
-  const canEdit = currentUser?.role === 'OPERATOR' || currentUser?.role === 'ADMIN'
-  const canComment = currentUser?.role === 'OPERATOR' || currentUser?.role === 'ADMIN' || currentUser?.role === 'EKIP'
+  // Yetkiler
+  const canChangeAssign = currentUser?.role === 'OPERATOR' || currentUser?.role === 'ADMIN'
+  const canChangeStatus = canChangeAssign || currentUser?.role === 'EKIP'
+  const canComment = canChangeStatus // EKIP + OPERATOR + ADMIN yorum yapabilir
 
   const handleAddComment = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -105,15 +107,38 @@ export default function ReportsDetail() {
     if (!report) return
     setSaving(true)
     try {
-      const updated = await updateReport(report.id, {
-        status: statusDraft,
-        assigned_team: assignedTeamDraft === undefined ? null : assignedTeamDraft,
-      })
+      // Sadece yetkin olunan ve gerçekten değişen alanları gönder
+      const currentAssignedId = report.assigned_team?.id ?? null
+      const changedStatus = canChangeStatus && (statusDraft !== undefined) && statusDraft !== report.status
+      const changedAssign = canChangeAssign && (assignedTeamDraft ?? currentAssignedId) !== currentAssignedId
+
+      const payload: { status?: ReportDetail['status']; assigned_team?: number | null } = {}
+      if (changedStatus) payload.status = statusDraft as ReportDetail['status']
+      if (changedAssign) payload.assigned_team = assignedTeamDraft === undefined ? null : assignedTeamDraft
+
+      if (!changedStatus && !changedAssign) {
+        toast('Kaydedilecek değişiklik yok')
+        return
+      }
+
+      const updated = await updateReport(report.id, payload)
       // Lokal state'i güncelle
       setReport({ ...report, status: updated.status, assigned_team: updated.assigned_team })
-      toast.success('Güncellendi')
-    } catch {
-      toast.error('Güncelleme başarısız')
+
+      if (changedStatus && changedAssign) {
+        toast.success('Durum ve ekip ataması güncellendi')
+      } else if (changedStatus) {
+        toast.success('Durum güncellendi')
+      } else if (changedAssign) {
+        toast.success('Ekip ataması güncellendi')
+      }
+    } catch (err: unknown) {
+      if (isAxiosError(err)) {
+        const detail = (err.response?.data as { detail?: string } | undefined)?.detail
+        toast.error(detail || 'Güncelleme başarısız')
+      } else {
+        toast.error('Güncelleme başarısız')
+      }
     } finally {
       setSaving(false)
     }
@@ -121,8 +146,46 @@ export default function ReportsDetail() {
 
   if (loading) {
     return (
-      <div className="min-h-[40vh] grid place-items-center">
-        <div className="text-slate-600">Yükleniyor...</div>
+      <div className="space-y-6 animate-pulse">
+        <div className="flex items-start justify-between">
+          <div>
+            <div className="h-6 w-48 bg-slate-200 rounded" />
+            <div className="mt-2 h-3 w-64 bg-slate-200 rounded" />
+          </div>
+          <div className="h-9 w-20 bg-slate-200 rounded" />
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="h-48 w-full rounded-lg bg-slate-200 border border-gray-200" />
+          ))}
+        </div>
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+          <div className="h-5 w-32 bg-slate-200 rounded mb-3" />
+          <div className="space-y-2">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="h-3 w-full bg-slate-200 rounded" />
+            ))}
+          </div>
+        </div>
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+          <div className="h-5 w-24 bg-slate-200 rounded mb-3" />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div className="h-10 bg-slate-200 rounded" />
+            <div className="h-10 bg-slate-200 rounded" />
+            <div className="h-10 bg-slate-200 rounded" />
+          </div>
+        </div>
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+          <div className="h-5 w-24 bg-slate-200 rounded mb-3" />
+          <div className="space-y-3">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="border border-gray-200 rounded-lg p-3">
+                <div className="h-3 w-40 bg-slate-200 rounded" />
+                <div className="h-4 w-72 bg-slate-200 rounded mt-2" />
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     )
   }
@@ -142,10 +205,10 @@ export default function ReportsDetail() {
   }
 
   // Değişiklik kontrolü (Kaydet butonunu devre dışı bırakmak için)
-  const hasChanges = (
-    (statusDraft ?? report.status) !== report.status ||
-    (assignedTeamDraft ?? (report.assigned_team?.id ?? null)) !== (report.assigned_team?.id ?? null)
-  )
+  const currentAssignedId = report.assigned_team?.id ?? null
+  const changedStatus = canChangeStatus && (statusDraft !== undefined) && statusDraft !== report.status
+  const changedAssign = canChangeAssign && (assignedTeamDraft ?? currentAssignedId) !== currentAssignedId
+  const hasChanges = changedStatus || changedAssign
 
   return (
     <div className="space-y-6">
@@ -180,36 +243,40 @@ export default function ReportsDetail() {
         <p className="text-slate-700 whitespace-pre-line">{report.description}</p>
       </div>
 
-      {canEdit && (
+      {(canChangeStatus || canChangeAssign) && (
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
           <h2 className="text-lg font-semibold text-slate-900 mb-3">Yönetim</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
-            <div>
-              <label className="block text-sm text-slate-600 mb-1">Durum</label>
-              <select
-                value={statusDraft}
-                onChange={(e) => setStatusDraft(e.target.value as ReportDetail['status'])}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2"
-              >
-                <option value="BEKLEMEDE">Beklemede</option>
-                <option value="INCELENIYOR">İnceleniyor</option>
-                <option value="COZULDU">Çözüldü</option>
-                <option value="REDDEDILDI">Reddedildi</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm text-slate-600 mb-1">Ekip Ataması</label>
-              <select
-                value={assignedTeamDraft ?? ''}
-                onChange={(e) => setAssignedTeamDraft(e.target.value ? Number(e.target.value) : null)}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2"
-              >
-                <option value="">— Atamasız —</option>
-                {teams.map((t) => (
-                  <option key={t.id} value={t.id}>{t.name}</option>
-                ))}
-              </select>
-            </div>
+            {canChangeStatus && (
+              <div>
+                <label className="block text-sm text-slate-600 mb-1">Durum</label>
+                <select
+                  value={statusDraft}
+                  onChange={(e) => setStatusDraft(e.target.value as ReportDetail['status'])}
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2"
+                >
+                  <option value="BEKLEMEDE">Beklemede</option>
+                  <option value="INCELENIYOR">İnceleniyor</option>
+                  <option value="COZULDU">Çözüldü</option>
+                  <option value="REDDEDILDI">Reddedildi</option>
+                </select>
+              </div>
+            )}
+            {canChangeAssign && (
+              <div>
+                <label className="block text-sm text-slate-600 mb-1">Ekip Ataması</label>
+                <select
+                  value={assignedTeamDraft ?? ''}
+                  onChange={(e) => setAssignedTeamDraft(e.target.value ? Number(e.target.value) : null)}
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2"
+                >
+                  <option value="">— Atamasız —</option>
+                  {teams.map((t) => (
+                    <option key={t.id} value={t.id}>{t.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
             <div>
               <button
                 onClick={handleSave}

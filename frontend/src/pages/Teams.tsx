@@ -1,237 +1,175 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { createTeam, deleteTeam, getTeams, updateTeam, type Team, getUsers, type User } from '../lib/api'
+import { useEffect, useMemo, useState } from 'react'
+import { createTeam, deleteTeam, getTeams, updateTeam, type Team } from '../lib/api'
 import toast from 'react-hot-toast'
 
 export default function Teams() {
   const [loading, setLoading] = useState(true)
   const [teams, setTeams] = useState<Team[]>([])
-  const [users, setUsers] = useState<User[]>([])
   const [query, setQuery] = useState('')
+  const [form, setForm] = useState<{ id?: number; name: string; description?: string | null }>({ name: '', description: '' })
 
-  // form state
-  const [editing, setEditing] = useState<Team | null>(null)
-  const [name, setName] = useState('')
-  const [description, setDescription] = useState('')
-  const [teamType, setTeamType] = useState<Team['team_type']>('EKIP')
-  const [memberIds, setMemberIds] = useState<number[]>([])
-  const [isActive, setIsActive] = useState(true)
-
-  const load = useCallback(async () => {
+  const fetchTeams = async () => {
     try {
       setLoading(true)
-      const [t, u] = await Promise.all([getTeams(), getUsers()])
-      setTeams(t)
-      setUsers(u)
+      const data = await getTeams()
+      setTeams(data)
     } catch (e) {
       const err = e as { response?: { data?: { detail?: string } } }
-      toast.error(err?.response?.data?.detail || 'Ekipler yüklenemedi')
+      toast.error(err?.response?.data?.detail || 'Takımlar yüklenirken hata oluştu')
     } finally {
       setLoading(false)
     }
-  }, [])
+  }
 
   useEffect(() => {
-    load()
-  }, [load])
+    fetchTeams()
+  }, [])
 
   const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase()
+    const q = query.toLowerCase().trim()
     if (!q) return teams
     return teams.filter(t =>
       t.name.toLowerCase().includes(q) || (t.description || '').toLowerCase().includes(q)
     )
   }, [teams, query])
 
-  const resetForm = () => {
-    setEditing(null)
-    setName('')
-    setDescription('')
-    setTeamType('EKIP')
-    setMemberIds([])
-    setIsActive(true)
-  }
-
-  const startEdit = (t: Team) => {
-    setEditing(t)
-    setName(t.name)
-    setDescription(t.description || '')
-    setTeamType(t.team_type)
-    setMemberIds(t.members || [])
-    setIsActive(t.is_active)
-  }
-
-  const submit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!name.trim()) {
-      return toast.error('Takım adı zorunludur')
-    }
     try {
-      if (editing) {
-        const updated = await updateTeam(editing.id, {
-          name,
-          description,
-          team_type: teamType,
-          members: memberIds,
-          is_active: isActive,
-        })
-        setTeams(prev => prev.map(x => (x.id === editing.id ? updated : x)))
+      if (form.id) {
+        const updated = await updateTeam(form.id, { name: form.name, description: form.description })
+        setTeams(prev => prev.map(t => (t.id === updated.id ? updated : t)))
         toast.success('Takım güncellendi')
       } else {
-        const created = await createTeam({ name, description, team_type: teamType, members: memberIds, is_active: isActive })
+        const created = await createTeam({ name: form.name, description: form.description ?? undefined })
         setTeams(prev => [created, ...prev])
         toast.success('Takım oluşturuldu')
       }
-      resetForm()
+      setForm({ name: '', description: '' })
     } catch (e) {
-      const err = e as { response?: { status?: number } }
-      if (err?.response?.status === 403) {
-        toast.error('Bu işlem için yetkiniz yok')
-      } else {
-        toast.error('İşlem sırasında hata oluştu')
-      }
+      const err = e as { response?: { data?: { detail?: string } } }
+      toast.error(err?.response?.data?.detail || 'İşlem başarısız')
     }
   }
 
-  const remove = async (t: Team) => {
-    if (!confirm(`${t.name} takımını pasif yapmak istiyor musunuz?`)) return
+  const onEdit = (t: Team) => setForm({ id: t.id, name: t.name, description: t.description })
+
+  const onDelete = async (t: Team) => {
+    if (!confirm(`${t.name} takımını silmek istediğinize emin misiniz?`)) return
     try {
       await deleteTeam(t.id)
       setTeams(prev => prev.filter(x => x.id !== t.id))
-      toast.success('Takım pasif yapıldı')
+      toast.success('Takım silindi')
     } catch (e) {
-      const err = e as { response?: { status?: number } }
-      if (err?.response?.status === 403) {
-        toast.error('Bu işlem için yetkiniz yok')
-      } else {
-        toast.error('İşlem sırasında hata oluştu')
-      }
+      const err = e as { response?: { data?: { detail?: string } } }
+      toast.error(err?.response?.data?.detail || 'Silme başarısız')
     }
   }
 
   return (
-    <div className="space-y-8 p-6">
-      <div className="flex items-center justify-between">
+    <div className="p-6">
+      <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Ekipler</h1>
-          <p className="text-sm text-gray-500 mt-1">Ekip oluşturun, üyeleri yönetin ve düzenleyin</p>
+          <h1 className="text-2xl font-bold text-slate-900">Takımlar</h1>
+          <p className="text-slate-500 text-sm">Takım oluşturma, düzenleme ve üyeleri yönetme</p>
         </div>
-        <div>
+        <div className="w-72">
           <input
-            className="w-72 rounded-md border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-blue-500"
-            placeholder="Ara: isim veya açıklama"
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={e => setQuery(e.target.value)}
+            placeholder="Ara: takım adı, açıklama..."
+            className="w-full px-3 py-2 rounded-md border border-gray-200 focus:ring-2 focus:ring-blue-500 outline-none"
           />
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Sol Panel - Form */}
         <div className="lg:col-span-1">
-          <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
-            <h2 className="text-base font-semibold mb-4">{editing ? 'Takım Düzenle' : 'Yeni Takım'}</h2>
-            <form onSubmit={submit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Ad</label>
-                <input
-                  className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-blue-500"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Takım adı"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Açıklama</label>
-                <textarea
-                  className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-blue-500"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Opsiyonel açıklama"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Tür</label>
-                <select
-                  className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-blue-500"
-                  value={teamType}
-                  onChange={(e) => setTeamType(e.target.value as Team['team_type'])}
-                >
-                  <option value="EKIP">Saha Ekibi</option>
-                  <option value="OPERATOR">Operatör Takımı</option>
-                  <option value="ADMIN">Admin Takımı</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Üyeler</label>
-                <div className="mt-1 grid grid-cols-1 gap-2 max-h-40 overflow-auto border rounded-lg p-2">
-                  {users.map(u => (
-                    <label key={u.id} className="flex items-center gap-2 text-sm">
-                      <input
-                        type="checkbox"
-                        checked={memberIds.includes(u.id)}
-                        onChange={(e) => {
-                          const checked = e.target.checked
-                          setMemberIds(prev => checked ? Array.from(new Set([...prev, u.id])) : prev.filter(id => id !== u.id))
-                        }}
-                      />
-                      <span>{u.username} <span className="text-gray-500">({u.email})</span></span>
-                    </label>
-                  ))}
+          <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
+            <h2 className="font-semibold text-slate-800 mb-4">{form.id ? 'Takım Düzenle' : 'Yeni Takım'}</h2>
+            {loading ? (
+              <div className="animate-pulse space-y-4">
+                <div className="h-10 bg-slate-200 rounded" />
+                <div className="h-24 bg-slate-200 rounded" />
+                <div className="flex gap-3">
+                  <div className="h-10 w-28 bg-slate-200 rounded" />
+                  <div className="h-10 w-24 bg-slate-200 rounded" />
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                <input id="isActive" type="checkbox" className="h-4 w-4" checked={isActive} onChange={e => setIsActive(e.target.checked)} />
-                <label htmlFor="isActive" className="text-sm text-gray-700">Aktif</label>
-              </div>
-              <div className="flex items-center gap-2">
-                <button type="submit" className="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700">
-                  {editing ? 'Güncelle' : 'Ekle'}
-                </button>
-                {editing && (
-                  <button type="button" onClick={resetForm} className="px-4 py-2 rounded-lg border">
-                    İptal
+            ) : (
+              <form onSubmit={onSubmit} className="space-y-3">
+                <div>
+                  <label className="block text-sm text-slate-600 mb-1">Takım Adı</label>
+                  <input
+                    value={form.name}
+                    onChange={e => setForm(prev => ({ ...prev, name: e.target.value }))}
+                    required
+                    className="w-full px-3 py-2 rounded-md border border-gray-200 focus:ring-2 focus:ring-blue-500 outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-slate-600 mb-1">Açıklama</label>
+                  <textarea
+                    value={form.description || ''}
+                    onChange={e => setForm(prev => ({ ...prev, description: e.target.value }))}
+                    className="w-full px-3 py-2 rounded-md border border-gray-200 focus:ring-2 focus:ring-blue-500 outline-none"
+                    rows={4}
+                  />
+                </div>
+                <div className="flex items-center gap-3">
+                  <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+                    {form.id ? 'Güncelle' : 'Oluştur'}
                   </button>
-                )}
-              </div>
-            </form>
+                  {form.id && (
+                    <button type="button" onClick={() => setForm({ name: '', description: '' })} className="px-4 py-2 bg-gray-100 text-slate-700 rounded-md hover:bg-gray-200">
+                      İptal
+                    </button>
+                  )}
+                </div>
+              </form>
+            )}
           </div>
         </div>
 
+        {/* Sağ Panel - Kartlar */}
         <div className="lg:col-span-2">
-          <div className="bg-white rounded-xl border border-gray-100 shadow-sm">
-            <div className="px-6 py-4 border-b flex items-center justify-between">
-              <h2 className="text-base font-semibold">Ekipler</h2>
-              <span className="text-xs text-gray-500">{filtered.length} sonuç</span>
-            </div>
-            <div className="p-6">
-              {loading ? (
-                <p className="text-gray-500">Yükleniyor...</p>
-              ) : filtered.length === 0 ? (
-                <p className="text-gray-500">Kayıt bulunamadı</p>
-              ) : (
-                <ul className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {filtered.map(t => (
-                    <li key={t.id} className="p-4 rounded-lg border border-gray-200 bg-white">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <p className="font-medium text-gray-900">{t.name}</p>
-                          {t.description && (
-                            <p className="text-sm text-gray-500 mt-1 line-clamp-2">{t.description}</p>
-                          )}
-                          <p className="text-xs text-gray-500 mt-1">Tür: {t.team_type} • Üye: {t.members_count ?? (t.members?.length || 0)}</p>
-                        </div>
-                        <span className={`text-xs px-2 py-1 rounded-full ${t.is_active ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-600'}`}>
-                          {t.is_active ? 'Aktif' : 'Pasif'}
-                        </span>
+          <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
+            <h2 className="font-semibold text-slate-800 mb-4">Takım Listesi</h2>
+            {loading ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-pulse">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className="border border-gray-100 rounded-lg p-4">
+                    <div className="h-5 w-40 bg-slate-200 rounded mb-3" />
+                    <div className="h-4 w-full bg-slate-200 rounded mb-2" />
+                    <div className="h-4 w-2/3 bg-slate-200 rounded mb-4" />
+                    <div className="flex gap-3 mt-2">
+                      <div className="h-9 w-24 bg-slate-200 rounded" />
+                      <div className="h-9 w-24 bg-slate-200 rounded" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : filtered.length === 0 ? (
+              <p className="text-slate-500 text-sm">Kayıt bulunamadı</p>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {filtered.map(t => (
+                  <div key={t.id} className="border border-gray-100 rounded-lg p-4 hover:bg-gray-50">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <h3 className="font-semibold text-slate-800">{t.name}</h3>
+                        {t.description && <p className="text-slate-600 text-sm mt-1">{t.description}</p>}
                       </div>
-                      <div className="flex items-center gap-2 mt-4">
-                        <button onClick={() => startEdit(t)} className="px-3 py-1 text-sm rounded-md border">Düzenle</button>
-                        <button onClick={() => remove(t)} className="px-3 py-1 text-sm rounded-md border border-amber-300 text-amber-700">Pasif Yap</button>
+                      <div className="flex gap-2">
+                        <button onClick={() => onEdit(t)} className="px-3 py-1.5 bg-amber-50 text-amber-700 rounded-md hover:bg-amber-100 text-sm">Düzenle</button>
+                        <button onClick={() => onDelete(t)} className="px-3 py-1.5 bg-red-50 text-red-600 rounded-md hover:bg-red-100 text-sm">Sil</button>
                       </div>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>

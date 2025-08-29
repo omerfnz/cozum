@@ -34,7 +34,6 @@ def health_check(request):
             # Test R2 write permissions
             try:
                 from django.core.files.base import ContentFile
-                import boto3
                 from botocore.exceptions import ClientError, NoCredentialsError
                 
                 test_file = ContentFile(b"test content", name="health_check_test.txt")
@@ -46,7 +45,7 @@ def health_check(request):
                 try:
                     default_storage.delete(test_path)
                     health_info["storage"]["cleanup"] = "SUCCESS"
-                except:
+                except Exception:
                     health_info["storage"]["cleanup"] = "FAILED"
                     
             except ClientError as client_error:

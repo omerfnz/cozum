@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { setAuthTokens } from '../lib/api'
 
 interface AppBarProps {
   onMenuToggle: () => void
@@ -19,11 +20,7 @@ const IconMenu = () => (
   </svg>
 )
 
-const IconSearch = () => (
-  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-  </svg>
-)
+// removed unused IconSearch component
 
 const IconBell = () => (
   <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -48,9 +45,16 @@ const IconChevronDown = () => (
 export default function AppBar({ onMenuToggle, user }: AppBarProps) {
   const navigate = useNavigate()
   const [showUserMenu, setShowUserMenu] = useState(false)
+  const [now, setNow] = useState<Date>(new Date())
+
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 1000)
+    return () => clearInterval(id)
+  }, [])
 
   const handleLogout = () => {
-    localStorage.removeItem('token')
+    // Access ve refresh token'ları birlikte temizle
+    setAuthTokens(undefined, undefined)
     navigate('/login')
   }
 
@@ -71,23 +75,16 @@ export default function AppBar({ onMenuToggle, user }: AppBarProps) {
         
         <div className="flex items-center space-x-3">
           <div className="w-8 h-8 bg-gradient-to-r from-indigo-500 to-blue-600 rounded-lg flex items-center justify-center">
-            <span className="text-white font-bold text-sm">C</span>
+            <span className="text-white font-bold text-xs">CV</span>
           </div>
-          <h1 className="text-xl font-bold hidden sm:block text-slate-900">Cozum</h1>
+          <h1 className="text-xl font-bold hidden sm:block text-slate-900">Cozum Var</h1>
         </div>
       </div>
 
-      {/* Orta - Arama kutusu (masaüstünde) */}
-      <div className="hidden md:flex flex-1 mx-8">
-        <div className="relative w-full">
-          <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400">
-            <IconSearch />
-          </div>
-          <input
-            type="text"
-            placeholder="Arama yapın..."
-            className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm placeholder-slate-400 text-slate-700"
-          />
+      {/* Orta - Saat göstergesi */}
+      <div className="flex-1 flex items-center justify-center">
+        <div className="text-slate-800 font-semibold tracking-widest tabular-nums">
+          {now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
         </div>
       </div>
 

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { login, setAuthToken, me } from '../../lib/api';
+import { login, setAuthTokens, me } from '../../lib/api';
 import { Link, useNavigate } from 'react-router-dom';
 import { Toaster, toast } from 'react-hot-toast';
 import AuthLayout from './AuthLayout';
@@ -14,8 +14,8 @@ export default function Login() {
     e.preventDefault();
     setLoading(true);
     try {
-      const { access } = await login({ email, password });
-      setAuthToken(access);
+      const { access, refresh } = await login({ email, password });
+      setAuthTokens(access, refresh);
       const profile = await me();
       toast.success(`Hoş geldin, ${profile?.username || profile?.email}`);
       navigate('/dashboard');

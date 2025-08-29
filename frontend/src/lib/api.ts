@@ -1,4 +1,4 @@
-import axios from 'axios'
+import axios, { type AxiosRequestConfig } from 'axios'
 
 const baseURL = import.meta.env.VITE_API_BASE_URL || '/api'
 
@@ -39,9 +39,82 @@ export const setAuthToken = (token?: string) => {
   }
 }
 
+// Refresh token saklama yardımcıları (opsiyonel)
+export const setRefreshToken = (token?: string) => {
+  if (token) {
+    localStorage.setItem('refresh_token', token)
+  } else {
+    localStorage.removeItem('refresh_token')
+  }
+}
+
+export const setAuthTokens = (access?: string, refresh?: string) => {
+  setAuthToken(access)
+  setRefreshToken(refresh)
+}
+
 const saved = localStorage.getItem('token')
 if (saved) {
   setAuthToken(saved)
+}
+
+// 401 için otomatik access token yenileme (opsiyonel)
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest: (AxiosRequestConfig & { _retry?: boolean }) = error.config ?? {}
+    const status = error?.response?.status
+    const isAuthEndpoint = typeof originalRequest?.url === 'string' && (
+      (originalRequest.url as string).includes('/auth/login/') ||
+      (originalRequest.url as string).includes('/auth/refresh/')
+    )
+
+    if (status === 401 && !isAuthEndpoint && !originalRequest._retry) {
+      const refresh = localStorage.getItem('refresh_token')
+      if (!refresh) {
+        return Promise.reject(error)
+      }
+      originalRequest._retry = true
+      try {
+        const res = await api.post('/auth/refresh/', { refresh })
+        const newAccess = res.data?.access as string | undefined
+        if (newAccess) {
+          setAuthToken(newAccess)
+          const headers = (originalRequest.headers ?? {}) as unknown as Record<string, string>
+          headers['Authorization'] = `Bearer ${newAccess}`
+          originalRequest.headers = headers as unknown as AxiosRequestConfig['headers']
+          return api.request(originalRequest)
+        }
+      } catch (e) {
+        // Refresh başarısız: oturumu temizle
+        setAuthTokens(undefined, undefined)
+        return Promise.reject(e)
+      }
+    }
+    return Promise.reject(error)
+  }
+)
+
+// Profil güncelleme (backend: /auth/me/update/)
+export async function updateMe(payload: Partial<{
+  username: string;
+  first_name: string;
+  last_name: string;
+  phone: string | null;
+  address: string | null;
+}>){
+  const res = await api.patch('/auth/me/update/', payload)
+  return res.data
+}
+
+// Şifre değiştirme (backend: /auth/password/change/)
+export async function changePassword(payload: {
+  old_password: string
+  new_password: string
+  new_password_confirm: string
+}) {
+  const res = await api.put('/auth/password/change/', payload)
+  return res.data as { detail: string }
 }
 
 // Category API functions
@@ -57,7 +130,7 @@ export async function getCategories(): Promise<Category[]> {
   return res.data
 }
 
-export async function createCategory(payload: { name: string; description: string; is_active?: boolean }): Promise<Category> {
+export async function createCategory(payload: { name: string; description?: string; is_active?: boolean }): Promise<Category> {
   const res = await api.post('/categories/', payload)
   return res.data
 }
@@ -230,7 +303,7 @@ export async function getTeams(): Promise<Team[]> {
   return res.data
 }
 
-export async function createTeam(payload: { name: string; description?: string; team_type: 'EKIP' | 'OPERATOR' | 'ADMIN'; members?: number[]; is_active?: boolean }): Promise<Team> {
+export async function createTeam(payload: { name: string; description?: string; team_type?: 'EKIP' | 'OPERATOR' | 'ADMIN'; members?: number[]; is_active?: boolean }): Promise<Team> {
   const res = await api.post('/teams/', payload)
   return res.data
 }
@@ -249,4 +322,61 @@ export async function updateReport(
 ): Promise<Report> {
   const res = await api.patch(`/reports/${id}/`, payload)
   return res.data
+}
+
+// Task helpers mapped from Report
+export type TaskStatus = 'ATANDI' | 'DEVAM_EDIYOR' | 'TAMAMLANDI' | 'IPTAL'
+
+export interface Task {
+  id: number
+  report_title: string
+  assigned_team_name?: string | null
+  status: TaskStatus
+}
+
+function reportStatusToTaskStatus(status: Report['status']): TaskStatus {
+  switch (status) {
+    case 'BEKLEMEDE':
+      return 'ATANDI'
+    case 'INCELENIYOR':
+      return 'DEVAM_EDIYOR'
+    case 'COZULDU':
+      return 'TAMAMLANDI'
+    case 'REDDEDILDI':
+      return 'IPTAL'
+    default:
+      return 'ATANDI'
+  }
+}
+
+function taskStatusToReportStatus(status: TaskStatus): Report['status'] {
+  switch (status) {
+    case 'ATANDI':
+      return 'BEKLEMEDE'
+    case 'DEVAM_EDIYOR':
+      return 'INCELENIYOR'
+    case 'TAMAMLANDI':
+      return 'COZULDU'
+    case 'IPTAL':
+      return 'REDDEDILDI'
+  }
+}
+
+function mapReportToTask(r: Report): Task {
+  return {
+    id: r.id,
+    report_title: r.title,
+    assigned_team_name: r.assigned_team?.name ?? null,
+    status: reportStatusToTaskStatus(r.status),
+  }
+}
+
+export async function getTasks(): Promise<Task[]> {
+  const reports = await getReports(undefined, true)
+  return reports.map(mapReportToTask)
+}
+
+export async function updateTaskStatus(id: number, status: TaskStatus): Promise<Task> {
+  const updated = await updateReport(id, { status: taskStatusToReportStatus(status) })
+  return mapReportToTask(updated)
 }

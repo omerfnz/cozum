@@ -22,7 +22,7 @@ class Command(BaseCommand):
         
         # Admin kullanıcısı oluştur
         try:
-            admin_user = User.objects.create_superuser(
+            User.objects.create_superuser(
                 email=admin_email,
                 password=admin_password,
                 username=admin_username,

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { me } from '../lib/api'
+import { me, setAuthTokens } from '../lib/api'
 import AppBar from '../components/AppBar'
 import Sidebar from '../components/Sidebar'
 
@@ -9,7 +9,7 @@ interface User {
   username?: string
   email: string
   role_display?: string
-  role?: string
+  role?: 'VATANDAS' | 'OPERATOR' | 'EKIP' | 'ADMIN'
 }
 
 interface ProtectedLayoutProps {
@@ -25,17 +25,20 @@ export default function ProtectedLayout({ children }: ProtectedLayoutProps) {
   useEffect(() => {
     const checkAuth = async () => {
       try {
+        // Eski token anahtarı ile giriş yapılmış olabilir, erişim/yenileme tokenlarını eşitle
         const token = localStorage.getItem('token')
         if (!token) {
           navigate('/login')
           return
         }
-        
+        // api.ts setAuthToken zaten header'a basıyor; refresh_token yoksa da sorun değil
+        // Kullanıcıyı çek
         const userData = await me()
         setUser(userData)
       } catch (error) {
         console.error('Auth check failed:', error)
-        localStorage.removeItem('token')
+        // Oturumu temizle
+        setAuthTokens(undefined, undefined)
         navigate('/login')
       } finally {
         setLoading(false)
@@ -55,7 +58,7 @@ export default function ProtectedLayout({ children }: ProtectedLayoutProps) {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center w-full h-auto bg-gradient-to-br from-slate-50 to-slate-100">
+      <div className="flex items-center justify-center w-full min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
         <div className="text-center">
           <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto"></div>
           <p className="mt-4 text-gray-700 font-medium">Yükleniyor...</p>
@@ -65,17 +68,17 @@ export default function ProtectedLayout({ children }: ProtectedLayoutProps) {
   }
 
   return (
-    <div className="flex w-full h-auto bg-gradient-to-br from-slate-50 to-slate-100">
+    <div className="flex w-full min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
       {/* Sidebar */}
-      <Sidebar isOpen={sidebarOpen} onClose={handleSidebarClose} />
+      <Sidebar isOpen={sidebarOpen} onClose={handleSidebarClose} userRole={user?.role} />
 
       {/* Ana içerik alanı */}
-      <div className="flex w-full flex-col">
+      <div className="flex w-full flex-col min-h-screen">
         {/* AppBar */}
         <AppBar onMenuToggle={handleMenuToggle} user={user || undefined} />
 
         {/* Ana içerik - Scroll burada değil, content'te olacak */}
-        <main className="w-full h-auto p-4 md:p-6 lg:p-8">
+        <main className="w-full flex-1 p-4 md:p-6 lg:p-8">
           {children}
         </main>
       </div>

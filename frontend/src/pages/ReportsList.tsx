@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { getReports, type Report } from '../lib/api'
 
 export default function ReportsList() {
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [reports, setReports] = useState<Report[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -15,6 +16,9 @@ export default function ReportsList() {
   const [categoryFilter, setCategoryFilter] = useState<string>('')
   const [dateFrom, setDateFrom] = useState<string>('')
   const [dateTo, setDateTo] = useState<string>('')
+  // Sayfalama durumları
+  const [page, setPage] = useState<number>(1)
+  const [pageSize, setPageSize] = useState<number>(12)
 
   // Görsel fallback (inline SVG data-uri)
   const PLACEHOLDER_DATA_URI =
@@ -35,6 +39,61 @@ export default function ReportsList() {
     }
     load()
   }, [])
+
+  // URL -> State senkronizasyonu (ilk yükleme ve ileri/geri gezinme için)
+  useEffect(() => {
+    const q = searchParams.get('q') ?? ''
+    if (q !== query) setQuery(q)
+
+    const s = (searchParams.get('status') as Report['status'] | null) ?? ''
+    const allowedS = ['BEKLEMEDE', 'INCELENIYOR', 'COZULDU', 'REDDEDILDI'] as const
+    setStatusFilter(s && (allowedS as readonly string[]).includes(s) ? s : '')
+
+    const p = (searchParams.get('priority') as Report['priority'] | null) ?? ''
+    const allowedP = ['ACIL', 'YUKSEK', 'ORTA', 'DUSUK'] as const
+    setPriorityFilter(p && (allowedP as readonly string[]).includes(p) ? p : '')
+
+    const c = searchParams.get('category') ?? ''
+    setCategoryFilter(c)
+
+    const from = searchParams.get('from') ?? ''
+    setDateFrom(from)
+
+    const to = searchParams.get('to') ?? ''
+    setDateTo(to)
+
+    // Sayfa ve sayfa boyutu
+    const pageParam = parseInt(searchParams.get('page') || '1', 10)
+    setPage(Number.isFinite(pageParam) && pageParam > 0 ? pageParam : 1)
+
+    const sizeParam = parseInt(searchParams.get('size') || '12', 10)
+    const allowedSizes = [8, 12, 16, 24]
+    setPageSize(allowedSizes.includes(sizeParam) ? sizeParam : 12)
+  }, [searchParams, query])
+
+  // State -> URL senkronizasyonu
+  useEffect(() => {
+    const next = new URLSearchParams()
+    const trimmedQ = query.trim()
+    if (trimmedQ) next.set('q', trimmedQ)
+    if (statusFilter) next.set('status', statusFilter)
+    if (priorityFilter) next.set('priority', priorityFilter)
+    if (categoryFilter) next.set('category', categoryFilter)
+    if (dateFrom) next.set('from', dateFrom)
+    if (dateTo) next.set('to', dateTo)
+
+    if (page > 1) next.set('page', String(page))
+    if (pageSize !== 12) next.set('size', String(pageSize))
+
+    if (next.toString() !== searchParams.toString()) {
+      setSearchParams(next, { replace: true })
+    }
+  }, [query, statusFilter, priorityFilter, categoryFilter, dateFrom, dateTo, page, pageSize, searchParams, setSearchParams])
+
+  // Filtre değişiminde sayfayı başa al
+  useEffect(() => {
+    setPage(1)
+  }, [query, statusFilter, priorityFilter, categoryFilter, dateFrom, dateTo])
 
   // Filtre seçenekleri
   const statusOptions = useMemo<Report['status'][]>(() => ['BEKLEMEDE', 'INCELENIYOR', 'COZULDU', 'REDDEDILDI'], [])
@@ -77,10 +136,18 @@ export default function ReportsList() {
     return list
   }, [reports, query, statusFilter, priorityFilter, categoryFilter, dateFrom, dateTo])
 
-  const badgeForStatus = (status: Report['status']) => {
+  // Sayfalı liste ve metrikler
+  const total = filtered.length
+  const totalPages = Math.max(1, Math.ceil(total / pageSize))
+  const currentPage = Math.min(page, totalPages)
+  const startIndex = (currentPage - 1) * pageSize
+  const endIndex = Math.min(startIndex + pageSize, total)
+  const paginated = filtered.slice(startIndex, endIndex)
+
+  function badgeForStatus(status: Report['status']) {
     switch (status) {
       case 'BEKLEMEDE':
-        return 'bg-amber-50 text-amber-700 border-amber-200'
+        return 'bg-yellow-50 text-yellow-700 border-yellow-200'
       case 'INCELENIYOR':
         return 'bg-blue-50 text-blue-700 border-blue-200'
       case 'COZULDU':
@@ -91,21 +158,34 @@ export default function ReportsList() {
         return 'bg-slate-50 text-slate-700 border-slate-200'
     }
   }
-
-  const badgeForPriority = (priority: Report['priority']) => {
+  function badgeForPriority(priority: Report['priority']) {
     switch (priority) {
       case 'ACIL':
         return 'bg-rose-50 text-rose-700 border-rose-200'
       case 'YUKSEK':
-        return 'bg-amber-50 text-amber-700 border-amber-200'
+        return 'bg-orange-50 text-orange-700 border-orange-200'
       case 'ORTA':
-        return 'bg-blue-50 text-blue-700 border-blue-200'
+        return 'bg-amber-50 text-amber-700 border-amber-200'
       case 'DUSUK':
         return 'bg-slate-50 text-slate-700 border-slate-200'
       default:
         return 'bg-slate-50 text-slate-700 border-slate-200'
     }
   }
+
+  const SkeletonCard = () => (
+    <div className="animate-pulse bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+      <div className="aspect-[4/3] bg-slate-200" />
+      <div className="p-3 space-y-2">
+        <div className="h-4 bg-slate-200 rounded w-3/4" />
+        <div className="h-3 bg-slate-200 rounded w-1/2" />
+        <div className="flex items-center justify-between">
+          <div className="h-5 bg-slate-200 rounded w-20" />
+          <div className="h-3 bg-slate-200 rounded w-16" />
+        </div>
+      </div>
+    </div>
+  )
 
   return (
     <div className="space-y-6">
@@ -180,14 +260,13 @@ export default function ReportsList() {
             value={dateFrom}
             onChange={(e) => setDateFrom(e.target.value)}
             className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
-            placeholder="Başlangıç"
           />
+
           <input
             type="date"
             value={dateTo}
             onChange={(e) => setDateTo(e.target.value)}
             className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
-            placeholder="Bitiş"
           />
         </div>
 
@@ -207,11 +286,67 @@ export default function ReportsList() {
             </button>
           </div>
         )}
+
+        {/* Sayfa kontrol çubuğu */}
+        <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="text-sm text-slate-600">
+            Gösterim: {total === 0 ? 0 : startIndex + 1}-{endIndex} / {total}
+          </div>
+          <div className="flex items-center gap-3">
+            <label className="text-sm text-slate-600">Sayfa boyutu</label>
+            <select
+              value={pageSize}
+              onChange={(e) => setPageSize(parseInt(e.target.value, 10))}
+              className="rounded-lg border border-gray-300 px-2 py-1.5 text-sm"
+            >
+              {[8, 12, 16, 24].map((s) => (
+                <option key={s} value={s}>{s}</option>
+              ))}
+            </select>
+            <div className="ml-2 flex items-center gap-2">
+              <button
+                onClick={() => setPage(1)}
+                disabled={currentPage === 1}
+                className="inline-flex items-center rounded-lg border border-gray-300 px-2 py-1.5 text-sm disabled:opacity-50"
+              >
+                « İlk
+              </button>
+              <button
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="inline-flex items-center rounded-lg border border-gray-300 px-2 py-1.5 text-sm disabled:opacity-50"
+              >
+                ‹ Önceki
+              </button>
+              <span className="text-sm text-slate-600">
+                Sayfa {currentPage} / {totalPages}
+              </span>
+              <button
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={currentPage >= totalPages}
+                className="inline-flex items-center rounded-lg border border-gray-300 px-2 py-1.5 text-sm disabled:opacity-50"
+              >
+                Sonraki ›
+              </button>
+              <button
+                onClick={() => setPage(totalPages)}
+                disabled={currentPage >= totalPages}
+                className="inline-flex items-center rounded-lg border border-gray-300 px-2 py-1.5 text-sm disabled:opacity-50"
+              >
+                Son »
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
 
       {loading ? (
-        <div className="min-h-[30vh] grid place-items-center">
-          <div className="text-slate-600">Yükleniyor...</div>
+        <div className="">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {Array.from({ length: pageSize }).map((_, i) => (
+              <SkeletonCard key={i} />
+            ))}
+          </div>
         </div>
       ) : error ? (
         <div className="min-h-[20vh] grid place-items-center">
@@ -225,7 +360,7 @@ export default function ReportsList() {
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {filtered.map((r) => (
+              {paginated.map((r) => (
                 <div
                   key={r.id}
                   onClick={() => navigate(`/reports/${r.id}`)}

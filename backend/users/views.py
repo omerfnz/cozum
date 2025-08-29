@@ -4,6 +4,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework import filters
 
 from .models import Team
 from .serializers import UserDetailSerializer, UserRegistrationSerializer, TeamSerializer, UserUpdateSerializer, PasswordChangeSerializer
@@ -67,6 +68,18 @@ class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all().order_by('-date_joined')
     permission_classes = [permissions.IsAdminUser]
     serializer_class = UserDetailSerializer
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = [
+        "email",
+        "username",
+        "first_name",
+        "last_name",
+        "phone",
+        "address",
+        "team__name",
+    ]
+    ordering_fields = ["date_joined", "email", "username", "first_name", "last_name"]
+    ordering = ["-date_joined"]
 
     @action(detail=True, methods=['post'], permission_classes=[permissions.IsAdminUser])
     def set_role(self, request, pk=None):
@@ -100,6 +113,10 @@ class TeamViewSet(viewsets.ModelViewSet):
     queryset = Team.objects.all().order_by('name')
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = TeamSerializer
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ["name", "description", "team_type", "created_by__email"]
+    ordering_fields = ["name", "created_at"]
+    ordering = ["name"]
 
     def get_queryset(self):
         # Listelemede sadece aktif takımları göster

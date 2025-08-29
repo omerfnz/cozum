@@ -1,230 +1,172 @@
-import React, { useEffect, useState, useCallback, useMemo } from 'react'
-import { createCategory, deleteCategory, getCategories, updateCategory } from '../lib/api'
-import type { Category } from '../lib/api'
+import { useEffect, useMemo, useState } from 'react'
+import { createCategory, deleteCategory, getCategories, updateCategory, type Category } from '../lib/api'
 import toast from 'react-hot-toast'
-import { useNavigate } from 'react-router-dom'
 
 export default function Categories() {
-  const [categories, setCategories] = useState<Category[]>([])
-  const [name, setName] = useState('')
-  const [description, setDescription] = useState('')
-  const [isActive, setIsActive] = useState(true)
-  const [editing, setEditing] = useState<Category | null>(null)
   const [loading, setLoading] = useState(true)
+  const [categories, setCategories] = useState<Category[]>([])
   const [query, setQuery] = useState('')
-  const navigate = useNavigate()
+  const [form, setForm] = useState<{ id?: number; name: string; description?: string }>({ name: '', description: '' })
 
-  const load = useCallback(async () => {
+  const fetchCategories = async () => {
     try {
+      setLoading(true)
       const data = await getCategories()
       setCategories(data)
-    } catch (e: unknown) {
-      const err = e as { response?: { status?: number } };
-      if (err?.response?.status === 401) {
-        navigate('/login')
-      } else {
-        toast.error('Kategoriler yüklenemedi')
-      }
+    } catch (e) {
+      const err = e as { response?: { data?: { detail?: string } } }
+      toast.error(err?.response?.data?.detail || 'Kategoriler yüklenemedi')
     } finally {
       setLoading(false)
     }
-  }, [navigate])
+  }
 
   useEffect(() => {
-    load()
-  }, [load])
+    fetchCategories()
+  }, [])
 
   const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase()
+    const q = query.toLowerCase().trim()
     if (!q) return categories
     return categories.filter(c =>
       c.name.toLowerCase().includes(q) || (c.description || '').toLowerCase().includes(q)
     )
   }, [categories, query])
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!name.trim()) {
-      return toast.error('Kategori adı zorunludur')
-    }
- 
     try {
-      if (editing) {
-        const updated = await updateCategory(editing.id, { name, description, is_active: isActive })
-        setCategories((prev) => prev.map((c) => (c.id === editing.id ? updated : c)))
+      if (form.id) {
+        const updated = await updateCategory(form.id, { name: form.name, description: form.description })
+        setCategories(prev => prev.map(c => (c.id === updated.id ? updated : c)))
         toast.success('Kategori güncellendi')
-        setEditing(null)
       } else {
-        const created = await createCategory({ name, description, is_active: isActive })
-        setCategories((prev) => [created, ...prev])
-        toast.success('Kategori eklendi')
+        const created = await createCategory({ name: form.name, description: form.description })
+        setCategories(prev => [created, ...prev])
+        toast.success('Kategori oluşturuldu')
       }
-      setName('')
-      setDescription('')
-      setIsActive(true)
-    } catch (e: unknown) {
-      const err = e as { response?: { status?: number } };
-      if (err?.response?.status === 403) {
-        toast.error('Bu işlem için yetkiniz yok')
-      } else {
-        toast.error('İşlem sırasında bir hata oluştu')
-      }
-    }
-  }
- 
-  const startEdit = (cat: Category) => {
-    setEditing(cat)
-    setName(cat.name)
-    setDescription(cat.description || '')
-    setIsActive(cat.is_active)
-  }
- 
-  const cancelEdit = () => {
-    setEditing(null)
-    setName('')
-    setDescription('')
-    setIsActive(true)
-  }
- 
-  const remove = async (id: number) => {
-    if (!confirm('Bu kategoriyi pasif yapmak istediğinize emin misiniz?')) return
-    try {
-      await deleteCategory(id)
-      setCategories((prev) => prev.filter((c) => c.id !== id))
-      toast.success('Kategori pasif yapıldı')
-    } catch (e: unknown) {
-      const err = e as { response?: { status?: number } };
-      if (err?.response?.status === 403) {
-        toast.error('Bu işlem için yetkiniz yok')
-      } else {
-        toast.error('İşlem sırasında bir hata oluştu')
-      }
+      setForm({ name: '', description: '' })
+    } catch (e) {
+      const err = e as { response?: { data?: { detail?: string } } }
+      toast.error(err?.response?.data?.detail || 'İşlem başarısız')
     }
   }
 
-  if (loading) {
-    return (
-      <div className="min-h-[60vh] flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Yükleniyor...</p>
-        </div>
-      </div>
-    )
+  const onEdit = (c: Category) => setForm({ id: c.id, name: c.name, description: c.description })
+
+  const onDelete = async (c: Category) => {
+    if (!confirm(`${c.name} kategorisini silmek istediğinize emin misiniz?`)) return
+    try {
+      await deleteCategory(c.id)
+      setCategories(prev => prev.filter(x => x.id !== c.id))
+      toast.success('Kategori silindi')
+    } catch (e) {
+      const err = e as { response?: { data?: { detail?: string } } }
+      toast.error(err?.response?.data?.detail || 'Silme başarısız')
+    }
   }
 
   return (
-    <div className="space-y-8">
-      <div className="flex items-center justify-between">
+    <div className="p-6">
+      <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Kategoriler</h1>
-          <p className="text-sm text-gray-500 mt-1">Kategori oluşturun, düzenleyin ve yönetin</p>
+          <h1 className="text-2xl font-bold text-slate-900">Kategoriler</h1>
+          <p className="text-slate-500 text-sm">Kategori oluştur, düzenle ve yönet</p>
         </div>
-        <div className="relative">
+        <div className="w-72">
           <input
-            type="text"
-            className="w-64 rounded-xl border border-gray-300 px-3 py-2 focus:border-transparent focus:ring-2 focus:ring-blue-500 bg-white"
-            placeholder="Ara: ad veya açıklama"
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={e => setQuery(e.target.value)}
+            placeholder="Ara: ad, açıklama..."
+            className="w-full px-3 py-2 rounded-md border border-gray-200 focus:ring-2 focus:ring-blue-500 outline-none"
           />
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-1">
-          <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
-            <h2 className="text-base font-semibold mb-4">
-              {editing ? 'Kategori Düzenle' : 'Yeni Kategori'}
-            </h2>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Ad</label>
-                <input
-                  type="text"
-                  className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-transparent focus:ring-2 focus:ring-blue-500 bg-white"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Kategori adı"
-                />
+          <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
+            <h2 className="font-semibold text-slate-800 mb-4">{form.id ? 'Kategori Düzenle' : 'Yeni Kategori'}</h2>
+            {loading ? (
+              <div className="animate-pulse space-y-4">
+                <div className="h-10 bg-slate-200 rounded" />
+                <div className="h-24 bg-slate-200 rounded" />
+                <div className="flex gap-3">
+                  <div className="h-10 w-28 bg-slate-200 rounded" />
+                  <div className="h-10 w-24 bg-slate-200 rounded" />
+                </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Açıklama</label>
-                <textarea
-                  className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-transparent focus:ring-2 focus:ring-blue-500 bg-white"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Opsiyonel açıklama"
-                />
-              </div>
-              <div className="flex items-center gap-2">
-                <input id="isActive" type="checkbox" className="h-4 w-4" checked={isActive} onChange={(e) => setIsActive(e.target.checked)} />
-                <label htmlFor="isActive" className="text-sm text-gray-700">Aktif</label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <button
-                  type="submit"
-                  className="inline-flex items-center px-4 py-2 text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700"
-                >
-                  {editing ? 'Güncelle' : 'Ekle'}
-                </button>
-                {editing && (
-                  <button
-                    type="button"
-                    onClick={cancelEdit}
-                    className="inline-flex items-center px-4 py-2 text-sm font-medium rounded-lg border border-gray-300 text-gray-700 bg-white hover:bg-gray-50"
-                  >
-                    İptal
+            ) : (
+              <form onSubmit={onSubmit} className="space-y-3">
+                <div>
+                  <label className="block text-sm text-slate-600 mb-1">Ad</label>
+                  <input
+                    value={form.name}
+                    onChange={e => setForm(prev => ({ ...prev, name: e.target.value }))}
+                    required
+                    className="w-full px-3 py-2 rounded-md border border-gray-200 focus:ring-2 focus:ring-blue-500 outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-slate-600 mb-1">Açıklama</label>
+                  <textarea
+                    value={form.description || ''}
+                    onChange={e => setForm(prev => ({ ...prev, description: e.target.value }))}
+                    className="w-full px-3 py-2 rounded-md border border-gray-200 focus:ring-2 focus:ring-blue-500 outline-none"
+                    rows={4}
+                  />
+                </div>
+                <div className="flex items-center gap-3">
+                  <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+                    {form.id ? 'Güncelle' : 'Oluştur'}
                   </button>
-                )}
-              </div>
-            </form>
+                  {form.id && (
+                    <button type="button" onClick={() => setForm({ name: '', description: '' })} className="px-4 py-2 bg-gray-100 text-slate-700 rounded-md hover:bg-gray-200">
+                      İptal
+                    </button>
+                  )}
+                </div>
+              </form>
+            )}
           </div>
         </div>
 
         <div className="lg:col-span-2">
-          <div className="bg-white rounded-xl border border-gray-100 shadow-sm">
-            <div className="px-6 py-4 border-b flex items-center justify-between">
-              <h2 className="text-base font-semibold">Kategoriler</h2>
-              <span className="text-xs text-gray-500">{filtered.length} sonuç</span>
-            </div>
-            <div className="p-6">
-              {filtered.length === 0 ? (
-                <p className="text-gray-500">Sonuç bulunamadı.</p>
-              ) : (
-                <ul className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {filtered.map((cat) => (
-                    <li key={cat.id} className="p-4 rounded-lg border border-gray-200 hover:border-gray-300 transition bg-white shadow-sm">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <p className="font-medium text-gray-900">{cat.name}</p>
-                          {cat.description && (
-                            <p className="text-sm text-gray-500 mt-1 line-clamp-2">{cat.description}</p>
-                          )}
-                        </div>
-                        <span className={`text-xs px-2 py-1 rounded-full ${cat.is_active ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-600'}`}>
-                          {cat.is_active ? 'Aktif' : 'Pasif'}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2 mt-4">
-                        <button
-                          onClick={() => startEdit(cat)}
-                          className="px-3 py-1 text-sm rounded-md border text-gray-700 hover:bg-gray-50"
-                        >
-                          Düzenle
-                        </button>
-                        <button
-                          onClick={() => remove(cat.id)}
-                          className="px-3 py-1 text-sm rounded-md border border-amber-300 text-amber-700 hover:bg-amber-50"
-                        >
-                          Pasif Yap
-                        </button>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
+          <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
+            <h2 className="font-semibold text-slate-800 mb-4">Kategori Listesi</h2>
+            {loading ? (
+              <div className="divide-y divide-gray-100 animate-pulse">
+                {Array.from({ length: 8 }).map((_, i) => (
+                  <div key={i} className="flex items-center justify-between py-3">
+                    <div>
+                      <div className="h-4 w-48 bg-slate-200 rounded mb-2" />
+                      <div className="h-3 w-72 bg-slate-200 rounded" />
+                    </div>
+                    <div className="flex gap-2">
+                      <div className="h-9 w-20 bg-slate-200 rounded" />
+                      <div className="h-9 w-20 bg-slate-200 rounded" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : filtered.length === 0 ? (
+              <p className="text-slate-500 text-sm">Kayıt bulunamadı</p>
+            ) : (
+              <ul className="divide-y divide-gray-100">
+                {filtered.map(c => (
+                  <li key={c.id} className="flex items-center justify-between py-3 hover:bg-gray-50 px-2 -mx-2 rounded">
+                    <div>
+                      <p className="font-medium text-slate-800">{c.name}</p>
+                      {c.description && <p className="text-slate-600 text-sm mt-0.5">{c.description}</p>}
+                    </div>
+                    <div className="flex gap-2">
+                      <button onClick={() => onEdit(c)} className="px-3 py-1.5 bg-amber-50 text-amber-700 rounded-md hover:bg-amber-100 text-sm">Düzenle</button>
+                      <button onClick={() => onDelete(c)} className="px-3 py-1.5 bg-red-50 text-red-600 rounded-md hover:bg-red-100 text-sm">Sil</button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         </div>
       </div>

@@ -3,6 +3,7 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework import filters
 
 from .models import Category, Comment, Report
 from .serializers import (
@@ -52,6 +53,27 @@ class CategoryRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
 
 class ReportListCreateView(generics.ListCreateAPIView):
     parser_classes = [MultiPartParser]
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = [
+        "title",
+        "description",
+        "reporter__email",
+        "reporter__username",
+        "category__name",
+        "assigned_team__name",
+    ]
+    ordering_fields = ["created_at", "updated_at", "priority", "status"]
+    ordering = ["-created_at"]
+    # django-filter: alan bazlı filtreleme
+    filterset_fields = {
+        "status": ["exact", "in"],
+        "priority": ["exact", "in"],
+        "category": ["exact"],
+        "assigned_team": ["exact", "isnull"],
+        "created_at": ["gte", "lte"],
+        "updated_at": ["gte", "lte"],
+        "reporter": ["exact"],
+    }
 
     def get_queryset(self):
         user = self.request.user

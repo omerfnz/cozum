@@ -4,7 +4,11 @@ import { useNavigate, useLocation } from 'react-router-dom'
 interface SidebarProps {
   isOpen: boolean
   onClose: () => void
+  userRole?: Role
 }
+
+// Roller
+type Role = 'VATANDAS' | 'OPERATOR' | 'EKIP' | 'ADMIN'
 
 // SVG Icon Components
 const IconDashboard = () => (
@@ -51,49 +55,63 @@ const IconChevronLeft = () => (
   </svg>
 )
 
-export default function Sidebar({ isOpen, onClose }: SidebarProps) {
+export default function Sidebar({ isOpen, onClose, userRole }: SidebarProps) {
   const navigate = useNavigate()
   const location = useLocation()
   const [isCollapsed, setIsCollapsed] = useState(false)
 
-  const menuItems = [
+  const menuItems: Array<{ 
+    icon: React.FC; 
+    label: string; 
+    path: string;
+    description: string;
+    allowedRoles?: Role[]
+  }> = [
     { 
       icon: IconDashboard, 
       label: 'Dashboard', 
       path: '/dashboard',
-      description: 'Ana sayfa'
+      description: 'Ana sayfa',
+      allowedRoles: ['VATANDAS','OPERATOR','EKIP','ADMIN']
     },
     { 
       icon: IconCategories, 
       label: 'Kategoriler', 
       path: '/categories',
-      description: 'Kategori yönetimi'
+      description: 'Kategori yönetimi',
+      allowedRoles: ['OPERATOR','ADMIN']
     },
     { 
       icon: IconReports, 
       label: 'Vatandaş Bildirimleri', 
       path: '/reports',
-      description: 'Vatandaş bildirimleri'
+      description: 'Vatandaş bildirimleri',
+      allowedRoles: ['VATANDAS','OPERATOR','EKIP','ADMIN']
     },
     { 
       icon: IconUsers, 
       label: 'Kullanıcılar', 
       path: '/users',
-      description: 'Kullanıcı yönetimi'
+      description: 'Kullanıcı yönetimi',
+      allowedRoles: ['ADMIN']
     },
     { 
       icon: IconTasks, 
       label: 'Görevler', 
       path: '/tasks',
-      description: 'Görev takibi'
+      description: 'Görev takibi',
+      allowedRoles: ['OPERATOR','EKIP','ADMIN']
     },
     { 
       icon: IconTeams, 
       label: 'Ekipler', 
       path: '/teams',
-      description: 'Ekip yönetimi'
+      description: 'Ekip yönetimi',
+      allowedRoles: ['OPERATOR','ADMIN']
     }
   ]
+
+  const visibleItems = menuItems.filter(item => !item.allowedRoles || item.allowedRoles.includes(userRole ?? 'VATANDAS'))
 
   const handleNavigation = (path: string) => {
     navigate(path)
@@ -124,9 +142,9 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           {!isCollapsed && (
             <div className="flex items-center space-x-3">
               <div className="w-8 h-8 bg-gradient-to-r from-indigo-500 to-blue-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">C</span>
+                <span className="text-white font-bold text-xs">CV</span>
               </div>
-              <h2 className="text-xl font-bold text-slate-900">Cozum</h2>
+              <h2 className="text-xl font-bold text-slate-900">Cozum Var</h2>
             </div>
           )}
           
@@ -157,7 +175,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
 
         {/* Navigation */}
         <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
-          {menuItems.map((item) => {
+          {visibleItems.map((item) => {
             const Icon = item.icon
             const isActive = location.pathname === item.path || location.pathname.startsWith(item.path + '/')
             
@@ -191,7 +209,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
         {!isCollapsed && (
           <div className="p-4 border-t border-gray-200">
             <div className="text-center">
-              <div className="text-xs text-slate-500">Cozum v1.0</div>
+              <div className="text-xs text-slate-500">Cozum Var v1.0</div>
               <div className="text-xs text-slate-400 mt-1">© 2024 Tüm hakları saklıdır</div>
             </div>
           </div>

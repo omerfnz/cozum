@@ -40,6 +40,9 @@ INSTALLED_APPS = [
     "corsheaders",
     "rest_framework_simplejwt",
     "storages",
+    # OpenAPI şeması için
+    "drf_spectacular",
+    # Uygulamalar
     "users",
     # AppConfig üzerinden hazır metodunda heif opener kaydı için
     "reports.apps.ReportsConfig",
@@ -173,6 +176,14 @@ REST_FRAMEWORK = {
         "rest_framework_simplejwt.authentication.JWTAuthentication",
     ),
     "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.IsAuthenticated",),
+    # Global filtreleme/arama/sıralama backend'leri
+    "DEFAULT_FILTER_BACKENDS": [
+        "django_filters.rest_framework.DjangoFilterBackend",
+        "rest_framework.filters.SearchFilter",
+        "rest_framework.filters.OrderingFilter",
+    ],
+    # OpenAPI şeması
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
 }
 
 SIMPLE_JWT = {
@@ -187,16 +198,25 @@ AUTH_USER_MODEL = "users.User"
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": os.environ.get('DB_NAME', 'cozum_var_db'),
-        "USER": os.environ.get('DB_USER', 'postgres'),
-        "PASSWORD": os.environ.get('DB_PASSWORD', 'password'),
-        "HOST": os.environ.get('DB_HOST', 'localhost'),
-        "PORT": os.environ.get('DB_PORT', '5432'),
+USE_POSTGRES = os.environ.get('USE_POSTGRES', 'False').lower() == 'true'
+if USE_POSTGRES:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": os.environ.get('DB_NAME', 'cozum_var_db'),
+            "USER": os.environ.get('DB_USER', 'postgres'),
+            "PASSWORD": os.environ.get('DB_PASSWORD', 'password'),
+            "HOST": os.environ.get('DB_HOST', 'localhost'),
+            "PORT": os.environ.get('DB_PORT', '5432'),
+        }
     }
-}
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "db.sqlite3",
+        }
+    }
 
 
 # Password validation
@@ -249,4 +269,12 @@ LOGGING = {
             'propagate': False,
         },
     },
+}
+
+# drf-spectacular ayarları (isteğe göre genişletilebilir)
+SPECTACULAR_SETTINGS = {
+    "TITLE": "Çözüm Var API",
+    "DESCRIPTION": "Vatandaş bildirim ve görev yönetimi için REST API",
+    "VERSION": "1.0.0",
+    "SERVE_INCLUDE_SCHEMA": False,
 }
