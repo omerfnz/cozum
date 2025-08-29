@@ -204,6 +204,17 @@ REST_FRAMEWORK = {
     ],
     # OpenAPI şeması
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    "DEFAULT_THROTTLE_CLASSES": [
+        "rest_framework.throttling.AnonRateThrottle",
+        "rest_framework.throttling.UserRateThrottle",
+    ],
+    "DEFAULT_THROTTLE_RATES": {
+        "anon": "100/hour",
+        "user": "1000/hour",
+        "login": "5/min",
+        "register": "3/hour",
+        "password_change": "3/min",
+    },
 }
 
 SIMPLE_JWT = {
@@ -237,6 +248,24 @@ else:
             "NAME": BASE_DIR / "db.sqlite3",
         }
     }
+
+
+# Cache Configuration
+# Rate limiting için cache kullanımı
+# Development için locmem cache kullanıyoruz
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'unique-snowflake',
+        'TIMEOUT': 300,  # 5 dakika default timeout
+        'OPTIONS': {
+            'MAX_ENTRIES': 1000,
+        }
+    }
+}
+
+# Rate limiting ayarları
+RATELIMIT_USE_CACHE = os.environ.get('RATELIMIT_USE_CACHE', 'default')
 
 
 # Password validation

@@ -28,6 +28,7 @@ flake8==6.1.0
 
 # Güvenlik
 django-environ==0.11.2
+django-ratelimit==4.1.0
 
 # Dosya depolama
 django-storages[s3]==1.14.6

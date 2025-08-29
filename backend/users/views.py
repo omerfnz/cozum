@@ -5,6 +5,7 @@ from rest_framework.response import Response
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework import filters
+from rest_framework.throttling import AnonRateThrottle, UserRateThrottle
 
 from .models import Team
 from .serializers import UserDetailSerializer, UserRegistrationSerializer, TeamSerializer, UserUpdateSerializer, PasswordChangeSerializer
@@ -27,12 +28,16 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
 class LoginView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
     permission_classes = [permissions.AllowAny]
+    throttle_classes = [AnonRateThrottle]
+    throttle_scope = 'login'
 
 
 class RegisterView(generics.CreateAPIView):
     queryset = User.objects.all()
     permission_classes = [permissions.AllowAny]
     serializer_class = UserRegistrationSerializer
+    throttle_classes = [AnonRateThrottle]
+    throttle_scope = 'register'
 
 
 class MeView(generics.RetrieveAPIView):
@@ -54,6 +59,8 @@ class MeUpdateView(generics.UpdateAPIView):
 class ChangePasswordView(generics.UpdateAPIView):
     serializer_class = PasswordChangeSerializer
     permission_classes = [permissions.IsAuthenticated]
+    throttle_classes = [UserRateThrottle]
+    throttle_scope = 'password_change'
 
     def get_object(self):
         return self.request.user

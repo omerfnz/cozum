@@ -4,6 +4,8 @@ from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework import filters
+from django_ratelimit.decorators import ratelimit
+from django.utils.decorators import method_decorator
 
 from .models import Category, Comment, Report
 from .serializers import (
@@ -51,6 +53,7 @@ class CategoryRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
         instance.save()
 
 
+@method_decorator(ratelimit(key='user', rate='10/h', method='POST', block=True), name='post')
 class ReportListCreateView(generics.ListCreateAPIView):
     parser_classes = [MultiPartParser]
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
@@ -157,6 +160,7 @@ class ReportRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
         instance.delete()
 
 
+@method_decorator(ratelimit(key='user', rate='5/m', method='POST', block=True), name='post')
 class ReportCommentsListCreateView(generics.ListCreateAPIView):
     serializer_class = CommentSerializer
     lookup_url_kwarg = "report_id"
