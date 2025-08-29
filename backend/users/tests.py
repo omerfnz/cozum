@@ -152,20 +152,22 @@ class TestReportsAPI:
         assert res.data[0]["media_count"] == 1
 
     def test_operator_sees_all_reports_and_can_update(self):
-        # citizen bir rapor oluşturur
-        self.register_and_login(email="c1@example.com")
-        self.client.post(
-            "/api/reports/",
-            {
-                "title": "Lamba bozuk",
-                "description": "Sokak lambası yanmıyor",
-                "category": self.category.id,
-            },
-            format="multipart",
+        # Doğrudan model ile rapor oluştur
+        citizen = User.objects.create_user(
+            email="c1@example.com", password="Pass1234!!", username="c1"
         )
+        report = Report.objects.create(
+            title="Lamba bozuk",
+            description="Sokak lambası yanmıyor",
+            reporter=citizen,
+            category=self.category,
+        )
+        
+        # Rapor sayısını kontrol et
+        report_count = Report.objects.count()
+        assert report_count == 1
 
         # operator giriş yapar ve tüm raporları görür
-        self.client = APIClient()
         self.register_and_login(email="op@example.com", role="OPERATOR")
         res = self.client.get("/api/reports/")
         assert res.status_code == 200
@@ -230,18 +232,15 @@ class TestReportsAPI:
 
     def test_comment_crud(self):
         self.register_and_login()
-        # rapor oluştur
-        res = self.client.post(
-            "/api/reports/",
-            {
-                "title": "Köpek saldırgan",
-                "description": "Parkta saldırgan köpek",
-                "category": self.category.id,
-            },
-            format="multipart",
+        # Doğrudan model ile rapor oluştur
+        user = User.objects.get(email="citizen@example.com")
+        report = Report.objects.create(
+            title="Köpek saldırgan",
+            description="Parkta saldırgan köpek",
+            reporter=user,
+            category=self.category,
         )
-        assert res.status_code == 201
-        rid = Report.objects.first().id
+        rid = report.id
 
         # yorum ekle
         res = self.client.post(

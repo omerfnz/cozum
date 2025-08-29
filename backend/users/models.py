@@ -111,7 +111,7 @@ class Team(models.Model):
     @property
     def member_count(self):
         """Takımdaki üye sayısını döndürür"""
-        return self.team_members.count()
+        return self.members.count()
     
     @property
     def created_by_name(self):

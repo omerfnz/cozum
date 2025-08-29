@@ -101,6 +101,52 @@ class TestUserModelEdgeCases:
         assert user.team == team
         assert user in team.team_members.all()
 
+    def test_user_permissions_default_value(self):
+        user = User.objects.create_user(
+            email="permissions@example.com",
+            password="Pass123!",
+            username="permissionsuser"
+        )
+        
+        assert user.user_permissions == {}
+
+    def test_user_permissions_custom_value(self):
+        custom_permissions = {
+            "can_create_reports": True,
+            "can_edit_reports": False,
+            "can_delete_reports": False,
+            "can_assign_teams": True
+        }
+        
+        user = User.objects.create_user(
+            email="custom@example.com",
+            password="Pass123!",
+            username="customuser",
+            user_permissions=custom_permissions
+        )
+        
+        assert user.user_permissions == custom_permissions
+        assert user.user_permissions["can_create_reports"] is True
+        assert user.user_permissions["can_edit_reports"] is False
+
+    def test_user_permissions_update(self):
+        user = User.objects.create_user(
+            email="update@example.com",
+            password="Pass123!",
+            username="updateuser"
+        )
+        
+        # Initially empty
+        assert user.user_permissions == {}
+        
+        # Update permissions
+        new_permissions = {"can_view_reports": True, "can_comment": False}
+        user.user_permissions = new_permissions
+        user.save()
+        
+        user.refresh_from_db()
+        assert user.user_permissions == new_permissions
+
 
 @pytest.mark.django_db
 class TestTeamModelEdgeCases:
@@ -122,20 +168,21 @@ class TestTeamModelEdgeCases:
         # Initially no members
         assert team.member_count == 0
         
-        # Add members
-        User.objects.create_user(
+        # Add members using many-to-many relationship
+        user1 = User.objects.create_user(
             email="user1@example.com",
             password="Pass123!",
-            username="user1",
-            team=team
+            username="user1"
         )
         
-        User.objects.create_user(
+        user2 = User.objects.create_user(
             email="user2@example.com",
             password="Pass123!",
-            username="user2",
-            team=team
+            username="user2"
         )
+        
+        # Add users to team members
+        team.members.add(user1, user2)
         
         assert team.member_count == 2
 

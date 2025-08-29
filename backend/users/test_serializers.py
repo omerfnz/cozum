@@ -125,3 +125,28 @@ class TestUserUpdateSerializer:
         assert updated_user.last_name == "Name"
         assert updated_user.phone == "+90 555 123 45 67"
         assert updated_user.address == "New Address"
+
+    def test_user_update_with_permissions(self):
+        user = User.objects.create_user(
+            email="permissions@example.com",
+            username="permissionsuser",
+            password="Pass123!"
+        )
+        
+        permissions_data = {
+            "can_create_reports": True,
+            "can_edit_reports": False,
+            "can_view_all_reports": True
+        }
+        
+        data = {
+            "username": "updatedpermissions",
+            "user_permissions": permissions_data
+        }
+        
+        serializer = UserUpdateSerializer(instance=user, data=data)
+        assert serializer.is_valid()
+        
+        updated_user = serializer.save()
+        assert updated_user.username == "updatedpermissions"
+        assert updated_user.user_permissions == permissions_data

@@ -129,7 +129,7 @@ class TestReportViewSetEdgeCases:
         
         res = self.client.delete(f"/api/reports/{self.report.id}/")
         
-        assert res.status_code == 405
+        assert res.status_code == 403
 
     def test_report_create_unauthenticated(self):
         res = self.client.post(

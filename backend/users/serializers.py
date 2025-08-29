@@ -64,6 +64,7 @@ class UserDetailSerializer(serializers.ModelSerializer):
             "team_name",
             "phone",
             "address",
+            "user_permissions",
             "date_joined",
             "last_login",
         )
@@ -110,6 +111,7 @@ class UserUpdateSerializer(serializers.ModelSerializer):
             "last_name",
             "phone",
             "address",
+            "user_permissions",
         )
 
 
