@@ -43,6 +43,8 @@ class CustomUserAdmin(UserAdmin):
         ("Önemli Tarihler", {"fields": ("last_login", "date_joined")}),
     )
 
+    filter_horizontal = ("groups",)
+
     add_fieldsets = (
         (
             None,

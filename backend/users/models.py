@@ -53,6 +53,9 @@ class User(AbstractUser):
         max_length=20, blank=True, null=True, verbose_name="Telefon"
     )
     address = models.TextField(blank=True, null=True, verbose_name="Adres")
+    user_permissions = models.JSONField(
+        default=dict, blank=True, verbose_name="Kullanıcı İzinleri"
+    )
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = ["username"]
