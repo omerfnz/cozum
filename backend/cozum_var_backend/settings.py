@@ -24,7 +24,7 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-+hvznaue8j7s$d#(n!fij
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'
 
-ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1,3.126.55.85').split(',')
+ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1,3.126.55.85,api.ntek.com.tr,ntek.com.tr').split(',')
 
 
 # Application definition
@@ -142,7 +142,7 @@ if USE_R2:
                 "secret_key": R2_SECRET_ACCESS_KEY,
                 "region_name": "EEUR",  # Eastern Europe region
                 "addressing_style": "virtual",
-                "querystring_auth": False,
+                "querystring_auth": False,  # Don't add query strings to URLs
                 "custom_domain": R2_CUSTOM_DOMAIN,
                 "file_overwrite": True,  # Temporarily enable for testing
                 "default_acl": None,  # Don't set ACL, use bucket policy
