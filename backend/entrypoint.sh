@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Fail fast: herhangi bir komut hata verirse çık
+set -euo pipefail
+
 # Wait for database to be ready
 echo "Waiting for database..."
 echo "Trying to connect to $DB_HOST:$DB_PORT"
@@ -17,7 +20,7 @@ python manage.py makemigrations
 
 # Run migrations
 echo "Running migrations..."
-python manage.py migrate
+python manage.py migrate --noinput
 
 # Create admin user if it doesn't exist
 echo "Creating admin user..."
