@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:shimmer/shimmer.dart';
 
 import '../../../product/models/report.dart';
 
@@ -39,9 +41,30 @@ class ReportDetailHeader extends StatelessWidget {
         if (hasImage)
           AspectRatio(
             aspectRatio: 16 / 9,
-            child: Ink.image(
-              image: NetworkImage(report.firstMediaUrl!),
+            child: CachedNetworkImage(
+              imageUrl: report.firstMediaUrl!,
               fit: BoxFit.cover,
+              placeholder: (context, url) => Shimmer.fromColors(
+                baseColor: Theme.of(context).brightness == Brightness.dark 
+                  ? Colors.grey.shade800 
+                  : Colors.grey.shade300,
+                highlightColor: Theme.of(context).brightness == Brightness.dark 
+                  ? Colors.grey.shade700 
+                  : Colors.grey.shade100,
+                child: Container(
+                  color: Theme.of(context).colorScheme.surface,
+                ),
+              ),
+              errorWidget: (context, url, error) => Container(
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                child: Icon(
+                  Icons.broken_image,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  size: 48,
+                ),
+              ),
+              memCacheWidth: 800,
+              memCacheHeight: 450,
             ),
           ),
         if (report.description != null && report.description!.isNotEmpty)

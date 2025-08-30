@@ -9,6 +9,7 @@ import 'product/navigation/app_router.dart';
 import 'product/init/service_locator.dart';
 import 'product/theme/theme_cubit.dart';
 import 'product/theme/app_theme.dart';
+import 'product/widgets/connectivity_banner.dart';
 
 Future<void> main() async {
   await ApplicationInitialize().make();
@@ -27,8 +28,11 @@ final class _MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (context) => serviceLocator<ThemeCubit>(),
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider(create: (context) => serviceLocator<ThemeCubit>()),
+        BlocProvider(create: (context) => ConnectivityCubit()),
+      ],
       child: BlocBuilder<ThemeCubit, ThemeState>(
         builder: (context, themeState) {
           final appRouter = serviceLocator<AppRouter>();
@@ -50,7 +54,12 @@ final class _MyApp extends StatelessWidget {
                     MediaQuery.of(context).textScaler.scale(1.0).clamp(0.8, 1.2),
                   ),
                 ),
-                child: child ?? const SizedBox.shrink(),
+                child: Stack(
+                  children: [
+                    child ?? const SizedBox.shrink(),
+                    ConnectivityBanner(child: const SizedBox.shrink()),
+                  ],
+                ),
               );
             },
           );

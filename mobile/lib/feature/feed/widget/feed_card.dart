@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:shimmer/shimmer.dart';
 
 import '../../../product/models/report.dart';
 import 'feed_badge.dart';
@@ -44,9 +46,26 @@ class FeedCard extends StatelessWidget {
             if (hasImage)
               AspectRatio(
                 aspectRatio: 16 / 9,
-                child: Ink.image(
-                  image: NetworkImage(report.firstMediaUrl!),
+                child: CachedNetworkImage(
+                  imageUrl: report.firstMediaUrl!,
                   fit: BoxFit.cover,
+                  placeholder: (context, url) => Shimmer.fromColors(
+                    baseColor: Colors.grey.shade300,
+                    highlightColor: Colors.grey.shade100,
+                    child: Container(
+                      color: Colors.grey.shade300,
+                    ),
+                  ),
+                  errorWidget: (context, url, error) => Container(
+                    color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                    child: Icon(
+                      Icons.image_not_supported_outlined,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      size: 48,
+                    ),
+                  ),
+                  memCacheWidth: 800, // Optimize memory usage
+                  memCacheHeight: 450, // 16:9 aspect ratio
                 ),
               ),
             Padding(
@@ -68,10 +87,10 @@ class FeedCard extends StatelessWidget {
                   const SizedBox(width: 8),
                   FeedBadge(
                     label: report.priority.displayName,
-                    color: _colorForPriority(report.priority),
+                    color: _colorForPriority(report.priority, context),
                   ),
                   const Spacer(),
-                  Icon(Icons.mode_comment_outlined, size: 18, color: Colors.grey.shade600),
+                  Icon(Icons.mode_comment_outlined, size: 18, color: Theme.of(context).colorScheme.onSurfaceVariant),
                   const SizedBox(width: 4),
                   Text('${report.commentCount}')
                 ],
@@ -96,16 +115,16 @@ class FeedCard extends StatelessWidget {
     }
   }
 
-  Color _colorForPriority(ReportPriority p) {
+  Color _colorForPriority(ReportPriority p, BuildContext context) {
     switch (p) {
       case ReportPriority.dusuk:
-        return Colors.grey;
+        return Theme.of(context).colorScheme.outline;
       case ReportPriority.orta:
         return Colors.blueGrey;
       case ReportPriority.yuksek:
         return Colors.deepOrange;
       case ReportPriority.acil:
-        return Colors.red;
+        return Theme.of(context).colorScheme.error;
     }
   }
 }

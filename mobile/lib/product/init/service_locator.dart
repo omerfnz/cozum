@@ -7,6 +7,8 @@ import '../service/network/network_service.dart';
 import '../service/network/dio_interceptor.dart';
 import '../service/storage/storage_service.dart';
 import '../service/auth/auth_service.dart';
+import '../service/connectivity/connectivity_service.dart';
+import '../service/cache/cache_service.dart';
 import '../navigation/app_router.dart';
 import '../theme/theme_cubit.dart';
 
@@ -25,6 +27,11 @@ Future<void> setupServiceLocator() async {
   
   serviceLocator.registerLazySingleton<IStorageService>(
     () => StorageService(serviceLocator<FlutterSecureStorage>()),
+  );
+  
+  // Cache
+  serviceLocator.registerLazySingleton<ICacheService>(
+    () => CacheService(),
   );
   
   // Network
@@ -100,6 +107,11 @@ Future<void> setupServiceLocator() async {
       serviceLocator<INetworkService>(),
       serviceLocator<IStorageService>(),
     ),
+  );
+  
+  // Connectivity Service
+  serviceLocator.registerLazySingleton<IConnectivityService>(
+    () => ConnectivityService(),
   );
   
   // Navigation

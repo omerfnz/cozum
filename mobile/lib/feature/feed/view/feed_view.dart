@@ -8,7 +8,7 @@ import '../../../product/widgets/snackbar.dart';
 import '../view_model/feed_cubit.dart';
 import '../view_model/feed_state.dart';
 import '../widget/feed_card.dart';
-import '../widget/feed_shimmer.dart';
+import '../../../product/widgets/enhanced_shimmer.dart';
 
 class FeedView extends StatelessWidget {
   const FeedView({super.key});
@@ -48,9 +48,17 @@ class _FeedViewBodyState extends State<_FeedViewBody> {
   void _onScroll() {
     final cubit = context.read<FeedCubit>();
     if (!_scroll.hasClients) return;
-    final maxScroll = _scroll.position.maxScrollExtent;
-    final current = _scroll.position.pixels;
-    if (current > maxScroll - 200) {
+    
+    final position = _scroll.position;
+    final maxScroll = position.maxScrollExtent;
+    final current = position.pixels;
+    
+    // Calculate dynamic threshold based on viewport height
+    final viewportHeight = position.viewportDimension;
+    final threshold = viewportHeight * 0.8; // Load when 80% of viewport from bottom
+    
+    // Only trigger if scrolling down and near bottom
+    if (current > maxScroll - threshold && position.userScrollDirection.index <= 1) {
       cubit.loadMoreReports();
     }
   }
@@ -72,7 +80,7 @@ class _FeedViewBodyState extends State<_FeedViewBody> {
           ),
           FilledButton(
             onPressed: () => Navigator.of(context).pop(true),
-            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            style: FilledButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.error),
             child: const Text('Sil'),
           ),
         ],
@@ -102,8 +110,8 @@ class _FeedViewBodyState extends State<_FeedViewBody> {
             ),
             if (cubit.canDeleteReport(report))
               ListTile(
-                leading: const Icon(Icons.delete, color: Colors.red),
-                title: const Text('Sil', style: TextStyle(color: Colors.red)),
+                leading: Icon(Icons.delete, color: Theme.of(context).colorScheme.error),
+                title: Text('Sil', style: TextStyle(color: Theme.of(context).colorScheme.error)),
                 onTap: () {
                   Navigator.of(context).pop();
                   _deleteReport(report);

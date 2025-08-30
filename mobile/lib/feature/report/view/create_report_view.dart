@@ -4,9 +4,10 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import '../../../product/navigation/app_router.dart';
+import '../../../product/widgets/enhanced_form_validation.dart';
 import '../view_model/create_report_cubit.dart';
 import '../view_model/create_report_state.dart';
-import '../widget/create_report_shimmer.dart';
+import '../../../product/widgets/enhanced_shimmer.dart';
 import '../widget/create_report_error_view.dart';
 import '../widget/photo_picker_section.dart';
 import '../widget/location_picker_section.dart';
@@ -112,27 +113,23 @@ class _CreateReportViewBodyState extends State<_CreateReportViewBody> {
               child: ListView(
                 padding: const EdgeInsets.all(16),
                 children: [
-                  TextFormField(
+                  EnhancedTextFormField(
                     controller: _titleCtrl,
-                    decoration: const InputDecoration(
-                      labelText: 'Başlık',
-                      border: OutlineInputBorder(),
-                    ),
-                    validator: (v) => (v == null || v.trim().isEmpty)
-                        ? 'Başlık gereklidir'
-                        : null,
+                    labelText: 'Başlık',
+                    prefixIcon: const Icon(Icons.title_rounded),
+                    validator: (value) => FormValidators.validateRequired(value, 'Başlık'),
+                    showRealTimeValidation: true,
+                    maxLength: 100,
                   ),
                   const SizedBox(height: 12),
-                  TextFormField(
+                  EnhancedTextFormField(
                     controller: _descCtrl,
+                    labelText: 'Açıklama',
+                    prefixIcon: const Icon(Icons.description_rounded),
                     maxLines: 4,
-                    decoration: const InputDecoration(
-                      labelText: 'Açıklama',
-                      border: OutlineInputBorder(),
-                    ),
-                    validator: (v) => (v == null || v.trim().isEmpty)
-                        ? 'Açıklama gereklidir'
-                        : null,
+                    validator: (value) => FormValidators.validateRequired(value, 'Açıklama'),
+                    showRealTimeValidation: true,
+                    maxLength: 500,
                   ),
                   const SizedBox(height: 12),
                   InputDecorator(
@@ -180,7 +177,10 @@ class _CreateReportViewBodyState extends State<_CreateReportViewBody> {
                         ? const SizedBox(
                             width: 16,
                             height: 16,
-                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2, 
+                              color: Colors.white,
+                            ),
                           )
                         : const Icon(Icons.send_rounded),
                     label: const Text('Gönder'),

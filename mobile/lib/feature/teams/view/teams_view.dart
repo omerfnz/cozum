@@ -6,7 +6,8 @@ import '../../../product/constants/api_endpoints.dart';
 import '../../../product/models/user.dart' show Team; // sadece gerekli tipler
 import '../../../product/service/network/network_service.dart';
 import '../../../product/service/auth/auth_service.dart';
-import '../widget/teams_shimmer.dart';
+import '../../../product/widgets/enhanced_form_validation.dart';
+import '../../../product/widgets/enhanced_shimmer.dart';
 import '../widget/team_form_sheet.dart';
 import '../widget/team_card.dart';
 
@@ -163,20 +164,14 @@ class _TeamsViewState extends State<TeamsView> {
           title: const Text('Ekip Üyesi Ekle'),
           content: Form(
             key: formKey,
-            child: TextFormField(
+            child: EnhancedTextFormField(
               controller: controller,
+              labelText: 'Kullanıcı ID',
+              prefixIcon: const Icon(Icons.person_outline),
               keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                labelText: 'Kullanıcı ID',
-                border: OutlineInputBorder(),
-                isDense: true,
-              ),
-              validator: (v) {
-                if (v == null || v.trim().isEmpty) return 'Kullanıcı ID giriniz';
-                final parsed = int.tryParse(v.trim());
-                if (parsed == null) return 'Geçerli bir sayı giriniz';
-                return null;
-              },
+              validator: FormValidators.validateNumeric,
+              showRealTimeValidation: true,
+              maxLength: 10,
             ),
           ),
           actions: [

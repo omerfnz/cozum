@@ -3,6 +3,7 @@ import 'package:get_it/get_it.dart';
 import '../../../product/service/network/network_service.dart';
 import '../../../product/constants/api_endpoints.dart';
 import '../../../product/models/report.dart';
+import '../../../product/widgets/enhanced_form_validation.dart';
 
 class CategoryFormSheet extends StatefulWidget {
   final Category? initial;
@@ -55,24 +56,22 @@ class _CategoryFormSheetState extends State<CategoryFormSheet> {
               style: Theme.of(context).textTheme.headlineSmall,
             ),
             const SizedBox(height: 16),
-            TextFormField(
-              initialValue: name,
-              decoration: const InputDecoration(
-                labelText: 'Kategori Adı',
-                border: OutlineInputBorder(),
-              ),
-              validator: (v) => (v?.trim().isEmpty ?? true) ? 'Kategori adı gerekli.' : null,
-              onSaved: (v) => name = v?.trim(),
+            EnhancedTextFormField(
+              controller: TextEditingController(text: name),
+              labelText: 'Kategori Adı',
+              prefixIcon: const Icon(Icons.category_rounded),
+              validator: (value) => FormValidators.validateRequired(value, 'Kategori Adı'),
+              showRealTimeValidation: true,
+              maxLength: 50,
             ),
             const SizedBox(height: 16),
-            TextFormField(
-              initialValue: description,
-              decoration: const InputDecoration(
-                labelText: 'Açıklama (İsteğe bağlı)',
-                border: OutlineInputBorder(),
-              ),
+            EnhancedTextFormField(
+              controller: TextEditingController(text: description ?? ''),
+              labelText: 'Açıklama (İsteğe bağlı)',
+              prefixIcon: const Icon(Icons.description_rounded),
               maxLines: 3,
-              onSaved: (v) => description = v?.trim().isEmpty == true ? null : v?.trim(),
+              showRealTimeValidation: true,
+              maxLength: 200,
             ),
             const SizedBox(height: 16),
             SwitchListTile(

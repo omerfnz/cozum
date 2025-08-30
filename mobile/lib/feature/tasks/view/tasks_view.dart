@@ -1,11 +1,11 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:shimmer/shimmer.dart';
 
 import '../../../product/models/report.dart';
 import '../../../product/navigation/navigation_guard.dart';
 import '../../../product/widgets/snackbar.dart';
+import '../../../product/widgets/enhanced_shimmer.dart';
 import '../view_model/tasks_cubit.dart';
 import '../view_model/tasks_state.dart';
 
@@ -90,8 +90,8 @@ class _TasksViewBodyState extends State<_TasksViewBody> {
             ],
             if (cubit.canDeleteTask(report))
               ListTile(
-                leading: const Icon(Icons.delete, color: Colors.red),
-                title: const Text('Sil', style: TextStyle(color: Colors.red)),
+                leading: Icon(Icons.delete, color: Theme.of(context).colorScheme.error),
+                title: Text('Sil', style: TextStyle(color: Theme.of(context).colorScheme.error)),
                 onTap: () {
                   Navigator.of(context).pop();
                   _deleteTask(report);
@@ -148,7 +148,47 @@ class _TasksViewBodyState extends State<_TasksViewBody> {
       },
       builder: (context, state) {
         if (state is TasksLoading) {
-          return const _TasksShimmer();
+          return ShimmerListView(
+            itemCount: 6,
+            itemBuilder: (context, index) {
+              return Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: ListTile(
+                    leading: const ShimmerCircle(size: 40),
+                    title: const ShimmerLine(width: 150, height: 16),
+                    isThreeLine: true,
+                    subtitle: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const ShimmerLine(width: 100, height: 12),
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            const ShimmerCircle(size: 14),
+                            const SizedBox(width: 4),
+                            const Expanded(
+                              child: ShimmerLine(height: 12),
+                            ),
+                            const SizedBox(width: 12),
+                            const ShimmerCircle(size: 14),
+                            const SizedBox(width: 4),
+                            const ShimmerLine(width: 60, height: 12),
+                          ],
+                        ),
+                      ],
+                    ),
+                    trailing: const ShimmerBox(
+                      width: 24,
+                      height: 24,
+                      borderRadius: BorderRadius.all(Radius.circular(12)),
+                    ),
+                  ),
+                ),
+              );
+            },
+          );
         }
 
         if (state is TasksError) {
@@ -289,88 +329,5 @@ class _TasksViewBodyState extends State<_TasksViewBody> {
       case ReportStatus.reddedildi:
         return Colors.red.shade600;
     }
-  }
-}
-
-class _TasksShimmer extends StatelessWidget {
-  const _TasksShimmer();
-
-  @override
-  Widget build(BuildContext context) {
-    return ListView.separated(
-      padding: const EdgeInsets.all(16),
-      itemCount: 6,
-      separatorBuilder: (_, __) => const SizedBox(height: 8),
-      itemBuilder: (context, index) {
-        return Shimmer.fromColors(
-          baseColor: Theme.of(context).brightness == Brightness.dark
-              ? Colors.grey.shade700
-              : Colors.grey.shade300,
-          highlightColor: Theme.of(context).brightness == Brightness.dark
-              ? Colors.grey.shade600
-              : Colors.grey.shade100,
-          child: const _TaskSkeletonCard(),
-        );
-      },
-    );
-  }
-}
-
-class _TaskSkeletonCard extends StatelessWidget {
-  const _TaskSkeletonCard();
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      child: ListTile(
-        leading: const CircleAvatar(backgroundColor: Colors.white),
-        title: Container(
-          height: 14,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(4),
-          ),
-        ),
-        subtitle: Padding(
-          padding: const EdgeInsets.only(top: 8.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                height: 12,
-                width: 120,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(4),
-                ),
-              ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Container(
-                    height: 10,
-                    width: 100,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Container(
-                    height: 10,
-                    width: 60,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-        trailing: const Icon(Icons.chevron_right_rounded, color: Colors.white),
-      ),
-    );
   }
 }

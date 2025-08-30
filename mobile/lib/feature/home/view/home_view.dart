@@ -6,6 +6,7 @@ import 'dart:async';
 
 import '../../../product/navigation/app_router.dart';
 import '../../../product/service/auth/auth_service.dart';
+import '../../../product/widgets/connectivity_banner.dart';
 import '../../feed/view/feed_view.dart';
 import '../../categories/view/categories_view.dart';
 import '../../tasks/view/tasks_view.dart';
@@ -89,6 +90,7 @@ class _HomeViewState extends State<HomeView> {
       appBar: AppBar(
         title: Text(_appBarTitle(tabs)),
         actions: [
+          const ConnectivityBanner(child: SizedBox.shrink()),
           // Yeni bildirim butonu AppBar'dan kaldırıldı (FAB zaten mevcut)
           // Ayarlar butonu üç nokta menüsüne taşındı
           PopupMenuButton<String>(

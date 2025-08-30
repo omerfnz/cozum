@@ -34,6 +34,8 @@ class TasksCubit extends Cubit<TasksState> {
       path: ApiEndpoints.reports,
       type: RequestType.get,
       queryParameters: await _getDefaultFilters(),
+      useCache: true,
+      cacheExpiry: const Duration(minutes: 10),
       parser: (json) {
         if (json is List) {
           return json.map((e) => Report.fromJson(e as Map<String, dynamic>)).toList();

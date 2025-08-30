@@ -356,15 +356,15 @@ class _MapLocationPickerViewState extends State<MapLocationPickerView> {
                   ],
                 ),
                 // Merkez marker (sabit)
-                const Center(
+                Center(
                   child: Icon(
                     Icons.location_pin,
-                    color: Colors.red,
+                    color: Theme.of(context).colorScheme.error,
                     size: 50,
                     shadows: [
                       Shadow(
-                        color: Colors.black26,
-                        offset: Offset(2, 2),
+                        color: Theme.of(context).colorScheme.shadow.withValues(alpha: 0.3),
+                        offset: const Offset(2, 2),
                         blurRadius: 4,
                       ),
                     ],
@@ -373,7 +373,7 @@ class _MapLocationPickerViewState extends State<MapLocationPickerView> {
                 // Konum yükleme göstergesi
                 if (_loadingCurrentLocation)
                   Container(
-                    color: Colors.black12,
+                    color: Theme.of(context).colorScheme.scrim.withValues(alpha: 0.1),
                     child: const Center(
                       child: Card(
                         child: Padding(

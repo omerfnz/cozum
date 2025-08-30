@@ -30,6 +30,8 @@ class CategoriesCubit extends Cubit<CategoriesState> {
       final result = await _networkService.request<List<Category>>(
         path: ApiEndpoints.categories,
         type: RequestType.get,
+        useCache: true,
+        cacheExpiry: const Duration(hours: 1),
         parser: (json) {
           if (json is List) {
             return json

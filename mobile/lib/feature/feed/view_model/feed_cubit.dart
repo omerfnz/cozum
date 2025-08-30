@@ -18,6 +18,8 @@ class FeedCubit extends Cubit<FeedState> {
   int _visibleCount = 0;
   static const int _pageSize = 8;
   auth.User? _currentUser;
+  bool _isLoadingMore = false;
+  DateTime? _lastLoadTime;
 
   Future<void> loadUserAndFetch() async {
     final userRes = await _auth.getCurrentUser();
@@ -33,6 +35,8 @@ class FeedCubit extends Cubit<FeedState> {
     final res = await _net.request<List<Report>>(
       path: ApiEndpoints.reports,
       type: RequestType.get,
+      useCache: true,
+      cacheExpiry: const Duration(minutes: 15),
       parser: (json) {
         final list = (json as List<dynamic>)
             .map((e) => Report.fromJson(e as Map<String, dynamic>))
@@ -56,12 +60,24 @@ class FeedCubit extends Cubit<FeedState> {
   void loadMore() {
     if (_visibleCount >= _allReports.length) return;
     if (state is! FeedLoaded) return;
+    if (_isLoadingMore) return; // Prevent multiple simultaneous loads
     
+    // Throttle loading to prevent excessive calls
+    final now = DateTime.now();
+    if (_lastLoadTime != null && now.difference(_lastLoadTime!).inMilliseconds < 500) {
+      return;
+    }
+    
+    _isLoadingMore = true;
+    _lastLoadTime = now;
     emit(const FeedLoadingMore());
     
-    Future.delayed(const Duration(milliseconds: 200), () {
-      _visibleCount = min(_visibleCount + _pageSize, _allReports.length);
-      emit(FeedLoaded(_allReports.take(_visibleCount).toList(), _visibleCount < _allReports.length));
+    Future.delayed(const Duration(milliseconds: 300), () {
+      if (!isClosed) {
+        _visibleCount = min(_visibleCount + _pageSize, _allReports.length);
+        _isLoadingMore = false;
+        emit(FeedLoaded(_allReports.take(_visibleCount).toList(), _visibleCount < _allReports.length));
+      }
     });
   }
 

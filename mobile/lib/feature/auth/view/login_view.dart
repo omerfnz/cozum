@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../product/navigation/app_router.dart';
 import '../../../product/widgets/snackbar.dart';
+import '../../../product/widgets/enhanced_form_validation.dart';
 import '../view_model/login_cubit.dart';
 import '../view_model/login_state.dart';
 
@@ -95,16 +96,14 @@ class _LoginViewBodyState extends State<_LoginViewBody> {
                         BlocSelector<LoginCubit, LoginState, String?>(
                           selector: (state) => state is LoginValidationError ? state.emailError : null,
                           builder: (context, emailError) {
-                            return TextFormField(
+                            return EnhancedTextFormField(
                               controller: _emailController,
+                              labelText: 'E-posta',
+                              prefixIcon: const Icon(Icons.alternate_email_rounded),
                               keyboardType: TextInputType.emailAddress,
-                              decoration: InputDecoration(
-                                labelText: 'E-posta',
-                                prefixIcon: const Icon(Icons.alternate_email_rounded),
-                                errorText: emailError,
-                              ),
-                              validator: context.read<LoginCubit>().validateEmail,
+                              validator: FormValidators.validateEmail,
                               autofillHints: const [AutofillHints.email],
+                              showRealTimeValidation: true,
                             );
                           },
                         ),
@@ -112,21 +111,19 @@ class _LoginViewBodyState extends State<_LoginViewBody> {
                         BlocSelector<LoginCubit, LoginState, String?>(
                           selector: (state) => state is LoginValidationError ? state.passwordError : null,
                           builder: (context, passwordError) {
-                            return TextFormField(
+                            return EnhancedTextFormField(
                               controller: _passwordController,
+                              labelText: 'Şifre',
+                              prefixIcon: const Icon(Icons.lock_rounded),
                               obscureText: _obscure,
-                              decoration: InputDecoration(
-                                labelText: 'Şifre',
-                                prefixIcon: const Icon(Icons.lock_rounded),
-                                errorText: passwordError,
-                                suffixIcon: IconButton(
-                                  tooltip: _obscure ? 'Şifreyi göster' : 'Şifreyi gizle',
-                                  icon: Icon(_obscure ? Icons.visibility_rounded : Icons.visibility_off_rounded),
-                                  onPressed: () => setState(() => _obscure = !_obscure),
-                                ),
+                              suffixIcon: IconButton(
+                                tooltip: _obscure ? 'Şifreyi göster' : 'Şifreyi gizle',
+                                icon: Icon(_obscure ? Icons.visibility_rounded : Icons.visibility_off_rounded),
+                                onPressed: () => setState(() => _obscure = !_obscure),
                               ),
-                              validator: context.read<LoginCubit>().validatePassword,
+                              validator: (value) => FormValidators.validateRequired(value, 'Şifre'),
                               autofillHints: const [AutofillHints.password],
+                              showRealTimeValidation: true,
                             );
                           },
                         ),
@@ -149,7 +146,7 @@ class _LoginViewBodyState extends State<_LoginViewBody> {
                           child: BlocSelector<LoginCubit, LoginState, bool>(
                             selector: (state) => state is LoginLoading,
                             builder: (context, isLoading) {
-                              return ElevatedButton.icon(
+                              return FilledButton.icon(
                                 onPressed: isLoading ? null : _submit,
                                 icon: isLoading
                                     ? const SizedBox(

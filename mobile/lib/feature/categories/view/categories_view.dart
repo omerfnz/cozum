@@ -5,7 +5,7 @@ import '../../../product/constants/api_endpoints.dart';
 import '../../../product/models/report.dart';
 import '../../../product/service/network/network_service.dart';
 import '../../../product/service/auth/auth_service.dart';
-import '../widget/categories_shimmer.dart';
+import '../../../product/widgets/enhanced_shimmer.dart';
 import '../widget/category_form_sheet.dart';
 import '../widget/category_card.dart';
 import '../widget/categories_error_view.dart';

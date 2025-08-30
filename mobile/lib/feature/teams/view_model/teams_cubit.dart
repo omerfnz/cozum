@@ -34,6 +34,8 @@ class TeamsCubit extends Cubit<TeamsState> {
       final res = await _networkService.request<List<Team>>(
         path: ApiEndpoints.teams,
         type: RequestType.get,
+        useCache: true,
+        cacheExpiry: const Duration(minutes: 30),
         parser: (json) {
           if (json is List) {
             return json.map((e) => Team.fromJson(e as Map<String, dynamic>)).toList();

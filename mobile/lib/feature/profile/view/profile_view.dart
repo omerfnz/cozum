@@ -2,10 +2,10 @@ import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
-import 'package:shimmer/shimmer.dart';
 
 import '../../../product/navigation/app_router.dart';
 import '../../../product/service/auth/auth_service.dart';
+import '../../../product/widgets/enhanced_shimmer.dart';
 import '../view_model/profile_cubit.dart';
 import '../view_model/profile_state.dart';
 
@@ -79,7 +79,7 @@ class _ProfileContent extends StatelessWidget {
                       child: Text(
                         _initials(user),
                         style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                              color: Colors.white,
+                              color: Theme.of(context).colorScheme.onPrimary,
                               fontWeight: FontWeight.bold,
                               fontSize: (avatarRadius * 0.9).clamp(18, 42),
                             ),
@@ -94,13 +94,13 @@ class _ProfileContent extends StatelessWidget {
                     const SizedBox(height: 6),
                     Text(
                       _roleDisplay(user.role),
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
                     ),
                     const SizedBox(height: 4),
                     if (user.email.isNotEmpty)
                       Text(
                         user.email,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey[600]),
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
                       ),
                   ],
                 ),
@@ -114,6 +114,16 @@ class _ProfileContent extends StatelessWidget {
                   context.router.push(const SettingsViewRoute());
                 },
               ),
+              // Admin Dashboard - sadece admin kullanıcılar için
+              if (user.role == 'ADMIN')
+                _buildProfileMenuItem(
+                  context,
+                  icon: Icons.admin_panel_settings,
+                  title: 'Admin Dashboard',
+                  onTap: () {
+                    context.router.push(const AdminDashboardViewRoute());
+                  },
+                ),
               _buildProfileMenuItem(
                 context,
                 icon: Icons.notifications_outlined,
@@ -322,76 +332,9 @@ class _ProfileShimmer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final base = isDark ? Colors.grey.shade800 : Colors.grey.shade300;
-    final highlight = isDark ? Colors.grey.shade700 : Colors.grey.shade100;
-
-    Widget line({double height = 14, double width = double.infinity, BorderRadius? radius}) =>
-        Container(height: height, width: width, decoration: BoxDecoration(color: base, borderRadius: radius ?? BorderRadius.circular(8)));
-
-    Widget menuTile() => Card(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            child: Row(
-              children: [
-                Container(width: 24, height: 24, decoration: BoxDecoration(color: base, borderRadius: BorderRadius.circular(6))),
-                const SizedBox(width: 16),
-                Expanded(child: line(width: double.infinity)),
-                const SizedBox(width: 16),
-                Container(width: 20, height: 20, decoration: BoxDecoration(color: base, borderRadius: BorderRadius.circular(6))),
-              ],
-            ),
-          ),
-        );
-
-    return Shimmer.fromColors(
-      baseColor: base,
-      highlightColor: highlight,
-      child: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          Center(
-            child: Column(
-              children: [
-                Container(
-                  width: 100,
-                  height: 100,
-                  decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
-                ),
-                const SizedBox(height: 16),
-                line(width: 180, height: 18),
-                const SizedBox(height: 8),
-                line(width: 120, height: 14),
-                const SizedBox(height: 6),
-                line(width: 160, height: 12),
-              ],
-            ),
-          ),
-          const SizedBox(height: 24),
-          menuTile(),
-          menuTile(),
-          menuTile(),
-          menuTile(),
-          const SizedBox(height: 12),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  line(width: 140, height: 16),
-                  const SizedBox(height: 12),
-                  line(width: double.infinity),
-                  const SizedBox(height: 10),
-                  line(width: double.infinity),
-                  const SizedBox(height: 10),
-                  line(width: double.infinity),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
+    return const ProfileShimmer(
+      hasStats: true,
+      menuItemsCount: 6,
     );
   }
 }

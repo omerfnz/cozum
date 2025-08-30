@@ -49,9 +49,9 @@ class LocationPickerSection extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 8),
-        const Text(
+        Text(
           'Haritadan konum seçmek için aşağıdaki haritaya dokunun veya "Haritadan Seç" butonuna tıklayın',
-          style: TextStyle(color: Colors.grey),
+          style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
         ),
         const SizedBox(height: 8),
         Row(
@@ -93,10 +93,10 @@ class LocationPickerSection extends StatelessWidget {
                         ],
                       ),
                     ),
-                    const Center(
+                    Center(
                       child: Icon(
                         Icons.location_pin,
-                        color: Colors.red,
+                        color: Theme.of(context).colorScheme.error,
                         size: 30,
                       ),
                     ),

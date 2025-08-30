@@ -32,6 +32,8 @@ class CreateReportCubit extends Cubit<CreateReportState> {
     final res = await _net.request<List<Category>>(
       path: ApiEndpoints.categories,
       type: RequestType.get,
+      useCache: true,
+      cacheExpiry: const Duration(hours: 1),
       parser: (json) {
         if (json is List) {
           return json

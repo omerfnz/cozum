@@ -9,7 +9,7 @@ import '../../../product/service/auth/auth_service.dart';
 import '../../../product/models/user.dart' show Team; // Team modelini kullanmak için
 import '../widget/report_detail_header.dart';
 import '../widget/comment_tile.dart';
-import '../widget/report_detail_shimmer.dart';
+import '../../../product/widgets/enhanced_shimmer.dart';
 import '../widget/error_view.dart';
 
 @RoutePage()

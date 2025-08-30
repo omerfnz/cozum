@@ -31,6 +31,7 @@ dependencies:
   
   # Güvenli Depolama
   flutter_secure_storage: ^9.2.2
+  hive_flutter: ^1.1.0
   
   # Medya ve Dosyalar
   image_picker: ^1.0.4

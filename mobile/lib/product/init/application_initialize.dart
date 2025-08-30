@@ -6,6 +6,8 @@ import 'package:flutter_native_splash/flutter_native_splash.dart';
 
 import 'service_locator.dart';
 import '../service/error/global_error_handler.dart';
+import '../service/connectivity/connectivity_service.dart';
+import '../service/cache/cache_service.dart';
 
 /// Application initialization class
 final class ApplicationInitialize {
@@ -24,6 +26,14 @@ final class ApplicationInitialize {
     // Setup global error handling
     final logger = GetIt.I<Logger>();
     GlobalErrorHandler.instance.initialize(logger);
+
+    // Initialize cache service
+    final cacheService = GetIt.I<ICacheService>();
+    await cacheService.initialize();
+    
+    // Initialize connectivity service
+    final connectivityService = GetIt.I<IConnectivityService>();
+    await connectivityService.initialize();
 
     // Başlatma işlemleri tamamlandı, splash ekranını kaldır
     FlutterNativeSplash.remove();

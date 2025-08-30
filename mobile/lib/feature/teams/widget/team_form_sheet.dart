@@ -4,6 +4,7 @@ import 'package:get_it/get_it.dart';
 import '../../../product/constants/api_endpoints.dart';
 import '../../../product/models/user.dart' show Team, TeamType;
 import '../../../product/service/network/network_service.dart';
+import '../../../product/widgets/enhanced_form_validation.dart';
 
 class TeamFormSheet extends StatefulWidget {
   final Team? initialTeam;
@@ -57,18 +58,13 @@ class _TeamFormSheetState extends State<TeamFormSheet> {
               style: Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: 12),
-            TextFormField(
-              initialValue: _name,
-              decoration: const InputDecoration(
-                labelText: 'Ad',
-                border: OutlineInputBorder(),
-                isDense: true,
-              ),
-              validator: (v) {
-                if (v == null || v.trim().isEmpty) return 'Ad zorunludur';
-                return null;
-              },
-              onSaved: (v) => _name = v!.trim(),
+            EnhancedTextFormField(
+              controller: TextEditingController(text: _name),
+              labelText: 'Ad',
+              prefixIcon: const Icon(Icons.group_rounded),
+              validator: (value) => FormValidators.validateRequired(value, 'Ad'),
+              showRealTimeValidation: true,
+              maxLength: 50,
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<TeamType>(
@@ -93,16 +89,13 @@ class _TeamFormSheetState extends State<TeamFormSheet> {
               },
             ),
             const SizedBox(height: 12),
-            TextFormField(
-              initialValue: _description,
-              minLines: 2,
+            EnhancedTextFormField(
+              controller: TextEditingController(text: _description ?? ''),
+              labelText: 'Açıklama (opsiyonel)',
+              prefixIcon: const Icon(Icons.description_rounded),
               maxLines: 4,
-              decoration: const InputDecoration(
-                labelText: 'Açıklama (opsiyonel)',
-                border: OutlineInputBorder(),
-                isDense: true,
-              ),
-              onSaved: (v) => _description = (v?.trim().isEmpty ?? true) ? null : v?.trim(),
+              showRealTimeValidation: true,
+              maxLength: 200,
             ),
             const SizedBox(height: 12),
             Row(
