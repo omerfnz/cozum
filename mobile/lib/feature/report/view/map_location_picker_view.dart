@@ -38,9 +38,13 @@ class _MapLocationPickerViewState extends State<MapLocationPickerView> {
       widget.initialLatitude ?? 41.015137,
       widget.initialLongitude ?? 28.979530,
     );
+    // İlk adresi yükle ama mevcut konumu otomatik almayı kaldır
     _loadAddress();
-    // Otomatik olarak mevcut konuma git
-    _getCurrentLocation();
+    
+    // Eğer başlangıç konumu verilmemişse, kullanıcının mevcut konumunu al
+    if (widget.initialLatitude == null && widget.initialLongitude == null) {
+      _getCurrentLocation();
+    }
   }
 
   @override
@@ -143,6 +147,8 @@ class _MapLocationPickerViewState extends State<MapLocationPickerView> {
   }
 
   Future<void> _getCurrentLocation() async {
+    if (_loadingCurrentLocation) return; // Çoklu çağrıları engelle
+    
     setState(() => _loadingCurrentLocation = true);
     
     try {
@@ -171,30 +177,50 @@ class _MapLocationPickerViewState extends State<MapLocationPickerView> {
         }
       }
 
-      // Mevcut konumu al
+      // Timeout ile mevcut konumu al
       final position = await Geolocator.getCurrentPosition(
         locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.high,
+          accuracy: LocationAccuracy.medium, // High yerine medium kullan
+          timeLimit: Duration(seconds: 10), // 10 saniye timeout
         ),
+      ).timeout(
+        const Duration(seconds: 15), // Ek timeout
+        onTimeout: () {
+          throw Exception('Konum alma işlemi zaman aşımına uğradı');
+        },
       );
+      
+      if (!mounted) return;
       
       final currentLocation = LatLng(position.latitude, position.longitude);
       
-      if (mounted) {
-        setState(() {
-          _selectedLocation = currentLocation;
-        });
-        
-        // Haritayı mevcut konuma taşı
+      setState(() {
+        _selectedLocation = currentLocation;
+      });
+      
+      // Haritayı güvenli şekilde taşı
+      try {
         _mapController.move(currentLocation, 15);
-        
-        // Adresi yükle
-        _loadAddress();
+      } catch (e) {
+        // Harita controller hatası sessizce geç
       }
+      
+      // Adresi yükle
+      _loadAddress();
+      
     } catch (e) {
       if (mounted) {
+        String errorMessage = 'Konum alınamadı';
+        if (e.toString().contains('timeout') || e.toString().contains('zaman aşımı')) {
+          errorMessage = 'Konum alma işlemi zaman aşımına uğradı. Tekrar deneyin.';
+        } else if (e.toString().contains('LocationServiceDisabledException')) {
+          errorMessage = 'Konum servisi kapalı';
+        } else if (e.toString().contains('PermissionDeniedException')) {
+          errorMessage = 'Konum izni reddedildi';
+        }
+        
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Konum alınamadı: $e')),
+          SnackBar(content: Text(errorMessage)),
         );
       }
     } finally {
@@ -291,9 +317,9 @@ class _MapLocationPickerViewState extends State<MapLocationPickerView> {
                   mapController: _mapController,
                   options: MapOptions(
                     initialCenter: _selectedLocation,
-                    initialZoom: 15,
-                    minZoom: 3,
-                    maxZoom: 18,
+                    initialZoom: 15.0,
+                    minZoom: 10.0,
+                    maxZoom: 18.0,
                     interactionOptions: const InteractionOptions(
                       flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
                     ),
@@ -302,13 +328,15 @@ class _MapLocationPickerViewState extends State<MapLocationPickerView> {
                       if (hasGesture && mounted) {
                         // Harita hareket ettirildiğinde merkez konumu güncelle
                         final newLocation = LatLng(
-                          double.parse(position.center.latitude.toStringAsFixed(6)),
-                          double.parse(position.center.longitude.toStringAsFixed(6)),
+                          position.center.latitude,
+                          position.center.longitude,
                         );
                         
-                        // Konum değişikliği varsa güncelle
-                        if (_selectedLocation.latitude != newLocation.latitude ||
-                            _selectedLocation.longitude != newLocation.longitude) {
+                        // Konum değişikliği kontrolü (0.00001 hassasiyet ile)
+                        final latDiff = (_selectedLocation.latitude - newLocation.latitude).abs();
+                        final lngDiff = (_selectedLocation.longitude - newLocation.longitude).abs();
+                        
+                        if (latDiff > 0.00001 || lngDiff > 0.00001) {
                           setState(() {
                             _selectedLocation = newLocation;
                           });
@@ -320,13 +348,10 @@ class _MapLocationPickerViewState extends State<MapLocationPickerView> {
                   ),
                   children: [
                     TileLayer(
-                      urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                      urlTemplate: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+                      subdomains: const ['a', 'b', 'c', 'd'],
                       userAgentPackageName: 'com.cozum.mobile',
-                      maxZoom: 18,
-                      minZoom: 3,
-                      maxNativeZoom: 19,
-                      tileDimension: 256,
-                      retinaMode: false,
+                      maxZoom: 19,
                     ),
                   ],
                 ),

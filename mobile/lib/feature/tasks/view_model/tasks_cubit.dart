@@ -117,8 +117,14 @@ class TasksCubit extends Cubit<TasksState> {
   }
 
   Future<void> deleteTask(Report report) async {
+    final id = report.id;
+    if (id == null) {
+      emit(const TasksError('Görev ID bulunamadı'));
+      return;
+    }
+
     final res = await _net.request(
-      path: '${ApiEndpoints.reports}/${report.id}/',
+      path: ApiEndpoints.reportById(id),
       type: RequestType.delete,
     );
 
@@ -131,8 +137,14 @@ class TasksCubit extends Cubit<TasksState> {
   }
 
   Future<void> updateTaskStatus(Report report, ReportStatus newStatus) async {
+    final id = report.id;
+    if (id == null) {
+      emit(const TasksError('Görev ID bulunamadı'));
+      return;
+    }
+
     final res = await _net.request(
-      path: '${ApiEndpoints.reports}/${report.id}/',
+      path: ApiEndpoints.reportById(id),
       type: RequestType.patch,
       data: {'status': newStatus.name},
     );
@@ -142,6 +154,32 @@ class TasksCubit extends Cubit<TasksState> {
       await fetchTasks(); // Listeyi yenile
     } else {
       emit(TasksError(res.error ?? 'Görev güncellenemedi'));
+    }
+  }
+
+  Future<void> deleteReport(Report report) async {
+    final id = report.id;
+    if (id == null) {
+      emit(const TasksError('Bildirim ID bulunamadı'));
+      return;
+    }
+
+    final res = await _net.request(
+      path: ApiEndpoints.reportById(id),
+      type: RequestType.delete,
+    );
+
+    if (res.isSuccess) {
+      // TasksState, TasksLoaded(reports) şeklinde; rapor listesini güncellemek için mevcut state'i kontrol et
+      if (state is TasksLoaded) {
+        final current = (state as TasksLoaded).tasks;
+        final updated = current.where((r) => r.id != id).toList();
+        emit(TasksLoaded(updated));
+      }
+      // Ayrı bir "TasksReportDeleted" sınıfı tanımlı değil; silme sonrası genel başarı durumu olarak TasksTaskDeleted yayınlıyoruz
+      emit(const TasksTaskDeleted());
+    } else {
+      emit(TasksError('Bildirim silinirken hata oluştu: ${res.error}'));
     }
   }
 

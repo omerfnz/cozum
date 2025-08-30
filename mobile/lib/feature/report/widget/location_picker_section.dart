@@ -85,8 +85,10 @@ class LocationPickerSection extends StatelessWidget {
                         ),
                         children: [
                           TileLayer(
-                            urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                            urlTemplate: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+                            subdomains: const ['a', 'b', 'c', 'd'],
                             userAgentPackageName: 'cozum.mobile',
+                            maxZoom: 19,
                           ),
                         ],
                       ),

@@ -94,6 +94,15 @@ class _CategoriesViewState extends State<CategoriesView> {
   }
 
   Future<void> _deleteCategory(Category category) async {
+    // ID null ise güvenli şekilde çık
+    if (category.id == null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Kategori ID eksik, silme işlemi yapılamıyor.')),
+      );
+      return;
+    }
+
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) {

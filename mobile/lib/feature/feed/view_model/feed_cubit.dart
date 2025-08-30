@@ -84,13 +84,19 @@ class FeedCubit extends Cubit<FeedState> {
   }
 
   Future<void> deleteReport(Report report) async {
+    final id = report.id;
+    if (id == null) {
+      emit(const FeedError('Bildirim ID bulunamadı'));
+      return;
+    }
+
     final res = await _net.request(
-      path: '${ApiEndpoints.reports}/${report.id}/',
+      path: ApiEndpoints.reportById(id),
       type: RequestType.delete,
     );
 
     if (res.isSuccess) {
-      _allReports.removeWhere((r) => r.id == report.id);
+      _allReports.removeWhere((r) => r.id == id);
       _visibleCount = min(_visibleCount, _allReports.length);
       emit(FeedLoaded(_allReports.take(_visibleCount).toList(), _visibleCount < _allReports.length));
       emit(const FeedReportDeleted());

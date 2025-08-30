@@ -114,14 +114,34 @@ class CreateReportCubit extends Cubit<CreateReportState> {
     if (!ok) return;
 
     try {
-      final position = await geo.Geolocator.getCurrentPosition();
+      // Timeout ve daha düşük hassasiyet ile konum al
+      final position = await geo.Geolocator.getCurrentPosition(
+        locationSettings: const geo.LocationSettings(
+          accuracy: geo.LocationAccuracy.medium,
+          timeLimit: Duration(seconds: 10),
+        ),
+      ).timeout(
+        const Duration(seconds: 15),
+        onTimeout: () {
+          throw Exception('Konum alma işlemi zaman aşımına uğradı');
+        },
+      );
+      
       _latitude = position.latitude;
       _longitude = position.longitude;
       
       await _fillAddressFromCoordinates();
       emit(CreateReportLocationUpdated(_latitude!, _longitude!, await _getAddressFromCoordinates()));
     } catch (e) {
-      emit(CreateReportError('Konum alınamadı: $e'));
+      String errorMessage = 'Konum alınamadı';
+      if (e.toString().contains('timeout') || e.toString().contains('zaman aşımı')) {
+        errorMessage = 'Konum alma işlemi zaman aşımına uğradı. Tekrar deneyin.';
+      } else if (e.toString().contains('LocationServiceDisabledException')) {
+        errorMessage = 'Konum servisi kapalı. Lütfen etkinleştirin.';
+      } else if (e.toString().contains('PermissionDeniedException')) {
+        errorMessage = 'Konum izni reddedildi.';
+      }
+      emit(CreateReportError(errorMessage));
     }
   }
 

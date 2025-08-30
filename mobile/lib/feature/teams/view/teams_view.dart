@@ -97,7 +97,13 @@ class _TeamsViewState extends State<TeamsView> {
   }
 
   Future<void> _deleteTeam(Team team) async {
-    if (team.id == null) return;
+    if (team.id == null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Ekip ID eksik, silme işlemi yapılamıyor.')),
+      );
+      return;
+    }
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) {
@@ -140,7 +146,13 @@ class _TeamsViewState extends State<TeamsView> {
   }
 
   Future<void> _addMember(Team team) async {
-    if (team.id == null) return;
+    if (team.id == null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Ekip ID eksik, üye ekleme işlemi yapılamıyor.')),
+      );
+      return;
+    }
 
     final userId = await showDialog<int>(
       context: context,
