@@ -24,6 +24,7 @@ Bu doküman, mevcut backend (Django) uygulamasına ve projedeki diğer bileşenl
 - **Dependency Injection:** GetIt
 - **Navigation:** AutoRoute v9
 - **Network:** Dio ile HTTP client
+- **UI/UX Bileşenleri:** Enhanced Shimmer (merkezi shimmer yönetimi), Material Design 3
 - **Paketler:** dio, get_it, auto_route, flutter_bloc, image_picker, geolocator, url_launcher, intl, shimmer, equatable
 
 ---
@@ -168,6 +169,13 @@ flutter run --dart-define=API_BASE_URL=http://localhost:8000/api
 - AutoRoute v9 notu:
   - MaterialApp.router bağlama: `routerConfig: appRouter.config()`
   - Kod üretimi: `dart run build_runner build --delete-conflicting-outputs`
+
+- Enhanced Shimmer Sistemi:
+  - **Merkezi Yönetim**: `lib/product/widgets/enhanced_shimmer.dart` dosyasında tüm shimmer bileşenleri
+  - **Sayfa Bazlı Shimmer'lar**: Feed, Profil, Admin Dashboard, Rapor Detay, Rapor Oluşturma, Kategoriler, Görevler
+  - **Gerçek İçerikle Uyumlu**: Her sayfa için özelleştirilmiş shimmer tasarımları
+  - **Kod Tekrarı Minimizasyonu**: Ortak shimmer bileşenlerinin yeniden kullanımı
+  - **Responsive Tasarım**: Tüm ekran boyutlarında optimize edilmiş shimmer animasyonları
 
 - Native Splash (flutter_native_splash):
   1) Geliştirme bağımlılığı ekleyin (pubspec.yaml dev_dependencies): `flutter_native_splash: ^2.4.0`

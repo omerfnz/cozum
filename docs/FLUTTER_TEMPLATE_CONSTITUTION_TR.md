@@ -256,6 +256,7 @@ dependencies:
 # module/widgets/pubspec.yaml
 dependencies:
   responsive_framework: ^1.1.1   # Responsive tasarım
+  shimmer: ^3.0.0               # Enhanced shimmer bileşenleri
 ```
 
 ---
@@ -579,6 +580,8 @@ final class HomeView extends StatelessWidget {
 - Büyük listeler için **ListView.builder**
 - Ağ resimleri için **Image caching**
 - Ağır işlemler için **Lazy loading**
+- Merkezi **Enhanced shimmer** yönetimi
+- Loading state'leri için **Shimmer optimization**
 
 ---
 
@@ -596,6 +599,8 @@ final class HomeView extends StatelessWidget {
 - ❌ **Karışık state management** çözümleri
 - ❌ Yeni özellikler için **Test atlama**
 - ❌ Analiz uyarılarını **Görmezden gelme**
+- ❌ Enhanced shimmer yerine **Manuel shimmer** implementasyonu
+- ❌ Loading state'lerde **Shimmer kullanmama**
 
 ---
 

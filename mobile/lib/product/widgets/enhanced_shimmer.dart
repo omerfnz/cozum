@@ -412,13 +412,9 @@ class FeedCardShimmer extends StatelessWidget {
   const FeedCardShimmer({
     super.key,
     this.hasImage = true,
-    this.hasTags = true,
-    this.hasActions = true,
   });
 
   final bool hasImage;
-  final bool hasTags;
-  final bool hasActions;
 
   @override
   Widget build(BuildContext context) {
@@ -431,27 +427,12 @@ class FeedCardShimmer extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header with avatar and user info
-            Padding(
-              padding: const EdgeInsets.all(12),
-              child: Row(
-                children: [
-                  const ShimmerAvatar(size: 40),
-                  const SizedBox(width: 12),
-                  const Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        ShimmerLine(width: double.infinity, height: 14),
-                        SizedBox(height: 8),
-                        ShimmerLine(width: 120, height: 12),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  const ShimmerLine(width: 60, height: 12),
-                ],
-              ),
+            // ListTile header matching FeedCard structure
+            ListTile(
+              leading: const ShimmerCircle(size: 40),
+              title: const ShimmerLine(width: 150, height: 16),
+              subtitle: const ShimmerLine(width: 100, height: 14),
+              trailing: const ShimmerLine(width: 60, height: 12),
             ),
             // Image placeholder
             if (hasImage)
@@ -459,45 +440,35 @@ class FeedCardShimmer extends StatelessWidget {
                 width: double.infinity,
                 aspectRatio: 16 / 9,
               ),
-            // Content
-            Padding(
-              padding: const EdgeInsets.all(12),
+            // Content description
+            const Padding(
+              padding: EdgeInsets.all(12),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const SizedBox(height: 6),
-                  const ShimmerLine(widthFactor: 1.0, height: 12),
-                  const SizedBox(height: 8),
-                  const ShimmerLine(widthFactor: 0.9, height: 12),
-                  const SizedBox(height: 8),
-                  const ShimmerLine(widthFactor: 0.7, height: 12),
-                  if (hasTags) ...[
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        const ShimmerBadge(width: 80, height: 24),
-                        const SizedBox(width: 8),
-                        const ShimmerBadge(width: 70, height: 24),
-                      ],
-                    ),
-                  ],
+                  ShimmerLine(widthFactor: 1.0, height: 12),
+                  SizedBox(height: 6),
+                  ShimmerLine(widthFactor: 0.9, height: 12),
+                  SizedBox(height: 6),
+                  ShimmerLine(widthFactor: 0.7, height: 12),
                 ],
               ),
             ),
-            // Actions
-            if (hasActions)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-                child: Row(
-                  children: [
-                    const ShimmerButton(width: 80, height: 32),
-                    const SizedBox(width: 8),
-                    const ShimmerButton(width: 70, height: 32),
-                    const Spacer(),
-                    const ShimmerLine(width: 40, height: 12),
-                  ],
-                ),
+            // Bottom badges and comment count
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+              child: Row(
+                children: [
+                  const ShimmerBadge(width: 80, height: 24),
+                  const SizedBox(width: 8),
+                  const ShimmerBadge(width: 70, height: 24),
+                  const Spacer(),
+                  const ShimmerCircle(size: 18),
+                  const SizedBox(width: 4),
+                  const ShimmerLine(width: 20, height: 12),
+                ],
               ),
+            ),
           ],
         ),
       ),
@@ -509,46 +480,53 @@ class ReportDetailShimmer extends StatelessWidget {
   const ReportDetailShimmer({
     super.key,
     this.hasImage = true,
-    this.hasComments = true,
   });
 
   final bool hasImage;
-  final bool hasComments;
 
   @override
   Widget build(BuildContext context) {
     return EnhancedShimmer(
       animationType: ShimmerAnimationType.slow,
       intensity: ShimmerIntensity.subtle,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Title
-            const ShimmerLine(height: 24, width: 220),
-            const SizedBox(height: 12),
-            // Status badges
-            Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Title
+          const Padding(
+            padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
+            child: ShimmerLine(height: 28, width: 250),
+          ),
+          // Status badges and date
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
               children: [
-                const ShimmerBadge(width: 80, height: 24),
+                const ShimmerBadge(width: 80, height: 28),
                 const SizedBox(width: 8),
-                const ShimmerBadge(width: 100, height: 24),
+                const ShimmerBadge(width: 100, height: 28),
                 const SizedBox(width: 8),
-                const ShimmerBadge(width: 80, height: 24),
+                const ShimmerBadge(width: 80, height: 28),
+                const Spacer(),
+                const ShimmerLine(width: 80, height: 12),
               ],
             ),
-            const SizedBox(height: 16),
-            // Image
-            if (hasImage) ...[
-              const ShimmerImage(
-                height: 200,
+          ),
+          const SizedBox(height: 12),
+          // Image
+          if (hasImage) ...[
+            AspectRatio(
+              aspectRatio: 16 / 9,
+              child: const ShimmerImage(
+                height: double.infinity,
                 width: double.infinity,
               ),
-              const SizedBox(height: 16),
-            ],
-            // Description
-            const Column(
+            ),
+          ],
+          // Description
+          const Padding(
+            padding: EdgeInsets.all(16),
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 ShimmerLine(height: 14, width: double.infinity),
@@ -556,50 +534,21 @@ class ReportDetailShimmer extends StatelessWidget {
                 ShimmerLine(height: 14, width: double.infinity),
                 SizedBox(height: 8),
                 ShimmerLine(height: 14, widthFactor: 0.8),
-                SizedBox(height: 16),
               ],
             ),
-            // Location info
-            Row(
+          ),
+          // Location info
+          const Padding(
+            padding: EdgeInsets.fromLTRB(16, 0, 16, 16),
+            child: Row(
               children: [
-                const ShimmerCircle(size: 16),
-                const SizedBox(width: 8),
-                const ShimmerLine(width: 150, height: 12),
+                ShimmerCircle(size: 18),
+                SizedBox(width: 6),
+                ShimmerLine(width: 150, height: 14),
               ],
             ),
-            const SizedBox(height: 16),
-            // Comments section
-            if (hasComments) ...[
-              const ShimmerLine(height: 18, width: 100),
-              const SizedBox(height: 12),
-              ...List.generate(
-                3,
-                (index) => Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const ShimmerAvatar(size: 32),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const ShimmerLine(width: 80, height: 12),
-                            const SizedBox(height: 6),
-                            const ShimmerLine(widthFactor: 0.9, height: 11),
-                            const SizedBox(height: 4),
-                            const ShimmerLine(widthFactor: 0.6, height: 11),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -608,8 +557,8 @@ class ReportDetailShimmer extends StatelessWidget {
 class ProfileShimmer extends StatelessWidget {
   const ProfileShimmer({
     super.key,
-    this.hasStats = true,
-    this.menuItemsCount = 6,
+    this.hasStats = false,
+    this.menuItemsCount = 5,
   });
 
   final bool hasStats;
@@ -620,82 +569,39 @@ class ProfileShimmer extends StatelessWidget {
     return EnhancedShimmer(
       animationType: ShimmerAnimationType.pulse,
       intensity: ShimmerIntensity.medium,
-      child: Padding(
+      child: ListView(
         padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            // Profile header
-            Column(
+        children: [
+          // Profile header - centered like real profile
+          Center(
+            child: Column(
               children: [
-                const ShimmerAvatar(
-                  size: 100,
-                  hasBorder: true,
-                ),
+                const ShimmerCircle(size: 120), // Larger avatar like real profile
                 const SizedBox(height: 16),
-                const ShimmerLine(width: 150, height: 18),
-                const SizedBox(height: 8),
-                const ShimmerLine(width: 200, height: 14),
-                const SizedBox(height: 16),
+                const ShimmerLine(width: 180, height: 20), // Name
+                const SizedBox(height: 6),
+                const ShimmerLine(width: 100, height: 14), // Role
+                const SizedBox(height: 4),
+                const ShimmerLine(width: 200, height: 12), // Email
               ],
             ),
-            // Stats
-            if (hasStats) ...[
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  const Column(
-                    children: [
-                      ShimmerLine(width: 40, height: 20),
-                      SizedBox(height: 4),
-                      ShimmerLine(width: 60, height: 12),
-                    ],
-                  ),
-                  const Column(
-                    children: [
-                      ShimmerLine(width: 40, height: 20),
-                      SizedBox(height: 4),
-                      ShimmerLine(width: 60, height: 12),
-                    ],
-                  ),
-                  const Column(
-                    children: [
-                      ShimmerLine(width: 40, height: 20),
-                      SizedBox(height: 4),
-                      ShimmerLine(width: 60, height: 12),
-                    ],
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
-            ],
-            // Menu items
-            ...List.generate(
-              menuItemsCount,
-              (index) => Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: Card(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 12,
-                    ),
-                    child: Row(
-                      children: [
-                        const ShimmerBox(width: 24, height: 24),
-                        const SizedBox(width: 16),
-                        const Expanded(
-                          child: ShimmerLine(width: double.infinity, height: 14),
-                        ),
-                        const SizedBox(width: 16),
-                        const ShimmerBox(width: 20, height: 20),
-                      ],
-                    ),
-                  ),
+          ),
+          const SizedBox(height: 24),
+          // Menu items - matching real profile structure
+          ...List.generate(
+            menuItemsCount,
+            (index) => Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Card(
+                child: ListTile(
+                  leading: const ShimmerCircle(size: 24),
+                  title: const ShimmerLine(width: 150, height: 16),
+                  trailing: const ShimmerCircle(size: 16),
                 ),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -987,15 +893,97 @@ class CategoriesShimmer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ShimmerListView(
-      itemCount: 6,
-      itemBuilder: (context, index) {
-        return const ListTileShimmer(
-          hasLeading: true,
-          hasTrailing: true,
-          subtitleLines: 2,
-        );
-      },
+    return EnhancedShimmer(
+      animationType: ShimmerAnimationType.standard,
+      intensity: ShimmerIntensity.medium,
+      child: ListView.separated(
+        padding: const EdgeInsets.all(16),
+        itemCount: 6,
+        separatorBuilder: (_, __) => const SizedBox(height: 8),
+        itemBuilder: (context, index) {
+          return Card(
+            child: ListTile(
+              leading: const ShimmerCircle(size: 40),
+              title: const ShimmerLine(width: 120, height: 16),
+              subtitle: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 4),
+                  const ShimmerLine(width: 200, height: 12),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      const ShimmerCircle(size: 16),
+                      const SizedBox(width: 6),
+                      const ShimmerLine(width: 40, height: 12),
+                    ],
+                  ),
+                ],
+              ),
+              trailing: const ShimmerBox(
+                width: 24,
+                height: 24,
+                borderRadius: BorderRadius.all(Radius.circular(4)),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class TasksShimmer extends StatelessWidget {
+  const TasksShimmer({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return EnhancedShimmer(
+      animationType: ShimmerAnimationType.standard,
+      intensity: ShimmerIntensity.medium,
+      child: ListView.separated(
+        padding: const EdgeInsets.all(16),
+        itemCount: 6,
+        separatorBuilder: (_, __) => const SizedBox(height: 8),
+        itemBuilder: (context, index) {
+          return Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: ListTile(
+                leading: const ShimmerCircle(size: 40),
+                title: const ShimmerLine(width: 150, height: 16),
+                isThreeLine: true,
+                subtitle: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const ShimmerLine(width: 100, height: 12),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        const ShimmerCircle(size: 14),
+                        const SizedBox(width: 4),
+                        const Expanded(
+                          child: ShimmerLine(height: 12),
+                        ),
+                        const SizedBox(width: 12),
+                        const ShimmerCircle(size: 14),
+                        const SizedBox(width: 4),
+                        const ShimmerLine(width: 60, height: 12),
+                      ],
+                    ),
+                  ],
+                ),
+                trailing: const ShimmerBox(
+                  width: 24,
+                  height: 24,
+                  borderRadius: BorderRadius.all(Radius.circular(12)),
+                ),
+              ),
+            ),
+          );
+        },
+      ),
     );
   }
 }
@@ -1005,10 +993,96 @@ class CreateReportShimmer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const FormShimmer(
-      fieldsCount: 4,
-      hasImagePicker: true,
-      hasSubmitButton: true,
+    return EnhancedShimmer(
+      animationType: ShimmerAnimationType.fast,
+      intensity: ShimmerIntensity.strong,
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Title field
+              const ShimmerLine(width: 60, height: 14),
+              const SizedBox(height: 8),
+              const ShimmerBox(
+                width: double.infinity,
+                height: 56,
+                borderRadius: BorderRadius.all(Radius.circular(8)),
+              ),
+              const SizedBox(height: 16),
+              // Description field
+              const ShimmerLine(width: 80, height: 14),
+              const SizedBox(height: 8),
+              const ShimmerBox(
+                width: double.infinity,
+                height: 100,
+                borderRadius: BorderRadius.all(Radius.circular(8)),
+              ),
+              const SizedBox(height: 16),
+              // Category dropdown
+              const ShimmerLine(width: 70, height: 14),
+              const SizedBox(height: 8),
+              const ShimmerBox(
+                width: double.infinity,
+                height: 56,
+                borderRadius: BorderRadius.all(Radius.circular(8)),
+              ),
+              const SizedBox(height: 16),
+              // Photo picker section
+              const ShimmerLine(width: 100, height: 14),
+              const SizedBox(height: 8),
+              const ShimmerImage(
+                width: double.infinity,
+                height: 180,
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  const Expanded(
+                    child: ShimmerButton(
+                      width: double.infinity,
+                      height: 44,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  const Expanded(
+                    child: ShimmerButton(
+                      width: double.infinity,
+                      height: 44,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              // Location section
+              const ShimmerLine(width: 90, height: 14),
+              const SizedBox(height: 8),
+              const ShimmerBox(
+                width: double.infinity,
+                height: 56,
+                borderRadius: BorderRadius.all(Radius.circular(8)),
+              ),
+              const SizedBox(height: 8),
+              const ShimmerImage(
+                width: double.infinity,
+                height: 200,
+              ),
+              const SizedBox(height: 8),
+              const ShimmerButton(
+                width: double.infinity,
+                height: 44,
+              ),
+              const SizedBox(height: 24),
+              // Submit button
+              const ShimmerButton(
+                width: double.infinity,
+                height: 48,
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
@@ -1029,19 +1103,28 @@ class CommentsShimmer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListView.separated(
-      padding: const EdgeInsets.symmetric(horizontal: 8),
-      physics: const NeverScrollableScrollPhysics(),
-      shrinkWrap: true,
-      itemCount: 3,
-      separatorBuilder: (_, __) => const SizedBox(height: 8),
-      itemBuilder: (context, index) {
-        return const ListTileShimmer(
-          hasLeading: true,
-          hasTrailing: false,
-          subtitleLines: 2,
-        );
-      },
+    return EnhancedShimmer(
+      animationType: ShimmerAnimationType.pulse,
+      intensity: ShimmerIntensity.medium,
+      child: Column(
+        children: List.generate(
+          3,
+          (index) => ListTile(
+            leading: const ShimmerCircle(size: 40),
+            title: const ShimmerLine(width: 120, height: 16),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const ShimmerLine(width: 80, height: 12),
+                const SizedBox(height: 4),
+                const ShimmerLine(width: double.infinity, height: 14),
+                const SizedBox(height: 4),
+                const ShimmerLine(widthFactor: 0.7, height: 14),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

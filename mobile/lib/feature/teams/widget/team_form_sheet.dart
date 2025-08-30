@@ -23,6 +23,8 @@ class TeamFormSheet extends StatefulWidget {
 class _TeamFormSheetState extends State<TeamFormSheet> {
   final _net = GetIt.I<INetworkService>();
   final _formKey = GlobalKey<FormState>();
+  late final TextEditingController _nameController;
+  late final TextEditingController _descriptionController;
   
   late String _name;
   String? _description;
@@ -36,35 +38,54 @@ class _TeamFormSheetState extends State<TeamFormSheet> {
     _description = widget.initialTeam?.description;
     _teamType = widget.initialTeam?.teamType ?? TeamType.ekip;
     _isActive = widget.initialTeam?.isActive ?? true;
+    _nameController = TextEditingController(text: _name);
+    _descriptionController = TextEditingController(text: _description ?? '');
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _descriptionController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom + 16,
-        left: 16,
-        right: 16,
-        top: 16,
+    return Container(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.8,
       ),
-      child: Form(
-        key: _formKey,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+      child: Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+          left: 16,
+          right: 16,
+          top: 16,
+        ),
+        child: SingleChildScrollView(
+          child: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
             Text(
               widget.initialTeam == null ? 'Yeni Ekip' : 'Ekibi Düzenle',
               style: Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: 12),
             EnhancedTextFormField(
-              controller: TextEditingController(text: _name),
+              controller: _nameController,
               labelText: 'Ad',
               prefixIcon: const Icon(Icons.group_rounded),
               validator: (value) => FormValidators.validateRequired(value, 'Ad'),
               showRealTimeValidation: true,
               maxLength: 50,
+              onChanged: (value) {
+                setState(() {
+                  _name = value;
+                });
+              },
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<TeamType>(
@@ -90,12 +111,17 @@ class _TeamFormSheetState extends State<TeamFormSheet> {
             ),
             const SizedBox(height: 12),
             EnhancedTextFormField(
-              controller: TextEditingController(text: _description ?? ''),
+              controller: _descriptionController,
               labelText: 'Açıklama (opsiyonel)',
               prefixIcon: const Icon(Icons.description_rounded),
               maxLines: 4,
               showRealTimeValidation: true,
               maxLength: 200,
+              onChanged: (value) {
+                setState(() {
+                  _description = value.isEmpty ? null : value;
+                });
+              },
             ),
             const SizedBox(height: 12),
             Row(
@@ -128,7 +154,9 @@ class _TeamFormSheetState extends State<TeamFormSheet> {
                 ),
               ],
             ),
-          ],
+              ],
+            ),
+          ),
         ),
       ),
     );

@@ -22,9 +22,12 @@
 ### Bugüne Kadar Neler Yaptık? (Özet)
 - **Backend:** Kullanıcı, Takım, Kategori, Bildirim, Medya ve Yorum modelleri tamamlandı. JWT tabanlı kimlik doğrulama ve rol bazlı yetkilendirme hayatta. Tüm API uç noktaları aktif.
 - **Frontend:** React+Vite+Tailwind yapılandırıldı. Giriş/Kayıt sayfaları, korumalı rotalar ve router yapısı tamam. Users ve Teams yönetim ekranları devrede (listeleme, arama, ekip oluşturma/düzenleme, soft-delete; kullanıcı rol ve takım ataması). API entegrasyonu, token yönetimi, toast bildirimleri ve lint/typecheck temiz. Profil sayfası eklendi. Sidebar'dan 'Ayarlar' menüsü kaldırıldı.
-- **Mobile:** Flutter uygulaması tamamlandı. MVVM mimarisi ile temiz kod yapısı kuruldu. Bildirim sistemi (CreateReportView, FeedView), görev yönetimi (TasksView), kullanıcı profili ve kimlik doğrulama ekranları hazır. Tüm lint hataları düzeltildi ve kod kalitesi optimize edildi. Bloc pattern ile state management, GetIt ile dependency injection ve auto_route ile navigation entegrasyonu tamamlandı.
+- **Mobile:** Flutter uygulaması tamamlandı. MVVM mimarisi ile temiz kod yapısı kuruldu. Bildirim sistemi (CreateReportView, FeedView), görev yönetimi (TasksView), kullanıcı profili ve kimlik doğrulama ekranları hazır. Tüm lint hataları düzeltildi ve kod kalitesi optimize edildi. Bloc pattern ile state management, GetIt ile dependency injection ve auto_route ile navigation entegrasyonu tamamlandı. **Shimmer optimizasyonları tamamlandı:** Enhanced shimmer bileşeni geliştirildi, tüm sayfalarda shimmer loading iyileştirildi, gerçek içerikle uyumlu shimmer tasarımları ve merkezi shimmer yönetimi eklendi.
 
 ### Sıradaki Adımlar
-- Vatandaş akışları: Bildirim oluşturma ve “Bildirimlerim” sayfası.
+- Vatandaş akışları: Bildirim oluşturma ve "Bildirimlerim" sayfası.
 - Operatör akışları: Tüm raporlar, ekip atama ve durum güncelleme.
 - Saha ekibi akışları: Atanan raporlar, durum/yorum güncellemeleri.
+- Frontend web arayüzünün tamamlanması ve harita entegrasyonu.
+- Push bildirim sistemi ve iOS App Store hazırlıkları.
+- Gelişmiş UI/UX iyileştirmeleri ve shimmer animasyonlarının daha da geliştirilmesi.

@@ -148,47 +148,7 @@ class _TasksViewBodyState extends State<_TasksViewBody> {
       },
       builder: (context, state) {
         if (state is TasksLoading) {
-          return ShimmerListView(
-            itemCount: 6,
-            itemBuilder: (context, index) {
-              return Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: ListTile(
-                    leading: const ShimmerCircle(size: 40),
-                    title: const ShimmerLine(width: 150, height: 16),
-                    isThreeLine: true,
-                    subtitle: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const ShimmerLine(width: 100, height: 12),
-                        const SizedBox(height: 4),
-                        Row(
-                          children: [
-                            const ShimmerCircle(size: 14),
-                            const SizedBox(width: 4),
-                            const Expanded(
-                              child: ShimmerLine(height: 12),
-                            ),
-                            const SizedBox(width: 12),
-                            const ShimmerCircle(size: 14),
-                            const SizedBox(width: 4),
-                            const ShimmerLine(width: 60, height: 12),
-                          ],
-                        ),
-                      ],
-                    ),
-                    trailing: const ShimmerBox(
-                      width: 24,
-                      height: 24,
-                      borderRadius: BorderRadius.all(Radius.circular(12)),
-                    ),
-                  ),
-                ),
-              );
-            },
-          );
+          return const TasksShimmer();
         }
 
         if (state is TasksError) {

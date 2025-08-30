@@ -22,6 +22,8 @@ class CategoryFormSheet extends StatefulWidget {
 class _CategoryFormSheetState extends State<CategoryFormSheet> {
   final _net = GetIt.I<INetworkService>();
   final formKey = GlobalKey<FormState>();
+  late final TextEditingController _nameController;
+  late final TextEditingController _descriptionController;
   String? name;
   String? description;
   bool isActive = true;
@@ -34,44 +36,68 @@ class _CategoryFormSheetState extends State<CategoryFormSheet> {
       description = widget.initial!.description;
       isActive = widget.initial!.isActive;
     }
+    _nameController = TextEditingController(text: name);
+    _descriptionController = TextEditingController(text: description ?? '');
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _descriptionController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.only(
-        left: 16,
-        right: 16,
-        top: 16,
-        bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+    return Container(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.8,
       ),
-      child: Form(
-        key: formKey,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
+      child: Padding(
+        padding: EdgeInsets.only(
+          left: 16,
+          right: 16,
+          top: 16,
+          bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+        ),
+        child: SingleChildScrollView(
+          child: Form(
+            key: formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
             Text(
               widget.initial == null ? 'Yeni Kategori' : 'Kategori Düzenle',
               style: Theme.of(context).textTheme.headlineSmall,
             ),
             const SizedBox(height: 16),
             EnhancedTextFormField(
-              controller: TextEditingController(text: name),
+              controller: _nameController,
               labelText: 'Kategori Adı',
               prefixIcon: const Icon(Icons.category_rounded),
               validator: (value) => FormValidators.validateRequired(value, 'Kategori Adı'),
               showRealTimeValidation: true,
               maxLength: 50,
+              onChanged: (value) {
+                setState(() {
+                  name = value;
+                });
+              },
             ),
             const SizedBox(height: 16),
             EnhancedTextFormField(
-              controller: TextEditingController(text: description ?? ''),
+              controller: _descriptionController,
               labelText: 'Açıklama (İsteğe bağlı)',
               prefixIcon: const Icon(Icons.description_rounded),
               maxLines: 3,
               showRealTimeValidation: true,
               maxLength: 200,
+              onChanged: (value) {
+                setState(() {
+                  description = value.isEmpty ? null : value;
+                });
+              },
             ),
             const SizedBox(height: 16),
             SwitchListTile(
@@ -136,7 +162,9 @@ class _CategoryFormSheetState extends State<CategoryFormSheet> {
                 ),
               ],
             ),
-          ],
+              ],
+            ),
+          ),
         ),
       ),
     );

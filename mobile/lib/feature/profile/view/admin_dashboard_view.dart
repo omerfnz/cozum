@@ -191,31 +191,31 @@ class _OverviewTab extends StatelessWidget {
             crossAxisCount: 2,
             mainAxisSpacing: 16,
             crossAxisSpacing: 16,
-            childAspectRatio: 1.5,
+            childAspectRatio: 2.0,
             children: [
               _StatCard(
                 title: 'Toplam Kullanıcı',
                 value: totalUsers.toString(),
                 icon: Icons.people_outline,
-                color: Colors.blue,
+                color: Theme.of(context).colorScheme.primary,
               ),
               _StatCard(
                 title: 'Toplam Rapor',
                 value: totalReports.toString(),
                 icon: Icons.report_outlined,
-                color: Colors.green,
+                color: Theme.of(context).colorScheme.secondary,
               ),
               _StatCard(
                 title: 'Bekleyen Raporlar',
                 value: pendingReports.toString(),
                 icon: Icons.pending_outlined,
-                color: Colors.orange,
+                color: Theme.of(context).colorScheme.tertiary,
               ),
               _StatCard(
                 title: 'Aktif Ekipler',
                 value: activeTeams.toString(),
                 icon: Icons.groups_outlined,
-                color: Colors.purple,
+                color: Theme.of(context).colorScheme.primaryContainer,
               ),
             ],
           ),
@@ -235,15 +235,47 @@ class _OverviewTab extends StatelessWidget {
               separatorBuilder: (_, __) => const Divider(height: 1),
               itemBuilder: (context, index) {
                 final user = recentUsers[index];
-                return ListTile(
-                  leading: CircleAvatar(
-                    child: Text(user.username[0].toUpperCase()),
-                  ),
-                  title: Text(user.username),
-                  subtitle: Text(user.email),
-                  trailing: Chip(
-                    label: Text(user.role.value),
-                    backgroundColor: _getRoleColor(user.role),
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  child: Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 20,
+                        child: Text(user.username[0].toUpperCase()),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              user.username,
+                              style: Theme.of(context).textTheme.titleSmall,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            Text(
+                              user.email,
+                              style: Theme.of(context).textTheme.bodySmall,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
+                        constraints: const BoxConstraints(maxWidth: 70),
+                        child: Chip(
+                          label: Text(
+                            user.role.value,
+                            style: const TextStyle(fontSize: 10),
+                          ),
+                          backgroundColor: _getRoleColor(user.role),
+                          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          visualDensity: VisualDensity.compact,
+                        ),
+                      ),
+                    ],
                   ),
                 );
               },
@@ -265,23 +297,47 @@ class _OverviewTab extends StatelessWidget {
               separatorBuilder: (_, __) => const Divider(height: 1),
               itemBuilder: (context, index) {
                 final report = recentReports[index];
-                return ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: _getStatusColor(report.status),
-                    child: Icon(
-                      Icons.report_outlined,
-                      color: Colors.white,
-                    ),
-                  ),
-                  title: Text(
-                    report.title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  subtitle: Text(report.category.name),
-                  trailing: Text(
-                    report.formattedDate,
-                    style: Theme.of(context).textTheme.bodySmall,
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  child: Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 20,
+                        backgroundColor: _getStatusColor(report.status),
+                        child: Icon(
+                          Icons.report_outlined,
+                          color: Theme.of(context).colorScheme.onPrimary,
+                          size: 20,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              report.title,
+                              style: Theme.of(context).textTheme.titleSmall,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            Text(
+                              report.category.name,
+                              style: Theme.of(context).textTheme.bodySmall,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        report.formattedDate,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          fontSize: 10,
+                        ),
+                      ),
+                    ],
                   ),
                 );
               },
@@ -337,28 +393,35 @@ class _StatCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(6),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
               icon,
-              size: 32,
+              size: 20,
               color: color,
             ),
-            const SizedBox(height: 8),
-            Text(
-              value,
-              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                color: color,
-                fontWeight: FontWeight.bold,
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                value,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  color: color,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
             const SizedBox(height: 4),
             Text(
               title,
-              style: Theme.of(context).textTheme.bodySmall,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+              ),
               textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
           ],
         ),
@@ -382,33 +445,66 @@ class _UsersTab extends StatelessWidget {
       itemBuilder: (context, index) {
         final user = users[index];
         return Card(
-          child: ListTile(
-            leading: CircleAvatar(
-              child: Text(user.username[0].toUpperCase()),
-            ),
-            title: Text(user.username),
-            subtitle: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Row(
               children: [
-                Text(user.email),
-                if (user.team != null)
-                  Text('Ekip: ${user.team!.name}'),
-              ],
-            ),
-            trailing: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Chip(
-                  label: Text(user.role.value),
-                  backgroundColor: _getRoleColor(user.role),
+                CircleAvatar(
+                  child: Text(user.username[0].toUpperCase()),
                 ),
-                if (!user.isActive)
-                  const Icon(Icons.block, color: Colors.red, size: 16),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        user.username,
+                        style: Theme.of(context).textTheme.titleMedium,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        user.email,
+                        style: Theme.of(context).textTheme.bodySmall,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      if (user.team != null) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          'Ekip: ${user.team!.name}',
+                          style: Theme.of(context).textTheme.bodySmall,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Container(
+                      constraints: const BoxConstraints(maxWidth: 80),
+                      child: Chip(
+                        label: Text(
+                          user.role.value,
+                          style: const TextStyle(fontSize: 11),
+                        ),
+                        backgroundColor: _getRoleColor(user.role),
+                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        visualDensity: VisualDensity.compact,
+                      ),
+                    ),
+                    if (!user.isActive) ...[
+                      const SizedBox(height: 4),
+                      Icon(Icons.block, color: Theme.of(context).colorScheme.error, size: 16),
+                    ],
+                  ],
+                ),
               ],
             ),
-            onTap: () {
-              // TODO: Navigate to user detail
-            },
           ),
         );
       },
@@ -444,41 +540,77 @@ class _ReportsTab extends StatelessWidget {
       itemBuilder: (context, index) {
         final report = reports[index];
         return Card(
-          child: ListTile(
-            leading: CircleAvatar(
-              backgroundColor: _getStatusColor(report.status),
-              child: const Icon(Icons.report_outlined, color: Colors.white),
-            ),
-            title: Text(
-              report.title,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            subtitle: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Row(
               children: [
-                Text('Kategori: ${report.category.name}'),
-                Text('Rapor Eden: ${report.reporter.username}'),
-                if (report.assignedTeam != null)
-                  Text('Atanan Ekip: ${report.assignedTeam!.name}'),
-              ],
-            ),
-            trailing: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Chip(
-                   label: Text(report.status.displayName),
-                   backgroundColor: _getStatusColor(report.status).withValues(alpha: 0.2),
-                 ),
-                Text(
-                  report.formattedDate,
-                  style: Theme.of(context).textTheme.bodySmall,
+                CircleAvatar(
+                  backgroundColor: _getStatusColor(report.status),
+                  child: Icon(Icons.report_outlined, color: Theme.of(context).colorScheme.onPrimary),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        report.title,
+                        style: Theme.of(context).textTheme.titleMedium,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Kategori: ${report.category.name}',
+                        style: Theme.of(context).textTheme.bodySmall,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Rapor Eden: ${report.reporter.username}',
+                        style: Theme.of(context).textTheme.bodySmall,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      if (report.assignedTeam != null) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          'Atanan Ekip: ${report.assignedTeam!.name}',
+                          style: Theme.of(context).textTheme.bodySmall,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Container(
+                      constraints: const BoxConstraints(maxWidth: 90),
+                      child: Chip(
+                        label: Text(
+                          report.status.displayName,
+                          style: const TextStyle(fontSize: 10),
+                        ),
+                        backgroundColor: _getStatusColor(report.status).withAlpha(51),
+                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        visualDensity: VisualDensity.compact,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      report.formattedDate,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        fontSize: 10,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
-            onTap: () {
-              // TODO: Navigate to report detail
-            },
           ),
         );
       },
@@ -505,22 +637,22 @@ class _AnalyticsTab extends StatelessWidget {
   
   @override
   Widget build(BuildContext context) {
-    return const Center(
+    return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(
             Icons.analytics_outlined,
             size: 64,
-            color: Colors.grey,
+            color: Theme.of(context).colorScheme.outline,
           ),
-          SizedBox(height: 16),
-          Text(
+          const SizedBox(height: 16),
+          const Text(
             'Analitik Özellikleri',
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
-          SizedBox(height: 8),
-          Text(
+          const SizedBox(height: 8),
+          const Text(
             'Grafik ve istatistikler burada gösterilecek',
             textAlign: TextAlign.center,
           ),
@@ -620,10 +752,10 @@ class _ErrorView extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(
+            Icon(
               Icons.error_outline,
               size: 64,
-              color: Colors.red,
+              color: Theme.of(context).colorScheme.error,
             ),
             const SizedBox(height: 16),
             Text(
